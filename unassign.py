@@ -1,25 +1,9 @@
 #!/usr/bin/env python
 from __future__ import division
 import optparse
-from cStringIO import StringIO
 
-from unassign.search_blast import blast_to, hit_region_identity
-
-
-def parse_fasta(f):
-    f = iter(f)
-    desc = f.next().strip()[1:]
-    seq = StringIO()
-    for line in f:
-        line = line.strip()
-        if line.startswith(">"):
-            yield desc, seq.getvalue()
-            desc = line[1:]
-            seq = StringIO()
-        else:
-            seq.write(line)
-    yield desc, seq.getvalue()
-
+from unassign.search_blast import blast_to, hit_identity
+from unassign.parse import parse_fasta
 
 def main(argv=None):
     p = optparse.OptionParser()
