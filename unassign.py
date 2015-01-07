@@ -3,6 +3,8 @@ from __future__ import division
 import optparse
 from cStringIO import StringIO
 
+from unassign.search_blast import blast_to, hit_region_identity
+
 
 def parse_fasta(f):
     f = iter(f)
@@ -17,14 +19,6 @@ def parse_fasta(f):
         else:
             seq.write(line)
     yield desc, seq.getvalue()
-
-
-def format_delim(vals):
-    '\t'.join(map(str, vals))
-
-
-def load_seqs(recs):
-    dict((desc.split()[0], seq) for desc, seq in recs)
 
 
 def main(argv=None):
