@@ -1,11 +1,8 @@
-from __future__ import division
 import unittest
 
-from unassign.search_blast import (
-    hit_identity,
-    )
+from unassign.search_blast import hit_identity
 
-class FuntionTests(unittest.TestCase):
+class HitIdentityTests(unittest.TestCase):
     def test_hit_identity_no_endgaps(self):
         # Hit has 15 positions and 2 mismatches (rightmost columns).
         hit = {
