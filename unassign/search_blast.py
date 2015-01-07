@@ -38,34 +38,6 @@ def blast_to(query_fp, database_fp, output_fp, max_hits=100):
         return list(parse_blastn(f))
 
 
-def hit_identity(hit):
-    total = 0
-    matches = 0
-
-    # matches in alignment region
-    for qchar, hchar in zip(hit['qseq'], hit['sseq']):
-        total = total + 1
-        if qchar == hchar:
-            matches = matches + 1
-
-    # if query is not aligned at first base
-    if hit['qstart'] > 1:
-        # Count unaligned nts as part of total
-        total = total + hit['qstart'] - 1
-        
-        # TODO: check if we are at the end of subject sequence and do
-        # not count if subject can't be extended.
-
-    # if query is not aligned at last base
-    if hit['qend'] < hit['qlen']:
-        # Count unaligned nts as part of total
-        total = total + hit['qlen'] - hit['qend']
-
-        # TODO: again, check if we are out of range in the subject seqs
-        
-    return matches / total
-
-
 def hit_identity(hit, start=None, end=None):
     """Count regional and total matches in BLAST hit.
 
