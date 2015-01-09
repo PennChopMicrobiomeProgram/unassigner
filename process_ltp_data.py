@@ -26,10 +26,12 @@ def main(argv=None):
         "Filepath for unaligned 16S sequences from LTP (.fasta file) "
         "[default: download from LTP website]"))
     p.add_option("--greengenes_accessions_fp", help=(
-        "Filepath for table of GreenGenes accession numbers (.txt.gz file) "
+        "Filepath for table of GreenGenes accession numbers "
+        "(.txt or .txt.gz file) "
         "[default: download from GreenGenes mirror]"))
     p.add_option("--greengenes_seqs_fp", help=(
-        "Filepath for unaligned 16S reference sequences (.fasta.gz file) "
+        "Filepath for unaligned 16S reference sequences "
+        "(.fasta or .fasta.gz file) "
         "[default: download from GreenGenes mirror]"))
     p.add_option("--clean", action="store_true", help=(
         "Remove all downloaded and processed files."))

@@ -1,3 +1,4 @@
+import collections
 import os
 import subprocess
 import tarfile
@@ -85,8 +86,9 @@ def process_ltp_seqs(input_fp, output_fp=SPECIES_FASTA_FP):
 
 def process_greengenes_seqs(seqs_fp, accessions_fp, output_fp=REFSEQS_FASTA_FP):
     # Extract table of accessions
-    subprocess.check_call(["gunzip", "-f", accessions_fp])
-    accessions_fp = gunzip_fp(accessions_fp)
+    if accessions_fp.endswith(".gz"):
+        subprocess.check_call(["gunzip", "-f", accessions_fp])
+        accessions_fp = gunzip_fp(accessions_fp)
 
     # Load accessions
     gg_accessions = {}
@@ -95,17 +97,27 @@ def process_greengenes_seqs(seqs_fp, accessions_fp, output_fp=REFSEQS_FASTA_FP):
             gg_accessions[ggid] = (acc, src)
 
     # Extract FASTA file
-    subprocess.check_call(["gunzip", "-f", seqs_fp])
-    seqs_fp = gunzip_fp(seqs_fp)
+    if seqs_fp.endswith(".gz"):
+        subprocess.check_call(["gunzip", "-f", seqs_fp])
+        seqs_fp = gunzip_fp(seqs_fp)
 
-    # Re-label seqs with accession numbers
-    with open(seqs_fp) as f_in:
-        seqs = parse_fasta(f_in)
-        with open(output_fp, "w") as f_out:
-            for ggid, seq in seqs:
+    # Remove duplicate reference seqs
+    uniq_seqs = collections.defaultdict(list)
+    with open(seqs_fp) as f:
+        for ggid, seq in parse_fasta(f):
+            uniq_seqs[seq].append(ggid)
+
+    duplicates_fp = "gg_duplicate_ids.txt"
+    with open(duplicates_fp, "w") as dups:
+        with open(output_fp, "w") as f:
+            for seq, ggids in uniq_seqs.iteritems():
+                ggid = ggids[0]
+                if len(ggids) > 1:
+                    dups.write(" ".join(ggids))
+                # Re-label seqs with accession numbers
                 acc, src = gg_accessions[ggid]
-                f_out.write(">%s %s %s\n%s\n" % (acc, src, ggid, seq))
-    
+                f.write(">%s %s %s\n%s\n" % (acc, src, ggid, seq))
+
     # Make BLAST database
     subprocess.check_call([
         "makeblastdb",
