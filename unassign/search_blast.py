@@ -1,4 +1,5 @@
 from __future__ import division
+import itertools
 import subprocess
 
 BLAST_FMT = (
@@ -9,12 +10,39 @@ BLAST_FIELD_TYPES = [
     str, str, float, int, int, int,
     int, int, int, int, int, int, str, str]
 
-def check_call_blastn(query_fp, database_fp, output_fp, max_hits=100):
+
+class BlastAligner(object):
+    def __init__(self, num_threads=1):
+        self.num_threads = num_threads
+
+    def align_query(self, query_fp):
+        pass
+
+def group_by_query(hits):
+    return itertools.groupby(hits, key=lambda x: x['qseqid'])
+
+
+def top_hits(hits):
+    qseqid = None
+    for hit in hits:
+        if hit['qseqid'] != qseqid:
+            yield hit
+            qseqid = hit['qseqid']
+
+
+def check_call_blastn(query_fp, database_fp, output_fp, **kwargs):
     args = [
         "blastn",
         "-evalue", "1e-5",
         "-outfmt", "6 " + BLAST_FMT,
-        "-max_target_seqs", str(max_hits),
+        ]
+    for arg, val in kwargs.items():
+        arg = "-" + arg
+        if val is None:
+            args.append(arg)
+        else:
+            args += [arg, str(val)]
+    args += [
         "-query", query_fp,
         "-db", database_fp,
         "-out", output_fp,
@@ -32,8 +60,28 @@ def parse_blastn(f):
         yield dict(zip(BLAST_FIELDS, vals))
 
 
-def blast_to(query_fp, database_fp, output_fp, max_hits=100):
-    check_call_blastn(query_fp, database_fp, output_fp, max_hits)
+def blast_to(query_fp, database_fp, output_fp, **kwargs):
+    """Call the blastn program and return a list of hits.
+
+    Parameters
+    ----------
+    query_fp : str
+        Filepath to query sequences.
+    database_fp : str
+        Filepath to BLAST+ database.
+    output_fp : str
+        Filepath to output file.
+    kwargs : dict
+        Additional parameters for blastn (see notes).
+
+    Keyword arguments can be used to pass additional parameters to the
+    program.  If the value is None, the argument is passed to the
+    command line without a value.  Otherwise, the value is converted to
+    a string and passed to the command line following the argument.
+
+    Common argument: max_target_seqs (default: 500).
+    """
+    check_call_blastn(query_fp, database_fp, output_fp, **kwargs)
     with open(output_fp) as f:
         return list(parse_blastn(f))
 

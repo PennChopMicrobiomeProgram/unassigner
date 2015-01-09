@@ -34,6 +34,11 @@ def parse_fasta(f):
     yield desc, seq.getvalue()
 
 
+def write_fasta(f, seqs):
+    for desc, seq in seqs:
+        f.write(">%s\n%s\n" % (desc, seq))
+
+
 def parse_greengenes_accessions(f):
     for line in f:
         if line.startswith("#"):
