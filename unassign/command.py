@@ -6,7 +6,7 @@ import sys
 from unassign.search_blast import (
     blast_to, top_hits, hit_identity, group_by_query,
     )
-from unassign.parse import parse_fasta, write_fasta
+from unassign.parse import parse_fasta, write_fasta, load_fasta
 from unassign.util import uniq
 
 
@@ -49,10 +49,12 @@ class Unassigner(object):
         facilitate caching.
         """
         species_hit_ids = uniq(x['sseqid'] for x in species_hits)
-        strain_seqs = self._load_type_strain_seqs()
+        strain_seqs = load_fasta(self.species_fp)
         return [(x, strain_seqs[x]) for x in species_hit_ids]
-            
+
     def _evaluate_confidence(self, species_hit, refseq_hits):
+        """Compute probability of species attribution.
+        """
         query_id = species_hit['qseqid']
         species_id = species_hit['sseqid']
         start = species_hit['sstart']
@@ -62,11 +64,6 @@ class Unassigner(object):
             a, b = hit_identity(r_hit, start, end)
             c, d = hit_identity(r_hit)
             print query_id, species_id, a, b, refseq_id, c, d
-
-    def _load_type_strain_seqs(self):
-        with open(self.species_fp) as f:
-            recs = parse_fasta(f)
-            return dict((desc.split()[0], seq) for desc, seq in recs)
 
 
 def main(argv=None):

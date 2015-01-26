@@ -18,7 +18,6 @@ def parse_fasta(f):
     This function removes whitespace in the sequence and translates
     "U" to "T", in order to accommodate FASTA files downloaded from
     SILVA and the Living Tree Project.
-
     """
     f = iter(f)
     desc = next(f).strip()[1:]
@@ -37,6 +36,22 @@ def parse_fasta(f):
 def write_fasta(f, seqs):
     for desc, seq in seqs:
         f.write(">%s\n%s\n" % (desc, seq))
+
+
+def load_fasta(filepath):
+    """Load all sequences from a FASTA file
+
+    Parameters
+    ----------
+    fasta_fp : Input filepath, FASTA format.
+
+    Returns
+    -------
+    A dictionary mapping sequence identifiers to sequences.
+    """
+    with open(filepath) as f:
+        recs = parse_fasta(f)
+        return dict((desc.split()[0], seq) for desc, seq in recs)
 
 
 def parse_greengenes_accessions(f):
