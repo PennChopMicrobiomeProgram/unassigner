@@ -15,8 +15,25 @@ class BlastAligner(object):
     def __init__(self, num_threads=1):
         self.num_threads = num_threads
 
-    def align_query(self, query_fp):
-        pass
+    def align_query_to_typestrains(self, query_fp, typestrain_fp):
+        species_hits = blast_to(
+            query_fp, self.species_fp, "unassigner_query_blastn.txt",
+            max_target_seqs=10, num_threads=self.num_threads)
+        # Limit to top hits for initial implementation
+        # Going to iterate through this a couple times, so we need a list
+        species_hits = list(top_hits(species_hits))
+        # Sort by type strain so we can re-use refseq hits
+        species_hits.sort(key=lambda x: x['sseqid'])
+        return species_hits
+
+    def align_typestrain_to_refseqs(self, typestrain_seqs, refseqs_fp):
+        input_fp = "unassigner_top_hit.fasta"
+        with open(input_fp, "w") as f:
+            write_fasta(f, typestrain_seqs)
+        return blast_to(
+            input_fp, refseqs_fp, "unassigner_strain_blastn.txt",
+            max_target_seqs=100, num_threads=self.num_threads)
+
 
 def group_by_query(hits):
     return itertools.groupby(hits, key=lambda x: x['qseqid'])
