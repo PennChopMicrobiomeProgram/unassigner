@@ -33,6 +33,12 @@ def parse_fasta(f):
     yield desc, seq.getvalue()
 
 
+def trim_seq_desc(seqs):
+    for desc, seq in seqs:
+        seqid = desc.split()[0]
+        yield seqid, seq
+
+
 def write_fasta(f, seqs):
     for desc, seq in seqs:
         f.write(">%s\n%s\n" % (desc, seq))
@@ -50,8 +56,8 @@ def load_fasta(filepath):
     A dictionary mapping sequence identifiers to sequences.
     """
     with open(filepath) as f:
-        recs = parse_fasta(f)
-        return dict((desc.split()[0], seq) for desc, seq in recs)
+        seqs = trim_seq_desc(parse_fasta(f))
+        return dict(seqs)
 
 
 def parse_greengenes_accessions(f):
