@@ -1,37 +1,22 @@
+import itertools
 import logging
 import optparse
-import sys
-
-
-from unassign.search_blast import (
-    blast_to, top_hits, hit_identity, group_by_query,
-    )
-from unassign.parse import parse_fasta, write_fasta, load_fasta
-from unassign.util import uniq
 
 
 class Unassigner(object):
-    def __init__(self, species_fp, refseqs_fp, aligner):
-        self.species_fp = species_fp
-        self.refseqs_fp = refseqs_fp
+    def __init__(self, aligner):
         self.aligner = aligner
 
-    def unassign(self, query_fp):
+    def unassign(self, query_seqs):
         """Execute unassignment algorithm on a filepath of query seqs.
         """
         logging.info("Aligning query seqs to type strain seqs")
-        species_hits = self.aligner.search_species(
-            query_fp, self.species_fp,
-            output_fp="unassigner_query_blastn.txt")
+        species_hits = self.aligner.search_species(query_seqs)
 
         logging.info("Aligning type strain seqs to reference seqs")
-        species_seqs = self._get_species_seqs(species_hits)
-        refseq_hits = self.aligner.search_refseqs(
-            species_seqs, self.refseqs_fp,
-            input_fp="unassigner_top_hit.fasta",
-            output_fp="unassigner_strain_blastn.txt")
+        refseq_hits = self.aligner.search_refseqs(species_hits)
 
-        logging.info("Evaluating aignment results")
+        logging.info("Evaluating alignment results")
         grouped_refseq_hits = itertools.groupby(
             refseq_hits, key=lambda x: x.query_id)
         r_hits_species_id, r_hits = next(grouped_refseq_hits)
@@ -43,31 +28,21 @@ class Unassigner(object):
             if species_id != r_hits_species_id:
                 raise RuntimeError(
                     "Missing reference hits for %s" % species_id)
-            self._evaluate_confidence(s_hit, r_hits)
-
-    def _get_species_seqs(self, hits):
-        """Fetch seqs for each species in the list of hits.
-
-        Each unique species in the list is returned only once in the
-        list of results, but the order of hits is preserved to
-        facilitate caching.
-        """
-        species_ids = uniq(x.subject_id for x in species_hits)
-        seqs = load_fasta(self.species_fp)
-        return [(x, seqs[x]) for x in species_ids]
+            for res in self._evaluate_confidence(s_hit, r_hits):
+                yield res
 
     def _evaluate_confidence(self, species_hit, refseq_hits):
         """Compute probability of species attribution.
         """
-        query_id = species_hit['qseqid']
-        species_id = species_hit['sseqid']
-        start = species_hit['sstart']
-        end = species_hit['send']
+        query_id = species_hit.query_id
+        species_id = species_hit.subject_id
+        start = species_hit.start_pos
+        end = species_hit.end_pos
         for r_hit in refseq_hits:
-            refseq_id = r_hit['sseqid']
-            a, b = hit_identity(r_hit, start, end)
-            c, d = hit_identity(r_hit)
-            print query_id, species_id, a, b, refseq_id, c, d
+            refseq_id = r_hit.subject_id
+            a, b = r_hit.count_matches(start, end)
+            c, d = r_hit.count_matches()
+            yield query_id, species_id, a, b, refseq_id, c, d
 
 
 def main(argv=None):
@@ -90,6 +65,16 @@ def main(argv=None):
     if opts.verbose is True:
         logging.basicConfig(level=logging.INFO)
 
-    a = BlastAligner(opts.num_cpus)
-    u = Unassigner(opts.type_strain_fp, opts.reference_fp, a)
-    u.unassign(opts.query_fp)
+    with open(opts.query_fp) as f:
+        query_seqs = list(parse_fasta(f, trim_desc=True))
+
+    a = BlastAligner(opts.type_strain_fp, opts.reference_fp)
+    a.num_cpus = opts.num_cpus
+    a.species_input_fp = "unassigner_query.fasta"
+    a.species_output_fp = "unassigner_query_blastn.txt"
+    a.refseq_input_fp = "unassigner_strains.fasta"
+    a.refseq_output_fp = "unassigner_strains_blastn.txt"
+
+    u = Unassigner(a)
+    for res in u.unassign(query_seqs):
+        print "\t".join(res)

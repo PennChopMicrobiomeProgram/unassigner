@@ -3,7 +3,8 @@ import itertools
 import subprocess
 import tempfile
 
-from unassign.parse import write_fasta
+from unassign.parse import write_fasta, load_fasta
+from unassign.util import uniq
 
 BLAST_FMT = (
     "qseqid sseqid pident length mismatch gapopen "
@@ -23,44 +24,69 @@ class BlastAlignment(object):
         self.end_pos = hit['send']
 
     def count_matches(self, start=None, end=None):
-        """See docstring for hit_identity."""
-        return hit_identity(self._hit, start, end)
+        """See docstring for _hit_identity."""
+        return _hit_identity(self._hit, start, end)
 
 
 class BlastAligner(object):
     """Align sequences with BLAST."""
     alignment_cls = BlastAlignment
 
-    def __init__(self, num_threads=1):
-        self.num_threads = num_threads
+    def __init__(self, species_fp, refseq_fp):
+        self.species_fp = species_fp
+        self.species_max_hits = 1
+        self.species_input_fp = None
+        self.species_output_fp = None
 
-    def search_species(self, query_fp, species_fp, output_fp=None, max_hits=1):
+        self.refseq_fp = refseq_fp
+        self.refseq_max_hits = 100
+        self.refseq_input_fp = None
+        self.refseq_output_fp = None
+
+        self.num_cpus = 1
+
+    def search_species(self, seqs):
         """Search species typestrains for match to query sequences."""
-        if output_fp is None:
-            outfile = tempfile.NamedTemporaryFile()
-            output_fp = outfile.name
-        self._call(
-            query_fp, species_fp, output_fp,
-            max_target_seqs=max_hits,
-            num_threads=self.num_threads)
-        return self._load(output_fp)
+        return self._search(
+            seqs, self.species_fp, self.species_max_hits,
+            self.species_input_fp, self.species_output_fp)
 
-    def search_refseqs(self, query_seqs, refseqs_fp, input_fp=None,
-                       output_fp=None, max_hits=100):
-        """Search reference seqs for matches to species typestrains."""
+    def search_refseqs(self, species_hits):
+        """Search reference sequences for match to species hits."""
+        seqs = self._get_species_seqs(species_hits)
+        return self._search(
+            seqs, self.refseq_fp, self.refseq_max_hits,
+            self.refseq_input_fp, self.refseq_output_fp)
+
+    def _get_species_seqs(self, hits):
+        """Fetch seqs for each species in the list of hits.
+
+        Each unique species in the list is returned only once in the
+        list of results, but the order of hits is preserved to
+        facilitate caching.
+        """
+        species_ids = uniq(x.subject_id for x in hits)
+        seqs = load_fasta(self.species_fp)
+        return [(x, seqs[x]) for x in species_ids]
+
+    def _search(self, seqs, db, max_hits, input_fp, output_fp):
         if input_fp is None:
             infile = tempfile.NamedTemporaryFile()
+            write_fasta(infile, seqs)
+            infile.seek(0)
             input_fp = infile.name
-        with open(input_fp, "w") as f:
-            write_fasta(f, query_seqs)
+        else:
+            with open(input_fp, "w") as f:
+                write_fasta(f, seqs)
 
         if output_fp is None:
             outfile = tempfile.NamedTemporaryFile()
             output_fp = outfile.name
+
         self._call(
-            input_fp, refseqs_fp, output_fp,
+            input_fp, db, output_fp,
             max_target_seqs=max_hits,
-            num_threads=self.num_threads)
+            num_threads=self.num_cpus)
         return self._load(output_fp)
 
     @classmethod
@@ -110,7 +136,7 @@ class BlastAligner(object):
         subprocess.check_call(args)
 
 
-def hit_identity(hit, start=None, end=None):
+def _hit_identity(hit, start=None, end=None):
     """Count regional and total matches in BLAST hit.
 
     Parameters

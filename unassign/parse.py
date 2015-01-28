@@ -1,6 +1,6 @@
 from cStringIO import StringIO
 
-def parse_fasta(f):
+def parse_fasta(f, trim_desc=False):
     """Parse a FASTA format file.
 
     Parameters
@@ -21,22 +21,20 @@ def parse_fasta(f):
     """
     f = iter(f)
     desc = next(f).strip()[1:]
+    if trim_desc:
+        desc = desc.split()[0]
     seq = StringIO()
     for line in f:
         line = line.strip()
         if line.startswith(">"):
             yield desc, seq.getvalue()
             desc = line[1:]
+            if trim_desc:
+                desc = desc.split()[0]
             seq = StringIO()
         else:
             seq.write(line.replace(" ", "").replace("U", "T"))
     yield desc, seq.getvalue()
-
-
-def trim_seq_desc(seqs):
-    for desc, seq in seqs:
-        seqid = desc.split()[0]
-        yield seqid, seq
 
 
 def write_fasta(f, seqs):
@@ -44,7 +42,7 @@ def write_fasta(f, seqs):
         f.write(">%s\n%s\n" % (desc, seq))
 
 
-def load_fasta(filepath):
+def load_fasta(filepath, trim_desc=True):
     """Load all sequences from a FASTA file
 
     Parameters
@@ -56,7 +54,7 @@ def load_fasta(filepath):
     A dictionary mapping sequence identifiers to sequences.
     """
     with open(filepath) as f:
-        seqs = trim_seq_desc(parse_fasta(f))
+        seqs = parse_fasta(f, trim_desc=trim_desc)
         return dict(seqs)
 
 
