@@ -65,6 +65,14 @@ def get_url(url):
     return url_fp(url)
 
 
+def make_blast_db(fasta_fp):
+    return subprocess.check_call([
+        "makeblastdb",
+        "-dbtype", "nucl",
+        "-in", fasta_fp,
+        ])
+
+
 def process_ltp_seqs(input_fp, output_fp=SPECIES_FASTA_FP):
     # Re-format FASTA file
     with open(input_fp) as f_in:
@@ -74,13 +82,7 @@ def process_ltp_seqs(input_fp, output_fp=SPECIES_FASTA_FP):
                 name = desc.split("\t")[0]
                 f_out.write(">%s\n%s\n" % (name, seq))
 
-    # Make BLAST database
-    subprocess.check_call([
-        "makeblastdb",
-        "-dbtype", "nucl",
-        "-in", output_fp,
-        ])
-
+    make_blast_db(output_fp)
     return output_fp
 
 
@@ -118,11 +120,5 @@ def process_greengenes_seqs(seqs_fp, accessions_fp, output_fp=REFSEQS_FASTA_FP):
                 acc, src = gg_accessions[ggid]
                 f.write(">%s %s %s\n%s\n" % (acc, src, ggid, seq))
 
-    # Make BLAST database
-    subprocess.check_call([
-        "makeblastdb",
-        "-dbtype", "nucl",
-        "-in", output_fp,
-        ])
-
+    make_blast_db(output_fp)
     return output_fp
