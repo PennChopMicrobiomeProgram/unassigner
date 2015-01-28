@@ -1,6 +1,57 @@
+import os.path
+import tempfile
 import unittest
 
-from unassign.search_blast import hit_identity
+from unassign.download import make_blast_db
+from unassign.search_blast import hit_identity, BlastAligner
+
+DATA_DIR = os.path.join(
+    os.path.dirname(os.path.realpath(__file__)), "data")
+
+
+class BlastAlignerTests(unittest.TestCase):
+    def setUp(self):
+        self.db_fp = os.path.join(DATA_DIR, "gg10.fasta")
+        if not os.path.exists(self.db_fp + ".nin"):
+            make_blast_db(self.db_fp)
+
+    def test_search_species(self):
+        query_file = tempfile.NamedTemporaryFile()
+        query_file.write(
+            ">a\n"
+            "CTTGCTCTCGGGTGACGAGCGGCGGACGGGTGAGTAAT\n"
+            ">b\n"
+            "GCGTGGCGAACGGCTGACGAACACGTGG\n"
+            )
+        query_file.seek(0)
+
+        a = BlastAligner()
+        hits = a.search_species(query_file.name, self.db_fp)
+        hits.sort(key=lambda x: (x.query_id, x.subject_id))
+
+        query_ids = ["a", "b"]
+        subject_ids = ["8", "5"]
+        for hit, query_id, subject_id in zip(hits, query_ids, subject_ids):
+            self.assertEqual(
+                (hit.query_id, hit.subject_id), (query_id, subject_id))
+
+    def test_search_refseqs(self):
+        seqs = [
+            ("a", "CTTGCTCTCGGGTGACGAGCGGCGGACGGGTGAGTAAT"),
+            ("b", "GCGTGGCGAACGGCTGACGAACACGTGG"),
+            ("c", "AGACTCCTACGGGAGGCAGCAGTGGGGAAT"),
+        ]
+
+        a = BlastAligner()
+        hits = a.search_refseqs(seqs, self.db_fp)
+        hits.sort(key=lambda x: (x.query_id, x.subject_id))
+
+        query_ids = ["a", "b", "c", "c", "c", "c", "c", "c"]
+        subject_ids = ["8", "5", "1", "10", "3", "6", "7", "8"]
+        for hit, query_id, subject_id in zip(hits, query_ids, subject_ids):
+            self.assertEqual(
+                (hit.query_id, hit.subject_id), (query_id, subject_id))
+
 
 class HitIdentityTests(unittest.TestCase):
     def test_hit_identity_no_endgaps(self):

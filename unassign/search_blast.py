@@ -1,6 +1,9 @@
 from __future__ import division
 import itertools
 import subprocess
+import tempfile
+
+from unassign.parse import write_fasta
 
 BLAST_FMT = (
     "qseqid sseqid pident length mismatch gapopen "
@@ -11,96 +14,100 @@ BLAST_FIELD_TYPES = [
     int, int, int, int, int, int, str, str]
 
 
+class BlastAlignment(object):
+    def __init__(self, hit):
+        self._hit = hit
+        self.subject_id = hit['sseqid']
+        self.query_id = hit['qseqid']
+        self.start_pos = hit['sstart']
+        self.end_pos = hit['send']
+
+    def count_matches(self, start=None, end=None):
+        """See docstring for hit_identity."""
+        return hit_identity(self._hit, start, end)
+
+
 class BlastAligner(object):
+    """Align sequences with BLAST."""
+    alignment_cls = BlastAlignment
+
     def __init__(self, num_threads=1):
         self.num_threads = num_threads
 
-    def align_query_to_typestrains(self, query_fp, typestrain_fp):
-        species_hits = blast_to(
-            query_fp, self.species_fp, "unassigner_query_blastn.txt",
-            max_target_seqs=10, num_threads=self.num_threads)
-        # Limit to top hits for initial implementation
-        # Going to iterate through this a couple times, so we need a list
-        species_hits = list(top_hits(species_hits))
-        # Sort by type strain so we can re-use refseq hits
-        species_hits.sort(key=lambda x: x['sseqid'])
-        return species_hits
+    def search_species(self, query_fp, species_fp, output_fp=None, max_hits=1):
+        """Search species typestrains for match to query sequences."""
+        if output_fp is None:
+            outfile = tempfile.NamedTemporaryFile()
+            output_fp = outfile.name
+        self._call(
+            query_fp, species_fp, output_fp,
+            max_target_seqs=max_hits,
+            num_threads=self.num_threads)
+        return self._load(output_fp)
 
-    def align_typestrain_to_refseqs(self, typestrain_seqs, refseqs_fp):
-        input_fp = "unassigner_top_hit.fasta"
+    def search_refseqs(self, query_seqs, refseqs_fp, input_fp=None,
+                       output_fp=None, max_hits=100):
+        """Search reference seqs for matches to species typestrains."""
+        if input_fp is None:
+            infile = tempfile.NamedTemporaryFile()
+            input_fp = infile.name
         with open(input_fp, "w") as f:
-            write_fasta(f, typestrain_seqs)
-        return blast_to(
-            input_fp, refseqs_fp, "unassigner_strain_blastn.txt",
-            max_target_seqs=100, num_threads=self.num_threads)
+            write_fasta(f, query_seqs)
 
+        if output_fp is None:
+            outfile = tempfile.NamedTemporaryFile()
+            output_fp = outfile.name
+        self._call(
+            input_fp, refseqs_fp, output_fp,
+            max_target_seqs=max_hits,
+            num_threads=self.num_threads)
+        return self._load(output_fp)
 
-def group_by_query(hits):
-    return itertools.groupby(hits, key=lambda x: x['qseqid'])
+    @classmethod
+    def _load(self, output_fp):
+        """Load hits from an output file."""
+        with open(output_fp) as f:
+            hits = [self.alignment_cls(x) for x in self._parse(f)]
+        return hits
 
+    @classmethod
+    def _parse(self, f):
+        """Parse a BLAST output file."""
+        for line in f:
+            line = line.strip()
+            if line.startswith("#"):
+                continue
+            vals = line.split("\t")
+            vals = [fn(v) for fn, v in zip(BLAST_FIELD_TYPES, vals)]
+            yield dict(zip(BLAST_FIELDS, vals))
 
-def top_hits(hits):
-    qseqid = None
-    for hit in hits:
-        if hit['qseqid'] != qseqid:
-            yield hit
-            qseqid = hit['qseqid']
+    @staticmethod
+    def _index(fasta_fp):
+        return subprocess.check_call([
+            "makeblastdb",
+            "-dbtype", "nucl",
+            "-in", fasta_fp,
+            ])
 
-
-def check_call_blastn(query_fp, database_fp, output_fp, **kwargs):
-    args = [
-        "blastn",
-        "-evalue", "1e-5",
-        "-outfmt", "6 " + BLAST_FMT,
-        ]
-    for arg, val in kwargs.items():
-        arg = "-" + arg
-        if val is None:
-            args.append(arg)
-        else:
-            args += [arg, str(val)]
-    args += [
-        "-query", query_fp,
-        "-db", database_fp,
-        "-out", output_fp,
-        ]
-    subprocess.check_call(args)
-
-
-def parse_blastn(f):
-    for line in f:
-        line = line.strip()
-        if line.startswith("#"):
-            continue
-        vals = line.split("\t")
-        vals = [fn(v) for fn, v in zip(BLAST_FIELD_TYPES, vals)]
-        yield dict(zip(BLAST_FIELDS, vals))
-
-
-def blast_to(query_fp, database_fp, output_fp, **kwargs):
-    """Call the blastn program and return a list of hits.
-
-    Parameters
-    ----------
-    query_fp : str
-        Filepath to query sequences.
-    database_fp : str
-        Filepath to BLAST+ database.
-    output_fp : str
-        Filepath to output file.
-    kwargs : dict
-        Additional parameters for blastn (see notes).
-
-    Keyword arguments can be used to pass additional parameters to the
-    program.  If the value is None, the argument is passed to the
-    command line without a value.  Otherwise, the value is converted to
-    a string and passed to the command line following the argument.
-
-    Common argument: max_target_seqs (default: 500).
-    """
-    check_call_blastn(query_fp, database_fp, output_fp, **kwargs)
-    with open(output_fp) as f:
-        return list(parse_blastn(f))
+    def _call(self, query_fp, database_fp, output_fp, **kwargs):
+        """Call the BLAST program."""
+        args = [
+            "blastn",
+            "-evalue", "1e-5",
+            "-outfmt", "6 " + BLAST_FMT,
+            ]
+        for arg, val in kwargs.items():
+            arg = "-" + arg
+            if val is None:
+                args.append(arg)
+            else:
+                args += [arg, str(val)]
+        args += [
+            "-query", query_fp,
+            "-db", database_fp,
+            "-out", output_fp,
+            ]
+        subprocess.check_call(args)
 
 
 def hit_identity(hit, start=None, end=None):
@@ -116,7 +123,9 @@ def hit_identity(hit, start=None, end=None):
     Returns
     -------
     tuple containing two ints
-        Number of matching positions and number of nucleotides in query.
+        Number of matching positions and total number of query
+        nucleotides in the alignment.  Portions of the query sequence
+        occurring over terminal gaps are not counted in the total.
 
     Notes
     -----

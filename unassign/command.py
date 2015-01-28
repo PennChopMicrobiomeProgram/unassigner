@@ -20,20 +20,24 @@ class Unassigner(object):
         """Execute unassignment algorithm on a filepath of query seqs.
         """
         logging.info("Aligning query seqs to type strain seqs")
-        species_hits = self.aligner.align_query_to_typestrains(
-                query_fp, self.species_fp)
+        species_hits = self.aligner.search_species(
+            query_fp, self.species_fp,
+            output_fp="unassigner_query_blastn.txt")
 
         logging.info("Aligning type strain seqs to reference seqs")
-        species_hit_seqs = self._get_species_seqs(species_hits)
-        refseq_hits = self.aligner.align_typestrain_to_refseqs(
-                species_hit_seqs, self.refseqs_fp)
+        species_seqs = self._get_species_seqs(species_hits)
+        refseq_hits = self.aligner.search_refseqs(
+            species_seqs, self.refseqs_fp,
+            input_fp="unassigner_top_hit.fasta",
+            output_fp="unassigner_strain_blastn.txt")
 
         logging.info("Evaluating aignment results")
-        grouped_refseq_hits = group_by_query(refseq_hits)
+        grouped_refseq_hits = itertools.groupby(
+            refseq_hits, key=lambda x: x.query_id)
         r_hits_species_id, r_hits = next(grouped_refseq_hits)
         for s_hit in species_hits:
-            query_id = s_hit['qseqid']
-            species_id = s_hit['sseqid']
+            query_id = s_hit.query_id
+            species_id = s_hit.subject_id
             if species_id != r_hits_species_id:
                 r_hits_species_id, r_hits = next(grouped_refseq_hits)
             if species_id != r_hits_species_id:
@@ -41,16 +45,16 @@ class Unassigner(object):
                     "Missing reference hits for %s" % species_id)
             self._evaluate_confidence(s_hit, r_hits)
 
-    def _get_species_seqs(self, species_hits):
+    def _get_species_seqs(self, hits):
         """Fetch seqs for each species in the list of hits.
 
         Each unique species in the list is returned only once in the
         list of results, but the order of hits is preserved to
         facilitate caching.
         """
-        species_hit_ids = uniq(x['sseqid'] for x in species_hits)
-        strain_seqs = load_fasta(self.species_fp)
-        return [(x, strain_seqs[x]) for x in species_hit_ids]
+        species_ids = uniq(x.subject_id for x in species_hits)
+        seqs = load_fasta(self.species_fp)
+        return [(x, seqs[x]) for x in species_ids]
 
     def _evaluate_confidence(self, species_hit, refseq_hits):
         """Compute probability of species attribution.
