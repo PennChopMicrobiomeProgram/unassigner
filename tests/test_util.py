@@ -1,7 +1,7 @@
 import unittest
 
 from unassign.util import (
-    uniq, count_while_equal,
+    uniq, count_while_equal, count_matching_pairs,
     )
 
 
@@ -20,6 +20,12 @@ class FunctionTests(unittest.TestCase):
     def test_count_while_equal_reversed(self):
         self.assertEquals(count_while_equal(reversed("----asd-fbbb"), "b"), 3)
 
+    def test_count_matching_pairs(self):
+        self.assertEquals(
+            count_matching_pairs(zip("ABCDEFG", "ABCDEFG")), (7, 7))
+        self.assertEquals(
+            count_matching_pairs(zip("ABCDEFG", "ABXDYFZ")), (4, 7))
+
+
 if __name__ == "__main__":
     unittest.main()
-

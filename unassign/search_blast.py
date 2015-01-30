@@ -5,6 +5,7 @@ import tempfile
 
 from unassign.parse import write_fasta, load_fasta
 from unassign.util import uniq
+from unassign.alignment import Alignment
 
 BLAST_FMT = (
     "qseqid sseqid pident length mismatch gapopen "
@@ -15,14 +16,51 @@ BLAST_FIELD_TYPES = [
     int, int, int, int, int, int, str, str]
 
 
-class BlastAlignment(object):
+class BlastAlignment(Alignment):
     def __init__(self, hit):
         self._hit = hit
-        self.subject_id = hit['sseqid']
-        self.query_id = hit['qseqid']
-        self.start_pos = hit['sstart']
-        self.end_pos = hit['send']
+        subject_id = hit['sseqid']
+        query_id = hit['qseqid']
+        query_seq, subject_seq = self._get_aligned_seqs(hit)
+        super(BlastAlignment, self).__init__(
+            (query_id, query_seq), (subject_id, subject_seq))
 
+    def _get_aligned_seqs(self, hit):
+        # Number of nts outside the local alignment
+        query_nleft = hit['qstart'] - 1
+        subj_nleft = hit['sstart'] - 1
+        query_nright = hit['qlen'] - hit['qend']
+        subj_nright = hit['slen'] - hit['send']
+
+        # Number of positions to left and right of local alignment.
+        nleft = max(query_nleft, subj_nleft)
+        nright = max(query_nright, subj_nright)
+
+        # Fill in query outside the local alignment with "X"
+        query_lgaps = "-" * (nleft - query_nleft)
+        query_lfill = "X" * query_nleft
+        query_rfill = "X" * query_nright
+        query_rgaps = "-" * (nright - query_nright)
+        query_seq = ''.join(
+            query_lgaps + query_lfill +
+            hit['qseq'] +
+            query_rfill + query_rgaps)
+
+        # Fill in subj outside the local alignment with "H"
+        subj_lgaps = "-" * (nleft - subj_nleft)
+        subj_lfill = "H" * subj_nleft
+        subj_rfill = "H" * subj_nright
+        subj_rgaps = "-" * (nright - subj_nright)
+        subj_seq = ''.join(
+            subj_lgaps + subj_lfill +
+            hit['sseq'] +
+            subj_rfill + subj_rgaps)
+
+        return query_seq, subj_seq
+
+    def get_local_pairs(self):
+        return zip(self._hit['qseq'], self._hit['sseq'])
+    
     def count_matches(self, start=None, end=None):
         """See docstring for _hit_identity."""
         return _hit_identity(self._hit, start, end)
