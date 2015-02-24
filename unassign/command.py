@@ -1,6 +1,6 @@
 import optparse
 
-from unassign.unassign import Unassigner
+from unassign.algorithm import Unassigner
 from unassign.search_blast import BlastAligner
 
 def main(argv=None):
