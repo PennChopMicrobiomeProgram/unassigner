@@ -1,17 +1,18 @@
 from collections import namedtuple
 import unittest
 
-from unassign.command import Unassigner
+from unassign.algorithm import Unassigner
 
 class MockAlignment(object):
     def __init__(self, query, subj, start, end):
         self.query_id= query
         self.subject_id = subj
-        self.start_pos = start
-        self.end_pos = end
+        self.start_idx = start
+        self.end_idx = end
 
     def count_matches(self, start=None, end=None):
         return (1, 1)
+
 
 
 class NullAligner(object):
