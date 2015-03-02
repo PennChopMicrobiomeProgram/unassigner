@@ -18,6 +18,7 @@ class Unassigner(object):
         logging.info("Evaluating alignment results")
         grouped_refseq_hits = itertools.groupby(
             refseq_hits, key=lambda x: x.query_id)
+
         r_hits_species_id, r_hits = next(grouped_refseq_hits)
         for s_hit in species_hits:
             query_id = s_hit.query_id
@@ -35,8 +36,8 @@ class Unassigner(object):
         """
         query_id = species_hit.query_id
         species_id = species_hit.subject_id
-        start = species_hit.start_pos
-        end = species_hit.end_pos
+        start = species_hit.start_idx
+        end = species_hit.end_idx
         for r_hit in refseq_hits:
             refseq_id = r_hit.subject_id
             a, b = r_hit.count_matches(start, end)
