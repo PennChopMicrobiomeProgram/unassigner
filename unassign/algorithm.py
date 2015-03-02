@@ -1,14 +1,91 @@
 import itertools
 import logging
+import math
+
+import scipy.special
+import scipy.misc
 
 
-class Unassigner(object):
+class UnassignerAlgorithm(object):
     def __init__(self, aligner):
         self.aligner = aligner
 
     def unassign(self, query_seqs):
-        """Execute unassignment algorithm on a filepath of query seqs.
-        """
+        """Execute unassignment algorithm on query seqs."""
+        raise NotImplemented
+
+    def format(self, results):
+        """Format results for output file."""
+        for r in results:
+            yield '\t'.join(map(str, r)) + "\n"
+
+
+def beta_binomial_pdf(n, alpha, beta):
+    def f(k):
+        t1 = math.log(scipy.misc.comb(n, k))
+        t2 = scipy.special.betaln(k + alpha, n - k + beta)
+        t3 = scipy.special.betaln(alpha, beta)
+        logf = t1 + t2 - t3
+        return math.exp(logf)
+    return f
+
+
+class NoRefseqsAlgorithm(UnassignerAlgorithm):
+    def __init__(self, aligner):
+        super(NoRefseqsAlgorithm, self).__init__(aligner)
+        self.prior_alpha = 0.5
+        self.prior_beta = 0.5
+        self.species_threshold = 0.975
+
+    def unassign(self, query_seqs):
+        logging.info("Aligning query seqs to type strain seqs")
+        species_hits = self.aligner.search_species(query_seqs)
+
+        for h in species_hits:
+            res = self._evaluate_noref_probability(h)
+            yield res
+
+    def _evaluate_noref_probability(self, species_hit):
+        # nr is number of positions in read alignment region
+        # number of mismatches in read alignment region
+        region_matches, region_positions = species_hit.count_matches()
+        region_mismatches = region_positions - region_matches
+
+        alpha = region_mismatches + self.prior_alpha
+        beta = region_matches + self.prior_beta
+
+        # ne is number of positions exclusive of region
+        total_positions = len(
+            [x for x in species_hit.subject_seq if x != '-'])
+        nonregion_positions = total_positions - region_positions
+
+        species_mismatch_threshold = 1 - self.species_threshold
+        max_total_mismatches = int(math.floor(
+            species_mismatch_threshold * total_positions))
+        max_nonregion_mismatches = max_total_mismatches - region_mismatches
+
+        f = beta_binomial_pdf(nonregion_positions, alpha, beta)
+        prob_compatible = 0
+        for k in range(0, max_nonregion_mismatches + 1):
+            prob_compatible += f(k)
+        prob_new_species = 1 - prob_compatible
+        return (species_hit.query_id, species_hit.subject_id,
+            region_mismatches, region_matches,
+            nonregion_positions, max_nonregion_mismatches,
+            prob_new_species)
+
+    def format(self, results):
+        yield (
+            "QueryID\tTypestrainID\t"
+            "RegionMismatches\tRegionMatches\t"
+            "NonregionPositions\tMaxNonregionMismatches\t"
+            "ProbabilityNotThisSpecies\n")
+        for line in super(NoRefseqsAlgorithm, self).format(results):
+            yield line
+
+
+class RefseqsAlgorithm(UnassignerAlgorithm):
+    def unassign(self, query_seqs):
         logging.info("Aligning query seqs to type strain seqs")
         species_hits = self.aligner.search_species(query_seqs)
 
@@ -44,4 +121,11 @@ class Unassigner(object):
             c, d = r_hit.count_matches()
             yield query_id, species_id, a, b, refseq_id, c, d
 
+    def format(self, results):
+        yield (
+            "QueryID\tTypestrainID\tRefseqID\t"
+            "RegionMatch\tRegionTotal\t"
+            "GlobalMatch\tGlobalTotal\n")
+        for line in super(RefseqsAlgorithm, self).format(results):
+            yield line
 

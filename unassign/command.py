@@ -1,7 +1,9 @@
 import optparse
 import os
 
-from unassign.algorithm import Unassigner
+from unassign.algorithm import (
+    NoRefseqsAlgorithm, RefseqsAlgorithm,
+    )
 from unassign.search_blast import BlastAligner
 from unassign.parse import parse_fasta
 
@@ -11,6 +13,8 @@ def main(argv=None):
         "Query sequences filepath (FASTA format) [REQUIRED]"))
     p.add_option("--output_dir", help=(
         "Output directory [REQUIRED]"))
+    p.add_option("--noref", action="store_true", help=(
+        "Use simple estimate with no reference sequences"))
     p.add_option("--type_strain_fp", default="species.fasta", help=(
         "Type strain sequences filepath (FASTA format + BLAST database) "
         "[default: %default]"))
@@ -43,13 +47,13 @@ def main(argv=None):
     a.refseq_input_fp = mkfp("unassigner_strains.fasta")
     a.refseq_output_fp = mkfp("unassigner_strains_blastn.txt")
 
-    u = Unassigner(a)
+    if opts.noref:
+        u = NoRefseqsAlgorithm(a)
+    else:
+        u = RefseqsAlgorithm(a)
     results = u.unassign(query_seqs)
 
     with open(mkfp("unassigner_output.tsv"), "w") as f:
-        f.write(
-            "QueryID\tTypestrainID\tRefseqID\t"
-            "RegionMatch\tRegionTotal\tGlobalMatch\tGlobalTotal\n")
-        for res in u.unassign(query_seqs):
-            f.write("\t".join(map(str, res)))
-            f.write("\n")
+        for line in u.format(results):
+            f.write(line)
+
