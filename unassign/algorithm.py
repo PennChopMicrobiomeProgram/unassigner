@@ -20,14 +20,21 @@ class UnassignerAlgorithm(object):
             yield '\t'.join(map(str, r)) + "\n"
 
 
-def beta_binomial_pdf(n, alpha, beta):
-    def f(k):
-        t1 = math.log(scipy.misc.comb(n, k))
-        t2 = scipy.special.betaln(k + alpha, n - k + beta)
-        t3 = scipy.special.betaln(alpha, beta)
-        logf = t1 + t2 - t3
-        return math.exp(logf)
-    return f
+def beta_binomial_pdf(k, n, alpha, beta):
+    t1 = math.log(scipy.misc.comb(n, k))
+    t2 = scipy.special.betaln(k + alpha, n - k + beta)
+    t3 = scipy.special.betaln(alpha, beta)
+    logf = t1 + t2 - t3
+    return math.exp(logf)
+
+
+def beta_binomial_cdf(k_max, n, alpha, beta):
+    k = 0
+    val = 0
+    while k <= k_max:
+        val += beta_binomial_pdf(k, n, alpha, beta)
+        k += 1
+    return val
 
 
 class NoRefseqsAlgorithm(UnassignerAlgorithm):
@@ -46,15 +53,12 @@ class NoRefseqsAlgorithm(UnassignerAlgorithm):
             yield res
 
     def _evaluate_noref_probability(self, species_hit):
-        # nr is number of positions in read alignment region
-        # number of mismatches in read alignment region
         region_matches, region_positions = species_hit.count_matches()
         region_mismatches = region_positions - region_matches
 
         alpha = region_mismatches + self.prior_alpha
         beta = region_matches + self.prior_beta
 
-        # ne is number of positions exclusive of region
         total_positions = len(
             [x for x in species_hit.subject_seq if x != '-'])
         nonregion_positions = total_positions - region_positions
@@ -64,11 +68,10 @@ class NoRefseqsAlgorithm(UnassignerAlgorithm):
             species_mismatch_threshold * total_positions))
         max_nonregion_mismatches = max_total_mismatches - region_mismatches
 
-        f = beta_binomial_pdf(nonregion_positions, alpha, beta)
-        prob_compatible = 0
-        for k in range(0, max_nonregion_mismatches + 1):
-            prob_compatible += f(k)
+        prob_compatible = beta_binomial_cdf(
+            max_nonregion_mismatches, nonregion_positions, alpha, beta)
         prob_new_species = 1 - prob_compatible
+
         return (species_hit.query_id, species_hit.subject_id,
             region_mismatches, region_matches,
             nonregion_positions, max_nonregion_mismatches,
