@@ -1,7 +1,7 @@
 from collections import namedtuple
 import unittest
 
-from unassign.algorithm import Unassigner
+from unassign.algorithm import RefseqsAlgorithm
 
 class MockAlignment(object):
     def __init__(self, query, subj, start, end):
@@ -42,7 +42,7 @@ class UnassignerTests(unittest.TestCase):
         seqs = [
             ("a", "CTTGCTCTCGGGTGACGAGCGGCGGACGGGTGAGTAAT")
             ]
-        u = Unassigner(SingleRefAligner())
+        u = RefseqsAlgorithm(SingleRefAligner())
         self.assertEqual(
             list(u.unassign(seqs)), [("a", "S1", 1, 1, "R1", 1, 1)])
 
