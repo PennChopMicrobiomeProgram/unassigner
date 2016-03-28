@@ -131,8 +131,6 @@ class BlastAlignmentTests(unittest.TestCase):
 class BlastAlignerTests(unittest.TestCase):
     def setUp(self):
         ggfp = os.path.join(DATA_DIR, "gg10.fasta")
-        if not os.path.exists(ggfp + ".nin"):
-            make_blast_db(ggfp)
         self.a = BlastAligner(ggfp, ggfp)
 
     def test_search_species(self):
