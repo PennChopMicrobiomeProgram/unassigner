@@ -21,9 +21,9 @@ LTP_METADATA_COLS = [
     "NJ_support_pk4_ltp"
     ]
 LTP_METADATA_URL = \
-    "http://www.arb-silva.de/fileadmin/silva_databases/living_tree/LTP_release_119/LTPs119_SSU.csv"
+    "http://www.arb-silva.de/fileadmin/silva_databases/living_tree/LTP_release_123/LTPs123_SSU.csv"
 LTP_SEQS_URL = \
-    "http://www.arb-silva.de/fileadmin/silva_databases/living_tree/LTP_release_119/LTPs119_SSU.compressed.fasta"
+    "http://www.arb-silva.de/fileadmin/silva_databases/living_tree/LTP_release_123/LTPs123_SSU.compressed.fasta"
 GG_SEQS_URL = \
     "ftp://greengenes.microbio.me/greengenes_release/gg_13_5/gg_13_5.fasta.gz"
 GG_ACCESSIONS_URL = \
