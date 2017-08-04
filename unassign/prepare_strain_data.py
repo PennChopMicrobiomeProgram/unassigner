@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 import optparse
 import sys
 
@@ -52,7 +51,3 @@ def main(argv=None):
     gg_accessions_fp = use_or_download(
         opts.greengenes_accessions_fp, GG_ACCESSIONS_URL)
     process_greengenes_seqs(gg_seqs_fp, gg_accessions_fp)
-
-
-if __name__ == "__main__":
-    main()

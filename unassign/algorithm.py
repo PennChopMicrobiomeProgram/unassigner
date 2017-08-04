@@ -2,6 +2,7 @@ import itertools
 import logging
 import math
 
+import scipy
 import scipy.special
 import scipy.misc
 

@@ -1,4 +1,4 @@
-from cStringIO import StringIO
+from io import StringIO
 
 def parse_fasta(f, trim_desc=False):
     """Parse a FASTA format file.
@@ -39,7 +39,7 @@ def parse_fasta(f, trim_desc=False):
 
 def write_fasta(f, seqs):
     for desc, seq in seqs:
-        f.write(">%s\n%s\n" % (desc, seq))
+        f.write(">{0}\n{1}\n".format(desc, seq))
 
 
 def load_fasta(filepath, trim_desc=True):

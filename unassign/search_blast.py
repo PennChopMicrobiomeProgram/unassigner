@@ -109,7 +109,7 @@ class BlastAligner(object):
 
     def _search(self, seqs, db, max_hits, input_fp, output_fp):
         if input_fp is None:
-            infile = tempfile.NamedTemporaryFile()
+            infile = tempfile.NamedTemporaryFile(mode="w+t", encoding="utf-8")
             write_fasta(infile, seqs)
             infile.seek(0)
             input_fp = infile.name

@@ -18,7 +18,7 @@ class FastaTests(unittest.TestCase):
         self.assertRaises(StopIteration, next, res)
 
     def test_load_fasta(self):
-        f = tempfile.NamedTemporaryFile()
+        f = tempfile.NamedTemporaryFile(mode="wt", encoding="utf-8")
         f.write(
             ">Myseq asdf\n"
             "GGCTAAGGCCT\n"
@@ -30,7 +30,7 @@ class FastaTests(unittest.TestCase):
             "Myseq": "GGCTAAGGCCT", "2ndseq": "CCCGG"})
 
     def test_write_fasta(self):
-        f = tempfile.NamedTemporaryFile()
+        f = tempfile.NamedTemporaryFile(mode="w+t", encoding="utf-8")
         seqs = [("a", "CCGGT"), ("b", "TTTTTTTTT")]
         write_fasta(f, seqs)
         f.seek(0)

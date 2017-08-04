@@ -2,7 +2,6 @@ import collections
 import os
 import subprocess
 import tarfile
-import urllib2
 
 from unassign.parse import parse_fasta, parse_greengenes_accessions
 

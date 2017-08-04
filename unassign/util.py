@@ -6,7 +6,7 @@ def uniq(xs):
 
     Preserves the order of the input list.
     """
-    return OrderedDict.fromkeys(xs).keys()
+    return list(OrderedDict.fromkeys(xs).keys())
 
 def count_while_equal(xs, val):
     """Count items at start of sequence equal to specified value."""

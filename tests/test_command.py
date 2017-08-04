@@ -47,5 +47,3 @@ class UnassignerTests(unittest.TestCase):
             list(u.unassign(seqs)), [("a", "S1", 1, 1, "R1", 1, 1)])
 
 
-if __name__ == "__main__":
-    unittest.main()

@@ -24,7 +24,7 @@ class BlastAlignmentTests(unittest.TestCase):
             "qstart": 1, "qend": 15, "qlen": 15,
             "sstart": 1, "send": 15, "slen": 15,
             }
-        self.pairs = zip("CCCGGTCCGGTTATT", "CCCGGTCCGGTTAAC")
+        self.pairs = list(zip("CCCGGTCCGGTTATT", "CCCGGTCCGGTTAAC"))
 
     def test_no_endgaps(self):
         a = BlastAlignment(self.hit)
@@ -47,7 +47,7 @@ class BlastAlignmentTests(unittest.TestCase):
         self.assertEqual(a.subject_seq, "HHHHHCCCGGTCCGGTTAAC")
         self.assertEqual(a.start_idx, 0)
         self.assertEqual(a.end_idx, 20)
-        self.assertEqual(a.get_pairs(), zip("XXXXX", "HHHHH") + self.pairs)
+        self.assertEqual(a.get_pairs(), list(zip("XXXXX", "HHHHH")) + self.pairs)
 
     def test_equal_endgaps_right(self):
         # Hit has 15 positions and 2 mismatches (rightmost columns).
@@ -59,7 +59,7 @@ class BlastAlignmentTests(unittest.TestCase):
         self.assertEqual(a.subject_seq, "CCCGGTCCGGTTAACHHHHH")
         self.assertEqual(a.start_idx, 0)
         self.assertEqual(a.end_idx, 20)
-        self.assertEqual(a.get_pairs(), self.pairs + zip("XXXXX", "HHHHH"))
+        self.assertEqual(a.get_pairs(), self.pairs + list(zip("XXXXX", "HHHHH")))
 
     def test_query_endgaps_left(self):
         # Hit has 15 positions and 2 mismatches (rightmost columns).
@@ -74,7 +74,7 @@ class BlastAlignmentTests(unittest.TestCase):
         self.assertEqual(a.subject_seq, "HHHHHCCCGGTCCGGTTAAC")
         self.assertEqual(a.start_idx, 2)
         self.assertEqual(a.end_idx, 20)
-        self.assertEqual(a.get_pairs(), zip("XXX", "HHH") + self.pairs)
+        self.assertEqual(a.get_pairs(), list(zip("XXX", "HHH")) + self.pairs)
 
     def test_query_endgaps_right(self):
         # Hit has 15 positions and 2 mismatches (rightmost columns).

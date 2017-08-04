@@ -28,4 +28,4 @@ class Alignment(object):
         if (end is None) or (end > aend):
             end = aend
 
-        return zip(self.query_seq, self.subject_seq)[start:end]
+        return list(zip(self.query_seq, self.subject_seq))[start:end]
