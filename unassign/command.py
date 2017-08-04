@@ -1,4 +1,4 @@
-import optparse
+import argparse
 import os
 
 from unassign.algorithm import (
@@ -8,46 +8,46 @@ from unassign.search_blast import BlastAligner
 from unassign.parse import parse_fasta
 
 def main(argv=None):
-    p = optparse.OptionParser()
-    p.add_option("--query_fp", help=(
-        "Query sequences filepath (FASTA format) [REQUIRED]"))
-    p.add_option("--output_dir", help=(
-        "Output directory [REQUIRED]"))
-    p.add_option("--noref", action="store_true", help=(
+    p = argparse.ArgumentParser()
+    p.add_argument("query_fp", help=(
+        "Query sequences filepath (FASTA format)"))
+    p.add_argument("output_dir", help=(
+        "Output directory"))
+    p.add_argument("--noref", action="store_true", help=(
         "Use simple estimate with no reference sequences"))
-    p.add_option("--type_strain_fp", default="species.fasta", help=(
+    p.add_argument("--type_strain_fp", default="species.fasta", help=(
         "Type strain sequences filepath (FASTA format + BLAST database) "
-        "[default: %default]"))
-    p.add_option("--reference_fp", default="refseqs.fasta", help=(
+        "[default: %(default)s]"))
+    p.add_argument("--reference_fp", default="refseqs.fasta", help=(
         "Reference sequence filepath (FASTA format + BLAST database) "
-        "[default: %default]"))
-    p.add_option("--num_cpus", type="int", default=1, help=(
+        "[default: %(default)s]"))
+    p.add_argument("--num_cpus", type=int, default=1, help=(
         "Number of CPUs to use in seqrch and alignment steps "
-        "[default: %default]"))
-    p.add_option("--verbose", action="store_true", help=(
+        "[default: %(default)s]"))
+    p.add_argument("--verbose", action="store_true", help=(
         "Activate verbose mode."))
-    opts, args = p.parse_args(argv)
+    args = p.parse_args(argv)
 
-    if opts.verbose is True:
+    if args.verbose is True:
         logging.basicConfig(level=logging.INFO)
 
-    with open(opts.query_fp) as f:
+    with open(args.query_fp) as f:
         query_seqs = list(parse_fasta(f, trim_desc=True))
 
-    if not os.path.exists(opts.output_dir):
-        os.mkdir(opts.output_dir)
+    if not os.path.exists(args.output_dir):
+        os.mkdir(args.output_dir)
 
     def mkfp(filename):
-        return os.path.join(opts.output_dir, filename)
+        return os.path.join(args.output_dir, filename)
 
-    a = BlastAligner(opts.type_strain_fp, opts.reference_fp)
-    a.num_cpus = opts.num_cpus
+    a = BlastAligner(args.type_strain_fp, args.reference_fp)
+    a.num_cpus = args.num_cpus
     a.species_input_fp = mkfp("unassigner_query.fasta")
     a.species_output_fp = mkfp("unassigner_query_blastn.txt")
     a.refseq_input_fp = mkfp("unassigner_strains.fasta")
     a.refseq_output_fp = mkfp("unassigner_strains_blastn.txt")
 
-    if opts.noref:
+    if args.noref:
         u = NoRefseqsAlgorithm(a)
     else:
         u = RefseqsAlgorithm(a)
