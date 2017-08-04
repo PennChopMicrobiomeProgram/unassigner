@@ -20,9 +20,9 @@ LTP_METADATA_COLS = [
     "NJ_support_pk4_ltp"
     ]
 LTP_METADATA_URL = \
-    "http://www.arb-silva.de/fileadmin/silva_databases/living_tree/LTP_release_123/LTPs123_SSU.csv"
+    "https://www.arb-silva.de/fileadmin/silva_databases/living_tree/LTP_release_128/LTPs128_SSU/LTPs128_SSU.csv"
 LTP_SEQS_URL = \
-    "http://www.arb-silva.de/fileadmin/silva_databases/living_tree/LTP_release_123/LTPs123_SSU.compressed.fasta"
+    "https://www.arb-silva.de/fileadmin/silva_databases/living_tree/LTP_release_128/LTPs128_SSU/LTPs128_SSU_unaligned.fasta"
 GG_SEQS_URL = \
     "ftp://greengenes.microbio.me/greengenes_release/gg_13_5/gg_13_5.fasta.gz"
 GG_ACCESSIONS_URL = \
@@ -60,8 +60,11 @@ def blastdb_fps(fp):
 
 
 def get_url(url):
+    fp = url_fp(url)
+    if not os.path.exists(fp):
+        os.remove(fp)
     subprocess.check_call(["wget", url])
-    return url_fp(url)
+    return fp
 
 
 def make_blast_db(fasta_fp):
@@ -111,7 +114,7 @@ def process_greengenes_seqs(seqs_fp, accessions_fp, output_fp=REFSEQS_FASTA_FP):
     duplicates_fp = "gg_duplicate_ids.txt"
     with open(duplicates_fp, "w") as dups:
         with open(output_fp, "w") as f:
-            for seq, ggids in uniq_seqs.iteritems():
+            for seq, ggids in uniq_seqs.items():
                 ggid = ggids[0]
                 if len(ggids) > 1:
                     dups.write(" ".join(ggids))
