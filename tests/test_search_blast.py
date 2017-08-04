@@ -12,8 +12,6 @@ DATA_DIR = os.path.join(
     os.path.dirname(os.path.realpath(__file__)), "data")
 
 
-MockAlignment = namedtuple("MockAlignment", "subject_id")
-
 class BlastAlignmentTests(unittest.TestCase):
     def setUp(self):
         # Hit has 15 positions and 2 mismatches (rightmost columns).
@@ -131,7 +129,7 @@ class BlastAlignmentTests(unittest.TestCase):
 class BlastAlignerTests(unittest.TestCase):
     def setUp(self):
         ggfp = os.path.join(DATA_DIR, "gg10.fasta")
-        self.a = BlastAligner(ggfp, ggfp)
+        self.a = BlastAligner(ggfp)
 
     def test_search_species(self):
         seqs = [
@@ -141,18 +139,6 @@ class BlastAlignerTests(unittest.TestCase):
         hits = self.a.search_species(seqs)
         observed = [(hit.query_id, hit.subject_id) for hit in hits]
         expected = [("a", "8"), ("b", "5")]
-        self.assertEqual(observed, expected)
-
-    def test_search_refseqs(self):
-        hits = [MockAlignment("1"), MockAlignment("2")]
-        hits = self.a.search_refseqs(hits)
-        observed = [(hit.query_id, hit.subject_id) for hit in hits]
-        expected = [
-            ('1', '1'), ('1', '6'), ('1', '7'), ('1', '10'), ('1', '10'),
-            ('1', '3'), ('1', '2'), ('1', '8'), ('1', '8'), ('1', '4'),
-            ('1', '9'), ('1', '5'), ('2', '2'), ('2', '10'), ('2', '3'),
-            ('2', '8'), ('2', '6'), ('2', '1'), ('2', '7'), ('2', '4'),
-            ('2', '5'), ('2', '9'), ('2', '9')]
         self.assertEqual(observed, expected)
 
 

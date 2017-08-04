@@ -70,16 +70,11 @@ class BlastAligner(object):
     """Align sequences with BLAST."""
     alignment_cls = BlastAlignment
 
-    def __init__(self, species_fp, refseq_fp):
+    def __init__(self, species_fp):
         self.species_fp = species_fp
         self.species_max_hits = 1
         self.species_input_fp = None
         self.species_output_fp = None
-
-        self.refseq_fp = refseq_fp
-        self.refseq_max_hits = 100
-        self.refseq_input_fp = None
-        self.refseq_output_fp = None
 
         self.num_cpus = 1
 
@@ -88,13 +83,6 @@ class BlastAligner(object):
         return self._search(
             seqs, self.species_fp, self.species_max_hits,
             self.species_input_fp, self.species_output_fp)
-
-    def search_refseqs(self, species_hits):
-        """Search reference sequences for match to species hits."""
-        seqs = self._get_species_seqs(species_hits)
-        return self._search(
-            seqs, self.refseq_fp, self.refseq_max_hits,
-            self.refseq_input_fp, self.refseq_output_fp)
 
     def _get_species_seqs(self, hits):
         """Fetch seqs for each species in the list of hits.
