@@ -38,7 +38,7 @@ def beta_binomial_cdf(k_max, n, alpha, beta):
     return val
 
 
-class NoRefseqsAlgorithm(UnassignerAlgorithm):
+class BasicAlgorithm(UnassignerAlgorithm):
     def __init__(self, aligner):
         super(NoRefseqsAlgorithm, self).__init__(aligner)
         self.prior_alpha = 0.5
@@ -50,10 +50,10 @@ class NoRefseqsAlgorithm(UnassignerAlgorithm):
         species_hits = self.aligner.search_species(query_seqs)
 
         for h in species_hits:
-            res = self._evaluate_noref_probability(h)
+            res = self._get_probability(h)
             yield res
 
-    def _evaluate_noref_probability(self, species_hit):
+    def _get_probability(self, species_hit):
         region_matches, region_positions = species_hit.count_matches()
         region_mismatches = region_positions - region_matches
 
@@ -86,50 +86,3 @@ class NoRefseqsAlgorithm(UnassignerAlgorithm):
             "ProbabilityNotThisSpecies\n")
         for line in super(NoRefseqsAlgorithm, self).format(results):
             yield line
-
-
-class RefseqsAlgorithm(UnassignerAlgorithm):
-    def unassign(self, query_seqs):
-        logging.info("Aligning query seqs to type strain seqs")
-        species_hits = self.aligner.search_species(query_seqs)
-
-        logging.info("Aligning type strain seqs to reference seqs")
-        refseq_hits = self.aligner.search_refseqs(species_hits)
-
-        logging.info("Evaluating alignment results")
-        grouped_refseq_hits = itertools.groupby(
-            refseq_hits, key=lambda x: x.query_id)
-
-        r_hits_species_id, r_hits = next(grouped_refseq_hits)
-        for s_hit in species_hits:
-            query_id = s_hit.query_id
-            species_id = s_hit.subject_id
-            if species_id != r_hits_species_id:
-                r_hits_species_id, r_hits = next(grouped_refseq_hits)
-            if species_id != r_hits_species_id:
-                raise RuntimeError(
-                    "Missing reference hits for %s" % species_id)
-            for res in self._evaluate_confidence(s_hit, r_hits):
-                yield res
-
-    def _evaluate_confidence(self, species_hit, refseq_hits):
-        """Compute probability of species attribution.
-        """
-        query_id = species_hit.query_id
-        species_id = species_hit.subject_id
-        start = species_hit.start_idx
-        end = species_hit.end_idx
-        for r_hit in refseq_hits:
-            refseq_id = r_hit.subject_id
-            a, b = r_hit.count_matches(start, end)
-            c, d = r_hit.count_matches()
-            yield query_id, species_id, a, b, refseq_id, c, d
-
-    def format(self, results):
-        yield (
-            "QueryID\tTypestrainID\tRefseqID\t"
-            "RegionMatch\tRegionTotal\t"
-            "GlobalMatch\tGlobalTotal\n")
-        for line in super(RefseqsAlgorithm, self).format(results):
-            yield line
-

@@ -1,9 +1,7 @@
 import argparse
 import os
 
-from unassign.algorithm import (
-    NoRefseqsAlgorithm, RefseqsAlgorithm,
-    )
+from unassign.algorithm import BasicAlgorithm
 from unassign.search_blast import BlastAligner
 from unassign.parse import parse_fasta
 
@@ -13,7 +11,7 @@ def main(argv=None):
         "Query sequences filepath (FASTA format)"))
     p.add_argument("output_dir", help=(
         "Output directory"))
-    p.add_argument("--type_strain_fp", default="species.fasta", help=(
+    p.add_argument("-t", "--type_strain_fp", default="species.fasta", help=(
         "Type strain sequences filepath (FASTA format + BLAST database) "
         "[default: %(default)s]"))
     p.add_argument("--verbose", action="store_true", help=(
