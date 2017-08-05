@@ -61,7 +61,7 @@ def blastdb_fps(fp):
 
 def get_url(url):
     fp = url_fp(url)
-    if not os.path.exists(fp):
+    if os.path.exists(fp):
         os.remove(fp)
     subprocess.check_call(["wget", url])
     return fp
