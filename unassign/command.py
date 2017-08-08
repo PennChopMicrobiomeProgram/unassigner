@@ -2,7 +2,7 @@ import argparse
 import os
 
 from unassign.algorithm import BasicAlgorithm
-from unassign.search_blast import BlastAligner
+from unassign.search_fasta import FastaAligner
 from unassign.parse import parse_fasta
 
 def main(argv=None):
@@ -30,10 +30,10 @@ def main(argv=None):
     def mkfp(filename):
         return os.path.join(args.output_dir, filename)
 
-    a = BlastAligner(args.type_strain_fp)
+    a = FastaAligner(args.type_strain_fp)
     a.num_cpus = args.num_cpus
     a.species_input_fp = mkfp("unassigner_query.fasta")
-    a.species_output_fp = mkfp("unassigner_query_blastn.txt")
+    a.species_output_fp = mkfp("unassigner_query_ggalign_8CB.txt")
 
     u = BasicAlgorithm(a)
     results = u.unassign(query_seqs)

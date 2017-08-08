@@ -4,8 +4,8 @@ import subprocess
 import tempfile
 
 from unassign.parse import write_fasta, load_fasta
-from unassign.util import uniq
-from unassign.alignment import Alignment
+from unassign.util import uniq, count_while_equal
+from unassign.alignment import Alignment, Aligner
 
 BLAST_FMT = (
     "qseqid sseqid pident length mismatch gapopen "
@@ -19,11 +19,44 @@ BLAST_FIELD_TYPES = [
 class BlastAlignment(Alignment):
     def __init__(self, hit):
         self._hit = hit
-        subject_id = hit['sseqid']
-        query_id = hit['qseqid']
-        query_seq, subject_seq = self._get_aligned_seqs(hit)
-        super(BlastAlignment, self).__init__(
-            (query_id, query_seq), (subject_id, subject_seq))
+        self.subject_id = hit['sseqid']
+        self.query_id = hit['qseqid']
+        self.query_seq, self.subject_seq = self._get_aligned_seqs(hit)
+        assert(len(self.query_seq) == len(self.subject_seq))
+
+    def alignment_length(self):
+        return _hit_identity(self._hit)[1]
+
+    def num_matches(self):
+        return _hit_identity(self._hit)[0]
+
+    def unaligned_length(self):
+        total_length = len(
+            [x for x in self.subject_seq if x != '-'])
+        return total_length - self.alignment_length()
+
+    @property
+    def start_idx(self):
+        return max(
+            count_while_equal(self.query_seq, "-"),
+            count_while_equal(self.subject_seq, "-"))
+
+    @property
+    def end_idx(self):
+        return len(self.query_seq) - max(
+            count_while_equal(reversed(self.query_seq), "-"),
+            count_while_equal(reversed(self.subject_seq), "-"))
+
+    def get_pairs(self, start=None, end=None):
+        astart = self.start_idx
+        if (start is None) or (start < astart):
+            start = astart
+
+        aend = self.end_idx
+        if (end is None) or (end > aend):
+            end = aend
+
+        return list(zip(self.query_seq, self.subject_seq))[start:end]
 
     def _get_aligned_seqs(self, hit):
         # Number of nts outside the local alignment
@@ -66,16 +99,16 @@ class BlastAlignment(Alignment):
         return _hit_identity(self._hit, start, end)
 
 
-class BlastAligner(object):
+class BlastAligner(Aligner):
     """Align sequences with BLAST."""
     alignment_cls = BlastAlignment
+    executable = "blastn"
 
     def __init__(self, species_fp):
         self.species_fp = species_fp
         self.species_max_hits = 1
         self.species_input_fp = None
         self.species_output_fp = None
-
         self.num_cpus = 1
 
     def search_species(self, seqs):
@@ -83,17 +116,6 @@ class BlastAligner(object):
         return self._search(
             seqs, self.species_fp, self.species_max_hits,
             self.species_input_fp, self.species_output_fp)
-
-    def _get_species_seqs(self, hits):
-        """Fetch seqs for each species in the list of hits.
-
-        Each unique species in the list is returned only once in the
-        list of results, but the order of hits is preserved to
-        facilitate caching.
-        """
-        species_ids = uniq(x.subject_id for x in hits)
-        seqs = load_fasta(self.species_fp)
-        return [(x, seqs[x]) for x in species_ids]
 
     def _search(self, seqs, db, max_hits, input_fp, output_fp):
         if input_fp is None:

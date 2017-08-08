@@ -54,15 +54,14 @@ class BasicAlgorithm(UnassignerAlgorithm):
             yield res
 
     def _get_probability(self, species_hit):
-        region_matches, region_positions = species_hit.count_matches()
+        region_positions = species_hit.alignment_length()
+        region_matches = species_hit.num_matches()
         region_mismatches = region_positions - region_matches
+        nonregion_positions = species_hit.unaligned_length()
+        total_positions = region_positions + nonregion_positions
 
         alpha = region_mismatches + self.prior_alpha
         beta = region_matches + self.prior_beta
-
-        total_positions = len(
-            [x for x in species_hit.subject_seq if x != '-'])
-        nonregion_positions = total_positions - region_positions
 
         species_mismatch_threshold = 1 - self.species_threshold
         max_total_mismatches = int(math.floor(

@@ -11,6 +11,7 @@ from unassign.search_blast import (
 DATA_DIR = os.path.join(
     os.path.dirname(os.path.realpath(__file__)), "data")
 
+BLAST_NOT_INSTALLED = not BlastAligner.is_installed()
 
 class BlastAlignmentTests(unittest.TestCase):
     def setUp(self):
@@ -26,6 +27,10 @@ class BlastAlignmentTests(unittest.TestCase):
 
     def test_no_endgaps(self):
         a = BlastAlignment(self.hit)
+        self.assertEqual(a.alignment_length(), 15)
+        self.assertEqual(a.num_matches(), 13)
+        self.assertEqual(a.unaligned_length(), 0)
+
         self.assertEqual(a.query_seq, "CCCGGTCCGGTTATT")
         self.assertEqual(a.subject_seq, "CCCGGTCCGGTTAAC")
         self.assertEqual(a.start_idx, 0)
@@ -41,6 +46,10 @@ class BlastAlignmentTests(unittest.TestCase):
             "sstart": 6, "send": 20, "slen": 20,
             })
         a = BlastAlignment(self.hit)
+        self.assertEqual(a.alignment_length(), 20)
+        self.assertEqual(a.num_matches(), 13)
+        self.assertEqual(a.unaligned_length(), 0)
+
         self.assertEqual(a.query_seq, "XXXXXCCCGGTCCGGTTATT")
         self.assertEqual(a.subject_seq, "HHHHHCCCGGTCCGGTTAAC")
         self.assertEqual(a.start_idx, 0)
@@ -53,6 +62,10 @@ class BlastAlignmentTests(unittest.TestCase):
         # right of the local alignment region.
         self.hit.update({"qlen": 20, "slen": 20})
         a = BlastAlignment(self.hit)
+        self.assertEqual(a.alignment_length(), 20)
+        self.assertEqual(a.num_matches(), 13)
+        self.assertEqual(a.unaligned_length(), 0)
+
         self.assertEqual(a.query_seq, "CCCGGTCCGGTTATTXXXXX")
         self.assertEqual(a.subject_seq, "CCCGGTCCGGTTAACHHHHH")
         self.assertEqual(a.start_idx, 0)
@@ -68,6 +81,10 @@ class BlastAlignmentTests(unittest.TestCase):
             "sstart": 6, "send": 20, "slen": 20,
             })
         a = BlastAlignment(self.hit)
+        self.assertEqual(a.alignment_length(), 18)
+        self.assertEqual(a.num_matches(), 13)
+        self.assertEqual(a.unaligned_length(), 2)
+
         self.assertEqual(a.query_seq,   "--XXXCCCGGTCCGGTTATT")
         self.assertEqual(a.subject_seq, "HHHHHCCCGGTCCGGTTAAC")
         self.assertEqual(a.start_idx, 2)
@@ -83,7 +100,11 @@ class BlastAlignmentTests(unittest.TestCase):
             "send": 15, "slen": 20,
             })
         a = BlastAlignment(self.hit)
-        self.assertEqual(a.query_seq, "CCCGGTCCGGTTATTXXX--")
+        self.assertEqual(a.alignment_length(), 18)
+        self.assertEqual(a.num_matches(), 13)
+        self.assertEqual(a.unaligned_length(), 2)
+
+        self.assertEqual(a.query_seq,   "CCCGGTCCGGTTATTXXX--")
         self.assertEqual(a.subject_seq, "CCCGGTCCGGTTAACHHHHH")
 
     def test_subject_endgaps_left(self):
@@ -95,7 +116,11 @@ class BlastAlignmentTests(unittest.TestCase):
             "sstart": 4, "send": 18, "slen": 18,
             })
         a = BlastAlignment(self.hit)
-        self.assertEqual(a.query_seq, "XXXXXCCCGGTCCGGTTATT")
+        self.assertEqual(a.alignment_length(), 18)
+        self.assertEqual(a.num_matches(), 13)
+        self.assertEqual(a.unaligned_length(), 0)
+
+        self.assertEqual(a.query_seq,   "XXXXXCCCGGTCCGGTTATT")
         self.assertEqual(a.subject_seq, "--HHHCCCGGTCCGGTTAAC")
 
     def test_subject_endgaps_right(self):
@@ -107,7 +132,11 @@ class BlastAlignmentTests(unittest.TestCase):
             "sstart": 1, "send": 15, "slen": 18,
             })
         a = BlastAlignment(self.hit)
-        self.assertEqual(a.query_seq, "CCCGGTCCGGTTATTXXXXX")
+        self.assertEqual(a.alignment_length(), 18)
+        self.assertEqual(a.num_matches(), 13)
+        self.assertEqual(a.unaligned_length(), 0)
+
+        self.assertEqual(a.query_seq,   "CCCGGTCCGGTTATTXXXXX")
         self.assertEqual(a.subject_seq, "CCCGGTCCGGTTAACHHH--")
 
     def test_query_gaps(self):
@@ -122,7 +151,11 @@ class BlastAlignmentTests(unittest.TestCase):
             "sstart": 1, "send": 15, "slen": 20,
             })
         a = BlastAlignment(self.hit)
-        self.assertEqual(a.query_seq, "CCCGGTCCGGTT-TTX----")
+        self.assertEqual(a.alignment_length(), 16)
+        self.assertEqual(a.num_matches(), 12)
+        self.assertEqual(a.unaligned_length(), 4)
+
+        self.assertEqual(a.query_seq,   "CCCGGTCCGGTT-TTX----")
         self.assertEqual(a.subject_seq, "CCCGGTCCGGTTAACHHHHH")
 
 
@@ -131,6 +164,7 @@ class BlastAlignerTests(unittest.TestCase):
         ggfp = os.path.join(DATA_DIR, "gg10.fasta")
         self.a = BlastAligner(ggfp)
 
+    @unittest.skipIf(BLAST_NOT_INSTALLED, "NCBI BLAST is not installed")
     def test_search_species(self):
         seqs = [
             ("a", "CTTGCTCTCGGGTGACGAGCGGCGGACGGGTGAGTAAT"),

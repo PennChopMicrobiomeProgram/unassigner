@@ -1,5 +1,5 @@
 from collections import OrderedDict
-
+import subprocess
 
 def uniq(xs):
     """Remove duplicate entries from a list.
@@ -27,3 +27,8 @@ def count_matching_pairs(xs):
             match += 1
         total += 1
     return match, total
+
+def process_exits_successfully(args):
+    p = subprocess.run(
+        args, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    return p.returncode == 0
