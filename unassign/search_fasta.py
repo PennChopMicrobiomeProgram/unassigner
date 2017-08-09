@@ -2,7 +2,6 @@ import subprocess
 import tempfile
 
 import unassign.parse
-import unassign.util
 
 class FastaAlignment(object):
     def __init__(self, hit):
@@ -12,6 +11,7 @@ class FastaAlignment(object):
 
 class FastaAligner(object):
     alignment_cls = FastaAlignment
+    executable = "glsearch36"
 
     def __init__(self, species_fp):
         self.species_fp = species_fp
@@ -19,10 +19,6 @@ class FastaAligner(object):
         self.species_input_fp = None
         self.species_output_fp = None
         self.num_cpus = 1
-
-    def is_installed(self):
-        return unassign.util.process_exits_successfully(
-            ["ggsearch36", "--help"])
 
     def search_species(self, seqs):
         """Search species typestrains for match to query sequences."""
@@ -79,10 +75,11 @@ class FastaAligner(object):
             "glsearch36", "-n",
             "-T", str(num_cpus),
             "-b", str(max_target_seqs),
-            "-m", "8CB",
-            "-O", output_fp,
+            "-m", "8B",
             query_fp, library_fp,
             ]
-        subprocess.check_call(args, stdout=subprocess.DEVNULL)
-
+        # Noticed that query seqs were missing with -O flag
+        # Open file and redirect stdout instead
+        with open(output_fp, "w") as f:
+            subprocess.check_call(args, stdout=f)
 

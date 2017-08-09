@@ -15,13 +15,16 @@ GG_FP = os.path.join(DATA_DIR, "gg10.fasta")
 class FastaAlignerTests(unittest.TestCase):
     def test_search_species(self):
         aligner = FastaAligner(GG_FP)
+        aligner.species_max_hits = 1
         seqs = [
             ("a", "CTTGCTCTCGGGTGACGAGCGGCGGACGGGTGAGTAAT"),
             ("b", "GCGTGGCGAACGGCTGACGAACACGTGG"),
             ]
         hits = aligner.search_species(seqs)
         observed = [(hit.query_id, hit.subject_id) for hit in hits]
-        expected = [('b', '5'), ('b', '2'), ('b', '10'), ('b', '7'), ('b', '1')]
+        expected = [('a', '8'), ('b', '5')]
         self.assertEqual(observed, expected)
 
+if __name__ == "__main__":
+    unittest.main()
 
