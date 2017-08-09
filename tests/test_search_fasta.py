@@ -12,7 +12,11 @@ DATA_DIR = os.path.join(
     os.path.dirname(os.path.realpath(__file__)), "data")
 GG_FP = os.path.join(DATA_DIR, "gg10.fasta")
 
+FASTA_NOT_INSTALLED = not FastaAligner.is_installed()
+
 class FastaAlignerTests(unittest.TestCase):
+
+    @unittest.skipIf(FASTA_NOT_INSTALLED, "FASTA programs not installed")
     def test_search_species(self):
         aligner = FastaAligner(GG_FP)
         aligner.species_max_hits = 1
