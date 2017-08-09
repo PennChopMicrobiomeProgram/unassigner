@@ -7,13 +7,6 @@ from unassign.parse import write_fasta, load_fasta
 from unassign.util import uniq, count_while_equal
 from unassign.alignment import Alignment, Aligner
 
-BLAST_FMT = (
-    "qseqid sseqid pident length mismatch gapopen "
-    "qstart qend sstart send qlen slen qseq sseq")
-BLAST_FIELDS = BLAST_FMT.split()
-BLAST_FIELD_TYPES = [
-    str, str, float, int, int, int,
-    int, int, int, int, int, int, str, str]
 
 
 class BlastAlignment(Alignment):
@@ -103,57 +96,13 @@ class BlastAligner(Aligner):
     """Align sequences with BLAST."""
     alignment_cls = BlastAlignment
     executable = "blastn"
-
-    def __init__(self, species_fp):
-        self.species_fp = species_fp
-        self.species_max_hits = 1
-        self.species_input_fp = None
-        self.species_output_fp = None
-        self.num_cpus = 1
-
-    def search_species(self, seqs):
-        """Search species typestrains for match to query sequences."""
-        return self._search(
-            seqs, self.species_fp, self.species_max_hits,
-            self.species_input_fp, self.species_output_fp)
-
-    def _search(self, seqs, db, max_hits, input_fp, output_fp):
-        if input_fp is None:
-            infile = tempfile.NamedTemporaryFile(mode="w+t", encoding="utf-8")
-            write_fasta(infile, seqs)
-            infile.seek(0)
-            input_fp = infile.name
-        else:
-            with open(input_fp, "w") as f:
-                write_fasta(f, seqs)
-
-        if output_fp is None:
-            outfile = tempfile.NamedTemporaryFile()
-            output_fp = outfile.name
-
-        self._call(
-            input_fp, db, output_fp,
-            max_target_seqs=max_hits,
-            num_threads=self.num_cpus)
-        return self._load(output_fp)
-
-    @classmethod
-    def _load(self, output_fp):
-        """Load hits from an output file."""
-        with open(output_fp) as f:
-            hits = [self.alignment_cls(x) for x in self._parse(f)]
-        return hits
-
-    @classmethod
-    def _parse(self, f):
-        """Parse a BLAST output file."""
-        for line in f:
-            line = line.strip()
-            if line.startswith("#"):
-                continue
-            vals = line.split("\t")
-            vals = [fn(v) for fn, v in zip(BLAST_FIELD_TYPES, vals)]
-            yield dict(zip(BLAST_FIELDS, vals))
+    blastfmt = (
+        "qseqid sseqid pident length mismatch gapopen "
+        "qstart qend sstart send qlen slen qseq sseq")
+    field_names = blastfmt.split()
+    field_types = [
+        str, str, float, int, int, int,
+        int, int, int, int, int, int, str, str]
 
     @staticmethod
     def _index(fasta_fp):
@@ -168,7 +117,7 @@ class BlastAligner(Aligner):
         args = [
             "blastn",
             "-evalue", "1e-5",
-            "-outfmt", "6 " + BLAST_FMT,
+            "-outfmt", "6 " + self.blastfmt,
             ]
         for arg, val in kwargs.items():
             arg = "-" + arg

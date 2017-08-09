@@ -33,7 +33,7 @@ def main(argv=None):
     a = FastaAligner(args.type_strain_fp)
     a.num_cpus = args.num_cpus
     a.species_input_fp = mkfp("unassigner_query.fasta")
-    a.species_output_fp = mkfp("unassigner_query_ggalign_8CB.txt")
+    a.species_output_fp = mkfp("unassigner_query_hits.txt")
 
     u = BasicAlgorithm(a)
     results = u.unassign(query_seqs)
