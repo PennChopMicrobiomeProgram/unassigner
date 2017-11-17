@@ -34,29 +34,32 @@ class QueryMatch(object):
     def trim_left(self):
         return SeqRecord(self.rec.desc, self.rec.seq[self.end:])
 
+    def trim_right(self):
+        return SeqRecord(self.rec.desc, self.rec.seq[:self.start])
+
 
 class Matcher(object):
     def __init__(self, queryset):
         self.queryset = queryset
+        self.matches = []
+        self.unmatched = []
 
-    def partition_matching_seqs(self, recs):
-        matched = []
-        unmatched = []
+    def find_primer_in(self, recs):
         for rec in recs:
             match = self.find_match(rec)
             if match is None:
-                unmatched.append(rec)
+                self.unmatched.append(rec)
             else:
-                matched.append(match)
-        return matched, unmatched
-                
+                self.matches.append(match)
+        return self.matches, self.unmatched
+
     def find_match(self, rec):
         raise NotImplemented()
 
 
 class CompleteMatcher(Matcher):
     def __init__(self, queryset, max_mismatch):
-        self.queryset = queryset
+        super().__init__(queryset)
         self.max_mismatch = max_mismatch
 
         # To look for near matches in the reference sequence, we
@@ -128,7 +131,7 @@ class AlignmentMatcher(Matcher):
         self.prev_matches = dict((m.rec.seq_id, m) for m in prev_matches)
         self.min_pct_id = min_pct_id
 
-    def partition_matching_seqs(self, recs):
+    def find_primer_in(self, recs):
         # Store recs in dict
         recs = collections.OrderedDict((r.seq_id, r) for r in recs)
 
@@ -253,6 +256,9 @@ def main(argv=None):
     p.add_argument(
         "--reverse_complement_query", action="store_true",
         help="Reverse complement the query seq before search")
+    p.add_argument(
+        "--trim_right", action="store_true",
+        help="Trim right side, rather than left side of sequences")
 
     args = p.parse_args(argv)
 
@@ -262,23 +268,26 @@ def main(argv=None):
 
     recs = list(
         SeqRecord(desc, seq) for desc, seq in parse_fasta(args.input_file))
-    matched = []
+    matches = []
     
     m1 = CompleteMatcher(queryset, args.max_mismatch)
-    newly_matched, recs = m1.partition_matching_seqs(recs)
-    matched.extend(newly_matched)
+    newly_matched, recs = m1.find_primer_in(recs)
+    matches.extend(m1.matches)
     
     m2 = PartialMatcher(queryset, args.min_partial)
-    newly_matched, recs = m2.partition_matching_seqs(recs)
-    matched.extend(newly_matched)
+    newly_matched, recs = m2.find_primer_in(recs)
+    matches.extend(m2.matches)
 
     if not args.skip_alignment:
-        m3 = AlignmentMatcher(queryset, matched, args.min_pct_id)
-        newly_matched, recs = m3.partition_matching_seqs(recs)
-        matched.extend(newly_matched)
+        m3 = AlignmentMatcher(queryset, matches, args.min_pct_id)
+        newly_matched, recs = m3.find_primer_in(recs)
+        matches.extend(m3.matches)
 
-    for m in matched:
-        trimmed_seq = m.trim_left()
+    for m in matches:
+        if args.trim_right:
+            trimmed_seq = m.trim_right()
+        else:
+            trimmed_seq = m.trim_left()
         trimmed_seq.write_fasta(args.trimmed_output_file)
 
         if args.stats_output_file is not None:

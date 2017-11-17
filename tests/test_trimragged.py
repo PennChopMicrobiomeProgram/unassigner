@@ -6,7 +6,7 @@ import unittest
 from unassign.trimragged import (
     deambiguate, partial_seqs, pairs,
     main,
-    SeqRecord,
+    QueryMatch, SeqRecord,
     PartialMatcher, CompleteMatcher,
 )
 
@@ -58,6 +58,12 @@ class MatcherFunctions(unittest.TestCase):
         res = m.find_match(rec)
         self.assertEqual(res.start, 1)
         self.assertEqual(res.end, 21)
+
+    def test_trim_right(self):
+        rec = SeqRecord("AF1234", "TCCTAGAG")
+        m = QueryMatch(rec, 4, 6, "xyz")
+        t = m.trim_right()
+        self.assertEqual(t.seq, "TCCT")
 
     def test_pairs(self):
         self.assertEqual(
