@@ -3,23 +3,34 @@ import shutil
 import tempfile
 import unittest
 
-import unassign.trimragged
+from unassign.trimragged import (
+    deambiguate, partial_seqs, pairs,
+    main,
+    SeqRecord,
+    PartialMatcher, CompleteMatcher,
+)
 
 BSF8 = "AGAGTTTGATCCTGGCTCAG"
 
 class TrimraggedFunctions(unittest.TestCase):
+    def test_deambiguate(self):
+        self.assertEqual(deambiguate("ACTG"), ["ACTG"])
+        self.assertEqual(
+            set(deambiguate("CTGCTGCCTYCCGTA")),
+            set(["CTGCTGCCTTCCGTA", "CTGCTGCCTCCCGTA"]))
+
     def test_partial_seqs(self):
-        res3 = list(unassign.trimragged.partial_seqs("ABCDEFG", 3))
+        res3 = list(partial_seqs("ABCDEFG", 3))
         self.assertEqual(res3, ["BCDEFG", "CDEFG", "DEFG", "EFG"])
 
-        res4 = list(unassign.trimragged.partial_seqs("ABCDEFG", 4))
+        res4 = list(partial_seqs("ABCDEFG", 4))
         self.assertEqual(res4, ["BCDEFG", "CDEFG", "DEFG"])
 
 class MatcherFunctions(unittest.TestCase):
     def test_partial_match(self):
         qset = [BSF8]
-        m = unassign.trimragged.PartialMatcher(qset, 10)
-        rec = unassign.trimragged.SeqRecord(
+        m = PartialMatcher(qset, 10)
+        rec = SeqRecord(
             "AF403541",
             "GATCCTGGCTCAGGACGAACGCTGGCGGCGTGCTTAACACATGCAAGTCGAACGG")
         res = m.find_match(rec)
@@ -30,8 +41,8 @@ class MatcherFunctions(unittest.TestCase):
         
     def test_exact_match(self):
         qset = [BSF8]
-        m = unassign.trimragged.CompleteMatcher(qset, max_mismatch=0)
-        rec = unassign.trimragged.SeqRecord(
+        m = CompleteMatcher(qset, max_mismatch=0)
+        rec = SeqRecord(
             "AF403541",
             "TAGAGTTTGATCCTGGCTCAGGACGAACGCTGGCGGCGTGCTTAACACATGCAAGTCGAACGG")
         res = m.find_match(rec)
@@ -40,8 +51,8 @@ class MatcherFunctions(unittest.TestCase):
 
     def test_2_mismatches(self):
         qset = [BSF8]
-        m = unassign.trimragged.CompleteMatcher(qset, max_mismatch=2)
-        rec = unassign.trimragged.SeqRecord(
+        m = CompleteMatcher(qset, max_mismatch=2)
+        rec = SeqRecord(
             "AF403541",
             "TAGAGTAAGATCCTGGCTCAGGACGAACGCTGGCGGCGTGCTTAACACATGCAAGTCGAACGG")
         res = m.find_match(rec)
@@ -50,7 +61,7 @@ class MatcherFunctions(unittest.TestCase):
 
     def test_pairs(self):
         self.assertEqual(
-            list(unassign.trimragged.pairs("ABCDEFG")),
+            list(pairs("ABCDEFG")),
             [("A", "B"), ("C", "D"), ("E", "F")])
         
 class TrimraggedMain(unittest.TestCase):
@@ -72,7 +83,7 @@ class TrimraggedMain(unittest.TestCase):
             "--stats_output_file", str(stats_fp),
             "--query", BSF8,
         ]
-        unassign.trimragged.main(args)
+        main(args)
 
         # with output_fp.open() as f:
         #     output_contents = f.read()

@@ -55,7 +55,7 @@ class Matcher(object):
 
 
 class CompleteMatcher(Matcher):
-    def __init__(self, queryset, max_mismatch=2):
+    def __init__(self, queryset, max_mismatch):
         self.queryset = queryset
         self.max_mismatch = max_mismatch
 
@@ -123,7 +123,7 @@ class PartialMatcher(Matcher):
                     rec, 0, len(partial_query), "Partial")
 
 class AlignmentMatcher(Matcher):
-    def __init__(self, queryset, prev_matches, min_pct_id=80.0):
+    def __init__(self, queryset, prev_matches, min_pct_id):
         super().__init__(queryset)
         self.prev_matches = dict((m.rec.seq_id, m) for m in prev_matches)
         self.min_pct_id = min_pct_id
@@ -215,7 +215,8 @@ def parse_ggsearch_8CB(f):
         btop = vals[12]
         # query, subject, btop
         yield query_id, subject_id, pct_id, btop
-    
+
+
 def partial_seqs(seq, min_length):
     max_start_idx = len(seq) - min_length + 1
     for start_idx in range(1, max_start_idx):
@@ -230,19 +231,35 @@ def main(argv=None):
         "--trimmed_output_file", type=argparse.FileType("w"), default=sys.stdout)
     p.add_argument(
         "--stats_output_file", type=argparse.FileType("w"))
+    p.add_argument(
+        "--unmatched_output_file", type=argparse.FileType("w"))
     p.add_argument("--query", required=True)
 
+    # Parameters for each step
     p.add_argument(
         "--max_mismatch", type=int, default=2,
         help="Maximum number of mismatches in complete match")
     p.add_argument(
         "--min_partial", type=int, default=5,
-        help="Minimum length of partial sequence match"
-    )
+        help="Minimum length of partial sequence match")
+    p.add_argument(
+        "--min_pct_id", type=float, default=80.0,
+        help="Minimum percent identity in alignment stage")
+
+    # Overall program behavior
+    p.add_argument(
+        "--skip_alignment", action="store_true",
+        help= "Skip pairwise alignment stage")
+    p.add_argument(
+        "--reverse_complement_query", action="store_true",
+        help="Reverse complement the query seq before search")
+
     args = p.parse_args(argv)
 
     queryset = deambiguate(args.query)
-    
+    if args.reverse_complement_query:
+        queryset = [reverse_complement(q) for q in queryset]
+
     recs = list(
         SeqRecord(desc, seq) for desc, seq in parse_fasta(args.input_file))
     matched = []
@@ -255,9 +272,10 @@ def main(argv=None):
     newly_matched, recs = m2.partition_matching_seqs(recs)
     matched.extend(newly_matched)
 
-    m3 = AlignmentMatcher(queryset, matched)
-    newly_matched, recs = m3.partition_matching_seqs(recs)
-    matched.extend(newly_matched)
+    if not args.skip_alignment:
+        m3 = AlignmentMatcher(queryset, matched, args.min_pct_id)
+        newly_matched, recs = m3.partition_matching_seqs(recs)
+        matched.extend(newly_matched)
 
     for m in matched:
         trimmed_seq = m.trim_left()
@@ -271,72 +289,8 @@ def main(argv=None):
             args.stats_output_file.write(
                 "{0}\tUnmatched\tNA\tNA\n".format(rec.seq_id))
 
-        
-
-
-class BarcodeAssigner(object):
-    def __init__(self, samples, mismatches=1, revcomp=True):
-        self.samples = samples
-        if mismatches not in [0, 1, 2]:
-            raise ValueError(
-                "Only 0, 1, or 2 mismatches allowed (got %s)" % mismatches)
-        self.mismatches = mismatches
-        self.revcomp = revcomp
-        # Sample names assumed to be unique after validating input data
-        self.read_counts = dict((s.name, 0) for s in self.samples)
-        self._init_hash()
-
-    def _init_hash(self):
-        self._barcodes = {}
-        for s in self.samples:
-            # Barcodes assumed to be present after validating input data
-            if self.revcomp:
-                bc = reverse_complement(s.barcode)
-            else:
-                bc = s.barcode
-
-            # Barcodes assumed to be unique after validating input data
-            self._barcodes[bc] = s
-
-            for error_bc in self._error_barcodes(bc):
-                # Barcodes not guaranteed to be unique after
-                # accounting for errors
-                if error_bc in self._barcodes:
-                    raise ValueError(
-                        "Barcode %s for sample %s matches barcode for "
-                        "sample %s with %s mismatches" % (
-                            error_bc, self._barcodes[error_bc], s,
-                            self.mismatches))
-                else:
-                    self._barcodes[error_bc] = s
-
-    def _error_barcodes(self, barcode):
-        # If the number of mismatches is set to 0, there will be no
-        # error barcodes. Immediately stop the iteration.
-        if self.mismatches == 0:
-            raise StopIteration
-        # Each item in idx_sets is a set of indices where mismatches
-        # should occur.
-        idx_sets = itertools.combinations(range(len(barcode)), self.mismatches)
-        for idx_set in idx_sets:
-            # Change to list because strings are immutable
-            bc = list(barcode)
-            # Replace the base at each mismatch position with an
-            # ambiguous base specifying all possibilities BUT the one
-            # we see.
-            for idx in idx_set:
-                bc[idx] = AMBIGUOUS_BASES_COMPLEMENT[bc[idx]]
-            # Expand to all possibilities for mismatching at this
-            # particular set of positions
-            for error_bc in deambiguate(bc):
-                yield error_bc
-        
-    def assign(self, seq):
-        sample = self._barcodes.get(seq)
-        if sample is not None:
-            self.read_counts[sample.name] += 1
-        return sample
-
+        if args.unmatched_output_file is not None:
+            rec.write_fasta(args.unmatched_output_file)
 
 AMBIGUOUS_BASES = {
     "T": "T",
@@ -383,7 +337,6 @@ def reverse_complement(seq):
     rc = [COMPLEMENT_BASES[x] for x in seq]
     rc.reverse()
     return ''.join(rc)
-
         
 
 if __name__ == "__main__":
