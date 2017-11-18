@@ -126,11 +126,12 @@ class PartialMatcher(Matcher):
                     rec, 0, len(partial_query), "Partial")
 
 class AlignmentMatcher(Matcher):
-    def __init__(self, queryset, prev_matches, min_pct_id, keep_files):
+    def __init__(self, queryset, prev_matches, min_pct_id, keep_files, cores):
         super().__init__(queryset)
         self.prev_matches = dict((m.rec.seq_id, m) for m in prev_matches)
         self.min_pct_id = min_pct_id
         self.keep_files = keep_files
+        self.cores = cores
 
     def find_primer_in_many(self, recs):
         # Store recs in dict
@@ -148,12 +149,13 @@ class AlignmentMatcher(Matcher):
             for rec in recs.values():
                 rec.write_fasta(f)
 
-        results_fp = ".trimragged.results.txt"
-
         # Run GGsearch
         command = [
             "ggsearch36", "-b", "1", "-d", "1", "-m", "8CB", "-n", 
             query_fp, database_fp]
+        if self.cores:
+            command.extend(["-T", args.cores])
+        results_fp = ".trimragged.results.txt"
         with open(results_fp, "w") as f:
             subprocess.check_call(command, stdout=f)
         
@@ -261,6 +263,9 @@ def main(argv=None):
         "--keep_alignment_files", action="store_true",
         help="Keep database, query, and results files from alignment stage")
     p.add_argument(
+        "--cores", type=int,
+        help="Number of CPU cores to use in alignment stage")
+    p.add_argument(
         "--reverse_complement_query", action="store_true",
         help="Reverse complement the query seq before search")
     p.add_argument(
@@ -289,7 +294,8 @@ def main(argv=None):
 
     if not args.skip_alignment:
         m3 = AlignmentMatcher(
-            queryset, matches, args.min_pct_id, args.keep_alignment_files)
+            queryset, matches, args.min_pct_id, args.keep_alignment_files,
+            args.cores)
         m3.find_primer_in_many(recs)
         recs = m3.unmatched
         matches.extend(m3.matches)
