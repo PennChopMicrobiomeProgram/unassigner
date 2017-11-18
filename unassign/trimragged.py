@@ -1,6 +1,7 @@
 import argparse
 import collections
 import itertools
+import os
 import subprocess
 import sys
 
@@ -44,7 +45,7 @@ class Matcher(object):
         self.matches = []
         self.unmatched = []
 
-    def find_primer_in(self, recs):
+    def find_primer_in_many(self, recs):
         for rec in recs:
             match = self.find_match(rec)
             if match is None:
@@ -126,29 +127,30 @@ class PartialMatcher(Matcher):
                     rec, 0, len(partial_query), "Partial")
 
 class AlignmentMatcher(Matcher):
-    def __init__(self, queryset, prev_matches, min_pct_id):
+    def __init__(self, queryset, prev_matches, min_pct_id, keep_files):
         super().__init__(queryset)
         self.prev_matches = dict((m.rec.seq_id, m) for m in prev_matches)
         self.min_pct_id = min_pct_id
+        self.keep_files = keep_files
 
-    def find_primer_in(self, recs):
+    def find_primer_in_many(self, recs):
         # Store recs in dict
         recs = collections.OrderedDict((r.seq_id, r) for r in recs)
 
         # Write database
-        database_fp = "ggdatabase.fa"
+        database_fp = ".trimragged.database.fa"
         with open(database_fp, "w") as f:
             for m in self.prev_matches.values():
                 m.rec.write_fasta(f)
 
         # Write query
-        query_fp = "ggquery.fa"
+        query_fp = ".trimragged.query.fa"
         with open(query_fp, "w") as f:
             for rec in recs.values():
                 rec.write_fasta(f)
 
-        results_fp = "ggresults.txt"
-                
+        results_fp = ".trimragged.results.txt"
+
         # Run GGsearch
         command = [
             "ggsearch36", "-b", "1", "-d", "1", "-m", "8CB", "-n", 
@@ -157,7 +159,6 @@ class AlignmentMatcher(Matcher):
             subprocess.check_call(command, stdout=f)
         
         # Read output file, determine matches
-        matched = []
         with open(results_fp, "r") as f:
             for query_id, subject_id, pct_id, btop in parse_ggsearch_8CB(f):
                 if pct_id < self.min_pct_id:
@@ -168,10 +169,16 @@ class AlignmentMatcher(Matcher):
                 query_rec = recs[query_id]
                 match = QueryMatch(
                     query_rec, query_start_idx, query_end_idx, "Alignment")
-                matched.append(match)
+                self.matches.append(match)
                 del recs[query_id]
+        self.unmatched.extend(recs.values())
 
-        return matched, list(recs.values())
+        if not self.keep_files:
+            os.remove(database_fp)
+            os.remove(query_fp)
+            os.remove(results_fp)
+
+        return self.matches, self.unmatched
 
 
 def get_query_idx(btop, subject_idx):
@@ -254,6 +261,9 @@ def main(argv=None):
         "--skip_alignment", action="store_true",
         help= "Skip pairwise alignment stage")
     p.add_argument(
+        "--keep_alignment_files", action="store_true",
+        help="Keep database, query, and results files from alignment stage")
+    p.add_argument(
         "--reverse_complement_query", action="store_true",
         help="Reverse complement the query seq before search")
     p.add_argument(
@@ -271,16 +281,20 @@ def main(argv=None):
     matches = []
     
     m1 = CompleteMatcher(queryset, args.max_mismatch)
-    newly_matched, recs = m1.find_primer_in(recs)
+    m1.find_primer_in_many(recs)
+    recs = m1.unmatched
     matches.extend(m1.matches)
     
     m2 = PartialMatcher(queryset, args.min_partial)
-    newly_matched, recs = m2.find_primer_in(recs)
+    m2.find_primer_in_many(recs)
+    recs = m2.unmatched
     matches.extend(m2.matches)
 
     if not args.skip_alignment:
-        m3 = AlignmentMatcher(queryset, matches, args.min_pct_id)
-        newly_matched, recs = m3.find_primer_in(recs)
+        m3 = AlignmentMatcher(
+            queryset, matches, args.min_pct_id, args.keep_alignment_files)
+        m3.find_primer_in_many(recs)
+        recs = m3.unmatched
         matches.extend(m3.matches)
 
     for m in matches:
