@@ -52,7 +52,6 @@ class Matcher(object):
                 self.unmatched.append(rec)
             else:
                 self.matches.append(match)
-        return self.matches, self.unmatched
 
     def find_match(self, rec):
         raise NotImplemented()
@@ -177,8 +176,6 @@ class AlignmentMatcher(Matcher):
             os.remove(database_fp)
             os.remove(query_fp)
             os.remove(results_fp)
-
-        return self.matches, self.unmatched
 
 
 def get_query_idx(btop, subject_idx):
