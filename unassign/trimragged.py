@@ -154,7 +154,7 @@ class AlignmentMatcher(Matcher):
             "ggsearch36", "-b", "1", "-d", "1", "-m", "8CB", "-n", 
             query_fp, database_fp]
         if self.cores:
-            command.extend(["-T", args.cores])
+            command.extend(["-T", str(self.cores)])
         results_fp = ".trimragged.results.txt"
         with open(results_fp, "w") as f:
             subprocess.check_call(command, stdout=f)
