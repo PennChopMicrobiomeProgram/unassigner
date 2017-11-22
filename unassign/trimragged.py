@@ -106,6 +106,9 @@ class CompleteMatcher(Matcher):
         for query in self.queryset:
             idx_sets = itertools.combinations(range(len(query)), n_mismatch)
             for idx_set in idx_sets:
+                # Replace base at each position with a literal "N", to match
+                # ambiguous bases in the reference
+                yield replace_with_n(query, idx_set)
                 # Change to list because strings are immutable
                 qchars = list(query)
                 # Replace the base at each mismatch position with an
@@ -131,6 +134,13 @@ class CompleteMatcher(Matcher):
                         msg = "Complete, {0} mismatches".format(n_mismatches)
                     end_idx = start_idx + len(query)
                     return PrimerMatch(start_idx, end_idx, msg)
+
+
+def replace_with_n(seq, idxs):
+    chars = list(seq)
+    for idx in idxs:
+        chars[idx] = "N"
+    return "".join(chars)
 
 
 class PartialMatcher(Matcher):
