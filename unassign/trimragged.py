@@ -330,6 +330,9 @@ def main(argv=None):
         "--skip_alignment", action="store_true",
         help= "Skip pairwise alignment stage")
     p.add_argument(
+        "--skip_partial", action="store_true",
+        help="Skip partial alignment stage")
+    p.add_argument(
         "--keep_alignment_files", action="store_true",
         help="Keep database, query, and results files from alignment stage")
     p.add_argument(
@@ -357,10 +360,10 @@ def main(argv=None):
     queryset = deambiguate(args.query)
     if args.reverse_complement_query:
         queryset = [reverse_complement(q) for q in queryset]
-    matchers = [
-        CompleteMatcher(queryset, args.max_mismatch),
-        PartialMatcher(queryset, args.min_partial),
-    ]
+
+    matchers = [CompleteMatcher(queryset, args.max_mismatch)]
+    if not args.skip_partial:
+        matchers.append(PartialMatcher(queryset, args.min_partial))
     if not args.skip_alignment:
         matchers.append(
             AlignmentMatcher(
