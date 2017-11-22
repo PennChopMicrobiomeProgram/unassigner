@@ -200,7 +200,7 @@ class AlignmentMatcher(Matcher):
 
 def get_query_idx(btop, subject_idx):
     for btop_query_idx, btop_subject_idx in btop_idx(btop):
-        if btop_subject_idx == subject_idx:
+        if btop_subject_idx >= subject_idx:
             return btop_query_idx
 
 def is_digit(char):

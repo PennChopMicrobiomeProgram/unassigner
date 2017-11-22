@@ -33,14 +33,15 @@ class TrimmableSeqsTest(unittest.TestCase):
             ("AF403542", "GATCCTGGCTCAGGACGAACGCTGGCGGCGTGCTTAACACATGC"),
             ("AF403543", "ACTGTCGTGTCGAAGTGTGGGCGTACGTGTTTGCAACGTGTCAA"),
             ("AF403544", "TAGAGTATGATCCTGGCTCAGGACGAACGCTGGCGGCGTGCTTA"),
+            ("AF403545", "TCAGGACGAACGCTGGCGGCGTGCTTAACACATGCAAACGTGCA"),
         ]
         s = TrimmableSeqs.from_fasta(MAIN_INPUT.splitlines())
         self.assertEqual(list(s.get_unmatched_recs()), recs)
         class MockMatch(object):
             pass
-        s.register_match("AF403544", MockMatch())
-        self.assertEqual(list(s.get_unmatched_recs()), recs[0:3])
-        self.assertEqual(list(s.get_matched_recs()), recs[3:])
+        s.register_match("AF403541", MockMatch())
+        self.assertEqual(list(s.get_unmatched_recs()), recs[1:])
+        self.assertEqual(list(s.get_matched_recs()), recs[:1])
 
 class MatcherFunctions(unittest.TestCase):
     def test_partial_match(self):
@@ -120,6 +121,8 @@ GATCCTGGCTCAGGACGAACGCTGGCGGCGTGCTTAACACATGC
 ACTGTCGTGTCGAAGTGTGGGCGTACGTGTTTGCAACGTGTCAA
 >AF403544 BSF8 with mismatch
 TAGAGTATGATCCTGGCTCAGGACGAACGCTGGCGGCGTGCTTA
+>AF403545 only 4bp BSF8
+TCAGGACGAACGCTGGCGGCGTGCTTAACACATGCAAACGTGCA
 """
 
 MAIN_OUTPUT = """\
@@ -129,11 +132,14 @@ GACGAACGCTGGCGGCGTGCTTA
 GACGAACGCTGGCGGCGTGCTTA
 >AF403542 partial BSF8
 GACGAACGCTGGCGGCGTGCTTAACACATGC
+>AF403545 only 4bp BSF8
+GACGAACGCTGGCGGCGTGCTTAACACATGCAAACGTGCA
 """
 
 MAIN_STATS = """\
 AF403541	Exact	1	21
 AF403544	Complete, 1 mismatch	1	21
 AF403542	Partial	0	13
+AF403545	Alignment	0	4
 AF403543	Unmatched	NA	NA
 """
