@@ -25,7 +25,7 @@ class TrimmableSeqs(object):
             self.seq_ids[rep_seq_id] = seq_ids
         self.matches = dict()
 
-    def has_unmatched_recs(self):
+    def all_matched(self):
         return set(self.matches) == set(self.seq_ids)
 
     def get_matched_recs(self):
@@ -102,7 +102,7 @@ class CompleteMatcher(Matcher):
 
     def _iter_mismatched_queries(self, n_mismatch):
         # This algorithm is terrible unless the number of mismatches is very small
-        assert(n_mismatch in [0, 1, 2])
+        assert(n_mismatch in [0, 1, 2, 3])
         for query in self.queryset:
             idx_sets = itertools.combinations(range(len(query)), n_mismatch)
             for idx_set in idx_sets:
@@ -157,7 +157,7 @@ class AlignmentMatcher(Matcher):
         self.cores = cores
 
     def find_in_seqs(self, seqs):
-        if not seqs.has_unmatched_recs():
+        if seqs.all_matched():
             raise StopIteration()
 
         # Write query
