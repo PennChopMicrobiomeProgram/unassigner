@@ -7,53 +7,77 @@ import sys
 
 from unassign.parse import parse_fasta, write_fasta
 
-class SeqRecord(object):
-    def __init__(self, desc, seq):
-        self.desc = desc
-        self.seq = seq
 
-    @property
-    def seq_id(self):
-        return self.desc.split()[0]
+class TrimmableSeqs(object):
+    def __init__(self, recs):
+        replicate_seqs = collections.defaultdict(list)
+        self.descs = dict()
+        for desc, seq in recs:
+            seq_id = desc.split()[0]
+            replicate_seqs[seq].append(seq_id)
+            self.descs[seq_id] = desc
 
-    def write_fasta(self, f):
-        f.write(">{0}\n{1}\n".format(self.desc, self.seq))
+        self.seqs = dict()
+        self.seq_ids = dict()
+        for seq, seq_ids in replicate_seqs.items():
+            rep_seq_id = seq_ids[0]
+            self.seqs[rep_seq_id] = seq
+            self.seq_ids[rep_seq_id] = seq_ids
+        self.matches = dict()
+
+    def has_unmatched_recs(self):
+        return set(self.matches) == set(self.seq_ids)
+
+    def get_matched_recs(self):
+        for rep_seq_id in sorted(self.seq_ids):
+            if rep_seq_id in self.matches:
+                seq = self.seqs[rep_seq_id]
+                yield rep_seq_id, seq
+
+    def get_unmatched_recs(self):
+        for rep_seq_id in sorted(self.seq_ids):
+            if rep_seq_id not in self.matches:
+                seq = self.seqs[rep_seq_id]
+                yield rep_seq_id, seq
+
+    def get_replicate_ids(self, rep_seq_id):
+        return self.seq_ids[rep_seq_id]
+
+    def get_desc(self, seq_id):
+        return self.descs[seq_id]
+
+    def get_replicate_recs(self, rep_seq_id):
+        seq_ids = self.seq_ids[rep_seq_id]
+        seq = self.seqs[rep_seq_id]
+        for seq_id in seq_ids:
+            yield seq_id, seq
+
+    def register_match(self, rep_seq_id, matchobj):
+        self.matches[rep_seq_id] = matchobj
+
+    @classmethod
+    def from_fasta(cls, f):
+        recs = parse_fasta(f)
+        return cls(recs)
 
 
-class QueryMatch(object):
-    def __init__(self, rec, match_start, match_end, message):
-        self.rec = rec
-        self.start = match_start
-        self.end = match_end
-        self.message = message
-
-    def write_stats(self, f):
-        fields = (self.rec.seq_id, self.message, self.start, self.end)
-        f.write("\t".join(map(str, fields)))
-        f.write("\n")
-
-    def trim_left(self):
-        return SeqRecord(self.rec.desc, self.rec.seq[self.end:])
-
-    def trim_right(self):
-        return SeqRecord(self.rec.desc, self.rec.seq[:self.start])
+PrimerMatch = collections.namedtuple(
+    "PrimerMatch", ["start", "end", "message"])
 
 
 class Matcher(object):
     def __init__(self, queryset):
         self.queryset = queryset
-        self.matches = []
-        self.unmatched = []
 
-    def find_primer_in_many(self, recs):
-        for rec in recs:
-            match = self.find_match(rec)
-            if match is None:
-                self.unmatched.append(rec)
-            else:
-                self.matches.append(match)
+    def find_in_seqs(self, seqs):
+        recs = seqs.get_unmatched_recs()
+        for seq_id, seq in recs:
+            match = self.find_match(seq)
+            if match is not None:
+                seqs.register_match(seq_id, match)
+                yield seq_id, match
 
-    def find_match(self, rec):
+    def find_match(self, seq):
         raise NotImplemented()
 
 
@@ -94,10 +118,10 @@ class CompleteMatcher(Matcher):
                 for query_with_mismatches in deambiguate(qchars):
                     yield query_with_mismatches
 
-    def find_match(self, rec):
+    def find_match(self, seq):
         for n_mismatches, queryset in enumerate(self.mismatched_queryset):
             for query in queryset:
-                start_idx = rec.seq.find(query)
+                start_idx = seq.find(query)
                 if start_idx > -1:
                     if n_mismatches == 0:
                         msg = "Exact"
@@ -105,49 +129,46 @@ class CompleteMatcher(Matcher):
                         msg = "Complete, 1 mismatch"
                     else:
                         msg = "Complete, {0} mismatches".format(n_mismatches)
-                    return QueryMatch(
-                        rec, start_idx, start_idx + len(query), msg)
+                    end_idx = start_idx + len(query)
+                    return PrimerMatch(start_idx, end_idx, msg)
 
 
 class PartialMatcher(Matcher):
     def __init__(self, queryset, min_length):
         super().__init__(queryset)
         self.min_length = min_length
-        
+
         self.partial_queries = set()
         for query in self.queryset:
             for partial_query in partial_seqs(query, self.min_length):
                 self.partial_queries.add(partial_query)
         
-    def find_match(self, rec):
+    def find_match(self, seq):
         for partial_query in self.partial_queries:
-            if rec.seq.startswith(partial_query):
-                return QueryMatch(
-                    rec, 0, len(partial_query), "Partial")
+            if seq.startswith(partial_query):
+                end_idx = len(partial_query)
+                return PrimerMatch(0, end_idx, "Partial")
 
 class AlignmentMatcher(Matcher):
-    def __init__(self, queryset, prev_matches, min_pct_id, keep_files, cores):
+    def __init__(self, queryset, min_pct_id, keep_files, cores):
         super().__init__(queryset)
-        self.prev_matches = dict((m.rec.seq_id, m) for m in prev_matches)
         self.min_pct_id = min_pct_id
         self.keep_files = keep_files
         self.cores = cores
 
-    def find_primer_in_many(self, recs):
-        # Store recs in dict
-        recs = collections.OrderedDict((r.seq_id, r) for r in recs)
-
-        # Write database
-        database_fp = ".trimragged.database.fa"
-        with open(database_fp, "w") as f:
-            for m in self.prev_matches.values():
-                m.rec.write_fasta(f)
+    def find_in_seqs(self, seqs):
+        if not seqs.has_unmatched_recs():
+            raise StopIteration()
 
         # Write query
         query_fp = ".trimragged.query.fa"
         with open(query_fp, "w") as f:
-            for rec in recs.values():
-                rec.write_fasta(f)
+            write_fasta(f, seqs.get_unmatched_recs())
+
+        # Write database
+        database_fp = ".trimragged.database.fa"
+        with open(database_fp, "w") as f:
+            write_fasta(f, seqs.get_matched_recs())
 
         # Run GGsearch
         command = [
@@ -158,21 +179,18 @@ class AlignmentMatcher(Matcher):
         results_fp = ".trimragged.results.txt"
         with open(results_fp, "w") as f:
             subprocess.check_call(command, stdout=f)
-        
+
         # Read output file, determine matches
         with open(results_fp, "r") as f:
             for query_id, subject_id, pct_id, btop in parse_ggsearch_8CB(f):
                 if pct_id < self.min_pct_id:
                     continue
-                subject_match = self.prev_matches[subject_id]
+                subject_match = seqs.matches[subject_id]
                 query_start_idx = get_query_idx(btop, subject_match.start)
                 query_end_idx = get_query_idx(btop, subject_match.end)
-                query_rec = recs[query_id]
-                match = QueryMatch(
-                    query_rec, query_start_idx, query_end_idx, "Alignment")
-                self.matches.append(match)
-                del recs[query_id]
-        self.unmatched.extend(recs.values())
+                matchobj = PrimerMatch(
+                    query_start_idx, query_end_idx, "Alignment")
+                yield query_id, matchobj
 
         if not self.keep_files:
             os.remove(database_fp)
@@ -232,6 +250,58 @@ def partial_seqs(seq, min_length):
         yield seq[start_idx:]
 
 
+class TrimraggedApp(object):
+    def __init__(self, seqs, trim_fcn, writer):
+        self.seqs = seqs
+        self.trim_fcn = trim_fcn
+        self.writer = writer
+
+    def apply_matcher(self, matcher):
+        matches = matcher.find_in_seqs(self.seqs)
+        for rep_seq_id, matchobj in matches:
+            if matchobj is not None:
+                self.seqs.register_match(rep_seq_id, matchobj)
+                for seq_id, seq in self.seqs.get_replicate_recs(rep_seq_id):
+                    desc = self.seqs.get_desc(seq_id)
+                    trimmed_seq = self.trim_fcn(seq, matchobj)
+                    self.writer.write_trimmed(desc, trimmed_seq)
+                    self.writer.write_stats(seq_id, matchobj)
+
+    def finish(self):
+        for rep_seq_id, seq in self.seqs.get_unmatched_recs():
+            for seq_id in self.seqs.get_replicate_ids(rep_seq_id):
+                desc = self.seqs.get_desc(seq_id)
+                self.writer.write_untrimmed(desc, seq)
+                self.writer.write_stats(seq_id, None)
+
+
+class Writer(object):
+    def __init__(self, trimmed_file, stats_file, untrimmed_file):
+        self.trimmed_file = trimmed_file
+        self.stats_file = stats_file
+        self.untrimmed_file = untrimmed_file
+
+    def write_trimmed(self, desc, seq):
+        self.trimmed_file.write(">{0}\n{1}\n".format(desc, seq))
+
+    def write_stats(self, seq_id, matchobj):
+        if matchobj is None:
+            self.stats_file.write("{0}\tUnmatched\tNA\tNA\n".format(seq_id))
+        else:
+            self.stats_file.write("{0}\t{1}\t{2}\t{3}\n".format(
+                seq_id, matchobj.message, matchobj.start, matchobj.end))
+
+    def write_untrimmed(self, desc, seq):
+        if self.untrimmed_file is not None:
+            self.untrimmed_file.write(">{0}\n{1}\n".format(desc, seq))
+
+
+def trim_left(seq, matchobj):
+    return seq[matchobj.end:]
+
+def trim_right(seq, matchobj):
+    return seq[:matchobj.start]
+
 def main(argv=None):
     p = argparse.ArgumentParser()
     p.add_argument(
@@ -239,7 +309,7 @@ def main(argv=None):
     p.add_argument(
         "--trimmed_output_file", type=argparse.FileType("w"), default=sys.stdout)
     p.add_argument(
-        "--stats_output_file", type=argparse.FileType("w"))
+        "--stats_output_file", type=argparse.FileType("w"), default=sys.stderr)
     p.add_argument(
         "--unmatched_output_file", type=argparse.FileType("w"))
     p.add_argument("--query", required=True)
@@ -274,49 +344,33 @@ def main(argv=None):
 
     args = p.parse_args(argv)
 
+    seqs = TrimmableSeqs.from_fasta(args.input_file)
+    writer = Writer(
+        args.trimmed_output_file, args.stats_output_file,
+        args.unmatched_output_file)
+    if args.trim_right:
+        trim_fcn = trim_right
+    else:
+        trim_fcn = trim_left
+    app = TrimraggedApp(seqs, trim_fcn, writer)
+
     queryset = deambiguate(args.query)
     if args.reverse_complement_query:
         queryset = [reverse_complement(q) for q in queryset]
-
-    recs = list(
-        SeqRecord(desc, seq) for desc, seq in parse_fasta(args.input_file))
-    matches = []
-    
-    m1 = CompleteMatcher(queryset, args.max_mismatch)
-    m1.find_primer_in_many(recs)
-    recs = m1.unmatched
-    matches.extend(m1.matches)
-    
-    m2 = PartialMatcher(queryset, args.min_partial)
-    m2.find_primer_in_many(recs)
-    recs = m2.unmatched
-    matches.extend(m2.matches)
-
+    matchers = [
+        CompleteMatcher(queryset, args.max_mismatch),
+        PartialMatcher(queryset, args.min_partial),
+    ]
     if not args.skip_alignment:
-        m3 = AlignmentMatcher(
-            queryset, matches, args.min_pct_id, args.keep_alignment_files,
-            args.cores)
-        m3.find_primer_in_many(recs)
-        recs = m3.unmatched
-        matches.extend(m3.matches)
+        matchers.append(
+            AlignmentMatcher(
+                queryset, args.min_pct_id, args.keep_alignment_files,
+                args.cores))
 
-    for m in matches:
-        if args.trim_right:
-            trimmed_seq = m.trim_right()
-        else:
-            trimmed_seq = m.trim_left()
-        trimmed_seq.write_fasta(args.trimmed_output_file)
+    for m in matchers:
+        app.apply_matcher(m)
+    app.finish()
 
-        if args.stats_output_file is not None:
-            m.write_stats(args.stats_output_file)
-
-    for rec in recs:
-        if args.stats_output_file is not None:
-            args.stats_output_file.write(
-                "{0}\tUnmatched\tNA\tNA\n".format(rec.seq_id))
-
-        if args.unmatched_output_file is not None:
-            rec.write_fasta(args.unmatched_output_file)
 
 AMBIGUOUS_BASES = {
     "T": "T",

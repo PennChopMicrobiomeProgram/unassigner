@@ -5,8 +5,8 @@ import unittest
 
 from unassign.trimragged import (
     deambiguate, partial_seqs, pairs,
-    main,
-    QueryMatch, SeqRecord,
+    trim_left, trim_right, main,
+    TrimmableSeqs, PrimerMatch,
     PartialMatcher, CompleteMatcher,
 )
 
@@ -26,44 +26,56 @@ class TrimraggedFunctions(unittest.TestCase):
         res4 = list(partial_seqs("ABCDEFG", 4))
         self.assertEqual(res4, ["BCDEFG", "CDEFG", "DEFG"])
 
+class TrimmableSeqsTest(unittest.TestCase):
+    def test_get_unmatched_recs(self):
+        recs = [
+            ("AF403541", "TAGAGTTTGATCCTGGCTCAGGACGAACGCTGGCGGCGTGCTTA"),
+            ("AF403542", "GATCCTGGCTCAGGACGAACGCTGGCGGCGTGCTTAACACATGC"),
+            ("AF403543", "ACTGTCGTGTCGAAGTGTGGGCGTACGTGTTTGCAACGTGTCAA"),
+            ("AF403544", "TAGAGTATGATCCTGGCTCAGGACGAACGCTGGCGGCGTGCTTA"),
+        ]
+        s = TrimmableSeqs.from_fasta(MAIN_INPUT.splitlines())
+        self.assertEqual(list(s.get_unmatched_recs()), recs)
+        class MockMatch(object):
+            pass
+        s.register_match("AF403544", MockMatch())
+        self.assertEqual(list(s.get_unmatched_recs()), recs[0:3])
+        self.assertEqual(list(s.get_matched_recs()), recs[3:])
+
 class MatcherFunctions(unittest.TestCase):
     def test_partial_match(self):
         qset = [BSF8]
+        seq = "GATCCTGGCTCAGGACGAACGCTGGCGGCGTGCTTAACACATGCAAGTCGAACGG"
+        trimmed_seq = "GACGAACGCTGGCGGCGTGCTTAACACATGCAAGTCGAACGG"
         m = PartialMatcher(qset, 10)
-        rec = SeqRecord(
-            "AF403541",
-            "GATCCTGGCTCAGGACGAACGCTGGCGGCGTGCTTAACACATGCAAGTCGAACGG")
-        res = m.find_match(rec)
-        self.assertEqual(res.start, 0)
-        self.assertEqual(res.end, 13)
-        self.assertEqual(
-            res.trim_left().seq, "GACGAACGCTGGCGGCGTGCTTAACACATGCAAGTCGAACGG")
-        
+        matchobj = m.find_match(seq)
+        self.assertEqual(matchobj.start, 0)
+        self.assertEqual(matchobj.end, 13)
+        self.assertEqual(trim_left(seq, matchobj), trimmed_seq)
+
     def test_exact_match(self):
         qset = [BSF8]
+        seq = "TAGAGTTTGATCCTGGCTCAGGACGAACGCTGGCGGCGTGCTTAACACATGCAAGTCGAACGG"
         m = CompleteMatcher(qset, max_mismatch=0)
-        rec = SeqRecord(
-            "AF403541",
-            "TAGAGTTTGATCCTGGCTCAGGACGAACGCTGGCGGCGTGCTTAACACATGCAAGTCGAACGG")
-        res = m.find_match(rec)
-        self.assertEqual(res.start, 1)
-        self.assertEqual(res.end, 21)
+        matchobj = m.find_match(seq)
+        self.assertEqual(matchobj.start, 1)
+        self.assertEqual(matchobj.end, 21)
 
     def test_2_mismatches(self):
         qset = [BSF8]
+        seq = "TAGAGTAAGATCCTGGCTCAGGACGAACGCTGGCGGCGTGCTTAACACATGCAAGTCGAACGG"
         m = CompleteMatcher(qset, max_mismatch=2)
-        rec = SeqRecord(
-            "AF403541",
-            "TAGAGTAAGATCCTGGCTCAGGACGAACGCTGGCGGCGTGCTTAACACATGCAAGTCGAACGG")
-        res = m.find_match(rec)
-        self.assertEqual(res.start, 1)
-        self.assertEqual(res.end, 21)
+        matchobj = m.find_match(seq)
+        self.assertEqual(matchobj.start, 1)
+        self.assertEqual(matchobj.end, 21)
 
     def test_trim_right(self):
-        rec = SeqRecord("AF1234", "TCCTAGAG")
-        m = QueryMatch(rec, 4, 6, "xyz")
-        t = m.trim_right()
-        self.assertEqual(t.seq, "TCCT")
+        seq = "TCCTAGAG"
+        class MockMatch(object):
+            start = 4
+            end = 6
+        matchobj = MockMatch()
+        self.assertEqual(trim_right(seq, matchobj), "TCCT")
 
     def test_pairs(self):
         self.assertEqual(
@@ -91,9 +103,9 @@ class TrimraggedMain(unittest.TestCase):
         ]
         main(args)
 
-        # with output_fp.open() as f:
-        #     output_contents = f.read()
-        # self.assertEqual(output_contents, MAIN_OUTPUT)
+        with output_fp.open() as f:
+            output_contents = f.read()
+        self.assertEqual(output_contents, MAIN_OUTPUT)
 
         with stats_fp.open() as f:
             output_contents = f.read()
@@ -113,10 +125,10 @@ TAGAGTATGATCCTGGCTCAGGACGAACGCTGGCGGCGTGCTTA
 MAIN_OUTPUT = """\
 >AF403541 full BSF8
 GACGAACGCTGGCGGCGTGCTTA
->AF403542 partial BSF8
-GACGAACGCTGGCGGCGTGCTTAACACATGC
 >AF403544 BSF8 with mismatch
 GACGAACGCTGGCGGCGTGCTTA
+>AF403542 partial BSF8
+GACGAACGCTGGCGGCGTGCTTAACACATGC
 """
 
 MAIN_STATS = """\
