@@ -59,11 +59,11 @@ def blastdb_fps(fp):
     return [fp + ".nhr", fp + ".nin", fp + ".nsq"]
 
 
-def get_url(url):
+def get_url(url, fp):
     fp = url_fp(url)
     if os.path.exists(fp):
         os.remove(fp)
-    subprocess.check_call(["wget", url])
+    subprocess.check_call(["wget", "-O", fp, url])
     return fp
 
 
@@ -76,6 +76,8 @@ def make_blast_db(fasta_fp):
 
 
 def process_ltp_seqs(input_fp, output_fp=SPECIES_FASTA_FP):
+    if os.path.isdir(output_fp):
+        output_fp = os.path.join(output_fp, SPECIES_FASTA_FP)
     # Re-format FASTA file
     with open(input_fp) as f_in:
         seqs = parse_fasta(f_in)
@@ -89,6 +91,9 @@ def process_ltp_seqs(input_fp, output_fp=SPECIES_FASTA_FP):
 
 
 def process_greengenes_seqs(seqs_fp, accessions_fp, output_fp=REFSEQS_FASTA_FP):
+    if os.path.isdir(output_fp):
+        output_fp = os.path.join(output_fp, REFSEQS_FASTA_FP)
+
     # Extract table of accessions
     if accessions_fp.endswith(".gz"):
         subprocess.check_call(["gunzip", "-f", accessions_fp])

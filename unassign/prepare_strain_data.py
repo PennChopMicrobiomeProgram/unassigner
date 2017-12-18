@@ -1,5 +1,6 @@
 import argparse
 import sys
+import os
 
 from unassign.download import (
     get_url, clean,
@@ -9,9 +10,9 @@ from unassign.download import (
     )
 
 
-def use_or_download(optional_fp, url):
+def use_or_download(optional_fp, url, db_dir):
     if optional_fp is None:
-        return get_url(url)
+        return get_url(url, os.path.join(db_dir, os.path.basename(url)))
     else:
         return optional_fp
 
@@ -34,20 +35,28 @@ def main(argv=None):
         "[default: download from GreenGenes mirror]"))
     p.add_argument("--clean", action="store_true", help=(
         "Remove all downloaded and processed files."))
+    p.add_argument("--db-dir", help=(
+        "Filepath to download the files to."))
     args = p.parse_args(argv)
 
     if args.clean is True:
         clean()
         sys.exit(0)
 
+    if args.db_dir:
+        if not os.path.exists(args.db_dir):
+            os.mkdir(args.db_dir)
+    else:
+        args.db_dir = os.path.dirname(os.path.realpath(__file__))    
+    
     ltp_metadata_fp = use_or_download(
-        args.ltp_metadata_fp, LTP_METADATA_URL)
+        args.ltp_metadata_fp, LTP_METADATA_URL, args.db_dir)
     ltp_seqs_fp = use_or_download(
-        args.ltp_seqs_fp, LTP_SEQS_URL)
-    process_ltp_seqs(ltp_seqs_fp)
+        args.ltp_seqs_fp, LTP_SEQS_URL, args.db_dir)
+    process_ltp_seqs(ltp_seqs_fp, args.db_dir)
 
     gg_seqs_fp = use_or_download(
-        args.greengenes_seqs_fp, GG_SEQS_URL)
+        args.greengenes_seqs_fp, GG_SEQS_URL, args.db_dir)
     gg_accessions_fp = use_or_download(
-        args.greengenes_accessions_fp, GG_ACCESSIONS_URL)
-    process_greengenes_seqs(gg_seqs_fp, gg_accessions_fp)
+        args.greengenes_accessions_fp, GG_ACCESSIONS_URL, args.db_dir)
+    process_greengenes_seqs(gg_seqs_fp, gg_accessions_fp, args.db_dir)
