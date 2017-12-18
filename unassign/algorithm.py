@@ -40,7 +40,7 @@ def beta_binomial_cdf(k_max, n, alpha, beta):
 
 class BasicAlgorithm(UnassignerAlgorithm):
     def __init__(self, aligner):
-        super(NoRefseqsAlgorithm, self).__init__(aligner)
+        super(BasicAlgorithm, self).__init__(aligner)
         self.prior_alpha = 0.5
         self.prior_beta = 0.5
         self.species_threshold = 0.975
@@ -84,5 +84,5 @@ class BasicAlgorithm(UnassignerAlgorithm):
             "RegionMismatches\tRegionMatches\t"
             "NonregionPositions\tMaxNonregionMismatches\t"
             "ProbabilityNotThisSpecies\n")
-        for line in super(NoRefseqsAlgorithm, self).format(results):
+        for line in super(BasicAlgorithm, self).format(results):
             yield line
