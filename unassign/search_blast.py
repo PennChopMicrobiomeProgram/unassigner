@@ -2,8 +2,9 @@ from __future__ import division
 import itertools
 import subprocess
 import tempfile
+from Bio import pairwise2
 
-from unassign.parse import write_fasta, load_fasta
+from unassign.parse import write_fasta, load_fasta, parse_fasta
 from unassign.util import uniq
 from unassign.alignment import Alignment
 
@@ -17,47 +18,57 @@ BLAST_FIELD_TYPES = [
 
 
 class BlastAlignment(Alignment):
-    def __init__(self, hit):
+    def __init__(self, hit, seqs, db):
         self._hit = hit
         subject_id = hit['sseqid']
         query_id = hit['qseqid']
-        query_seq, subject_seq = self._get_aligned_seqs(hit)
+        query_seq, subject_seq = self._get_aligned_seqs(hit, seqs, db)
         super(BlastAlignment, self).__init__(
             (query_id, query_seq), (subject_id, subject_seq))
 
-    def _get_aligned_seqs(self, hit):
-        # Number of nts outside the local alignment
-        query_nleft = hit['qstart'] - 1
-        subj_nleft = hit['sstart'] - 1
-        query_nright = hit['qlen'] - hit['qend']
-        subj_nright = hit['slen'] - hit['send']
+    def _get_aligned_seqs(self, hit, seqs, db):
+        # check if the alignment covers the whole query
+        bool_gaps_left = hit['qstart'] > 1
+        bool_gaps_right = hit['qend'] < hit['qlen']        
+        query_seq = hit['qseq']
+        subj_seq = hit['sseq']
+        if bool_gaps_left or bool_gaps_right: ### TODO: Refactor global alignment to it's own class.
+            # find the original query sequence
+            for seq in seqs: ##### TODO: change seqs to a dictionary to save time here in read_fasta
+                if seq[0] == hit['qseqid']:
+                    qseq_orj = seq[1]
+                    break
 
-        # Number of positions to left and right of local alignment.
-        nleft = max(query_nleft, subj_nleft)
-        nright = max(query_nright, subj_nright)
+            # find the original subject sequence
+            subject_outfile = tempfile.NamedTemporaryFile()
+            subject_outfile_fp = subject_outfile.name
+            args = ["blastdbcmd",
+                    "-db", db,
+                    "-entry", hit['sseqid'],
+                    "-out", subject_outfile_fp
+                ]
+            subprocess.check_call(args)
+            with open(subject_outfile_fp) as f:
+                sseq_orj = list(parse_fasta(f, trim_desc=True))[0][1]
 
-        # Fill in query outside the local alignment with "X"
-        query_lgaps = "-" * (nleft - query_nleft)
-        query_lfill = "X" * query_nleft
-        query_rfill = "X" * query_nright
-        query_rgaps = "-" * (nright - query_nright)
-        query_seq = ''.join(
-            query_lgaps + query_lfill +
-            hit['qseq'] +
-            query_rfill + query_rgaps)
+            # align them using semi-global alignment
+            alignment = pairwise2.align.globalms(sseq_orj, qseq_orj,
+                                                 5, -4, -10, -0.5, #match, mismatch, gapopen, gapextend #### TODO: make these configurable
+                                                 penalize_end_gaps=False, one_alignment_only=True)
 
-        # Fill in subj outside the local alignment with "H"
-        subj_lgaps = "-" * (nleft - subj_nleft)
-        subj_lfill = "H" * subj_nleft
-        subj_rfill = "H" * subj_nright
-        subj_rgaps = "-" * (nright - subj_nright)
-        subj_seq = ''.join(
-            subj_lgaps + subj_lfill +
-            hit['sseq'] +
-            subj_rfill + subj_rgaps)
-
+            subj_seq, query_seq = self._trim_global_alignment(alignment[0][0], alignment[0][1])
+            
+            
         return query_seq, subj_seq
 
+    def _trim_global_alignment(self, subj_seq, query_seq):
+        # trim only the gaps on either side of the QUERY sequence. If the subject has gaps
+        # at the beginning or the end they will be counted as mismatches!!
+        non_indel_indices = [i for i, c in enumerate(query_seq) if c!='-']
+        triml = non_indel_indices[0]
+        trimr = min(non_indel_indices[-1] + 1, len(query_seq))
+        return subj_seq[triml:trimr], query_seq[triml:trimr]
+    
     def get_local_pairs(self):
         return zip(self._hit['qseq'], self._hit['sseq'])
     
@@ -76,7 +87,7 @@ class BlastAligner(object):
         self.species_input_fp = None
         self.species_output_fp = None
 
-        self.num_cpus = 1
+        self.num_cpus = 1 #### TODO: make this configurable
 
     def search_species(self, seqs):
         """Search species typestrains for match to query sequences."""
@@ -113,13 +124,13 @@ class BlastAligner(object):
             input_fp, db, output_fp,
             max_target_seqs=max_hits,
             num_threads=self.num_cpus)
-        return self._load(output_fp)
+        return self._load(output_fp, seqs, db)
 
     @classmethod
-    def _load(self, output_fp):
+    def _load(self, output_fp, seqs, db):
         """Load hits from an output file."""
         with open(output_fp) as f:
-            hits = [self.alignment_cls(x) for x in self._parse(f)]
+            hits = [self.alignment_cls(x, seqs, db) for x in self._parse(f)]
         return hits
 
     @classmethod
@@ -201,7 +212,7 @@ def _hit_identity(hit, start=None, end=None):
                 matches += 1
         if qchar != '-':
             qpos += 1
-
+            
     # If query is not aligned at the start position, count positions
     # from the start position to the left of the alignment as
     # mismatches.
