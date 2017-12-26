@@ -18,48 +18,26 @@ BLAST_FIELD_TYPES = [
 
 
 class BlastAlignment(Alignment):
-    def __init__(self, hit, seqs, db):
+    def __init__(self, hit):
         self._hit = hit
-        subject_id = hit['sseqid']
-        query_id = hit['qseqid']
-        query_seq, subject_seq = self._get_aligned_seqs(hit, seqs, db)
         super(BlastAlignment, self).__init__(
-            (query_id, query_seq), (subject_id, subject_seq))
+            (hit['qseqid'], hit['qseq'], hit['qlen']), (hit['sseqid'], hit['sseq'], hit['slen']))
 
-    def _get_aligned_seqs(self, hit, seqs, db):
-        # check if the alignment covers the whole query
-        bool_gaps_left = hit['qstart'] > 1
-        bool_gaps_right = hit['qend'] < hit['qlen']        
-        query_seq = hit['qseq']
-        subj_seq = hit['sseq']
-        if bool_gaps_left or bool_gaps_right: ### TODO: Refactor global alignment to it's own class.
-            # find the original query sequence
-            for seq in seqs: ##### TODO: change seqs to a dictionary to save time here in read_fasta
-                if seq[0] == hit['qseqid']:
-                    qseq_orj = seq[1]
-                    break
+    def get_local_pairs(self):
+        return zip(self._hit['qseq'], self._hit['sseq'])
+    
+class SemiGlobalAlignment(Alignment):
+    def __init__(self, query_id, qseq_orj, subject_id, sseq_orj):
+        query_seq, subject_seq, qlen, slen  = self._get_aligned_seqs(qseq_orj, sseq_orj)
+        super(SemiGlobalAlignment, self).__init__(
+            (query_id, query_seq, qlen), (subject_id, subject_seq, slen))
 
-            # find the original subject sequence
-            subject_outfile = tempfile.NamedTemporaryFile()
-            subject_outfile_fp = subject_outfile.name
-            args = ["blastdbcmd",
-                    "-db", db,
-                    "-entry", hit['sseqid'],
-                    "-out", subject_outfile_fp
-                ]
-            subprocess.check_call(args)
-            with open(subject_outfile_fp) as f:
-                sseq_orj = list(parse_fasta(f, trim_desc=True))[0][1]
-
-            # align them using semi-global alignment
-            alignment = pairwise2.align.globalms(sseq_orj, qseq_orj,
-                                                 5, -4, -10, -0.5, #match, mismatch, gapopen, gapextend #### TODO: make these configurable
-                                                 penalize_end_gaps=False, one_alignment_only=True)
-
-            subj_seq, query_seq = self._trim_global_alignment(alignment[0][0], alignment[0][1])
-            
-            
-        return query_seq, subj_seq
+    def _get_aligned_seqs(self, qseq_orj, sseq_orj):
+        alignment = pairwise2.align.globalms(sseq_orj, qseq_orj,
+                                             5, -4, -10, -0.5, #match, mismatch, gapopen, gapextend #### TODO: make these configurable
+                                             penalize_end_gaps=False, one_alignment_only=True)
+        subj_seq, query_seq = self._trim_global_alignment(alignment[0][0], alignment[0][1])
+        return query_seq, subj_seq, len(qseq_orj), len(sseq_orj)
 
     def _trim_global_alignment(self, subj_seq, query_seq):
         # trim only the gaps on either side of the QUERY sequence. If the subject has gaps
@@ -68,18 +46,9 @@ class BlastAlignment(Alignment):
         triml = non_indel_indices[0]
         trimr = min(non_indel_indices[-1] + 1, len(query_seq))
         return subj_seq[triml:trimr], query_seq[triml:trimr]
-    
-    def get_local_pairs(self):
-        return zip(self._hit['qseq'], self._hit['sseq'])
-    
-    def count_matches(self, start=None, end=None):
-        """See docstring for _hit_identity."""
-        return _hit_identity(self._hit, start, end)
-
 
 class BlastAligner(object):
     """Align sequences with BLAST."""
-    alignment_cls = BlastAlignment
 
     def __init__(self, species_fp):
         self.species_fp = species_fp
@@ -129,8 +98,8 @@ class BlastAligner(object):
     @classmethod
     def _load(self, output_fp, seqs, db):
         """Load hits from an output file."""
-        with open(output_fp) as f:
-            hits = [self.alignment_cls(x, seqs, db) for x in self._parse(f)]
+        with open(output_fp) as f:                
+            hits = [self._polish_alignment(hit, seqs, db) for hit in self._parse(f)]
         return hits
 
     @classmethod
@@ -152,6 +121,36 @@ class BlastAligner(object):
             "-in", fasta_fp,
             ])
 
+    @classmethod
+    def _polish_alignment(self, hit, seqs, db):
+        bool_gaps_left = hit['qstart'] > 1
+        bool_gaps_right = hit['qend'] < hit['qlen']
+        if bool_gaps_left or bool_gaps_right:
+            qseq_orj = self._get_orj_query_seq(seqs, hit['qseqid'])
+            sseq_orj = self._get_orj_subject_seq(db, hit['sseqid'])
+            return SemiGlobalAlignment(hit['qseqid'], qseq_orj,  hit['sseqid'], sseq_orj)
+        else:
+            return BlastAlignment(hit)
+            
+    @classmethod
+    def _get_orj_query_seq(self, seqs, query_id):
+        for seq in seqs: ##### TODO: change seqs to a dictionary to save time here in read_fasta
+            if seq[0] == query_id:
+                return seq[1]
+
+    @classmethod
+    def _get_orj_subject_seq(self, db, subject_id):
+        subject_outfile = tempfile.NamedTemporaryFile()
+        subject_outfile_fp = subject_outfile.name
+        args = ["blastdbcmd",
+                "-db", db,
+                "-entry", subject_id,
+                "-out", subject_outfile_fp
+        ]
+        subprocess.check_call(args)
+        with open(subject_outfile_fp) as f:
+            return list(parse_fasta(f, trim_desc=True))[0][1]
+            
     def _call(self, query_fp, database_fp, output_fp, **kwargs):
         """Call the BLAST program."""
         args = [
@@ -171,83 +170,3 @@ class BlastAligner(object):
             "-out", output_fp,
             ]
         subprocess.check_call(args)
-
-
-def _hit_identity(hit, start=None, end=None):
-    """Count regional and total matches in BLAST hit.
-
-    Parameters
-    ----------
-    hit : a dictionary representing the BLAST hit, must have the
-        following keys: qseq, sseq, qstart, qend, qlen
-    start : start position in query sequence
-    end : end position in query sequence
-
-    Returns
-    -------
-    tuple containing two ints
-        Number of matching positions and total number of query
-        nucleotides in the alignment.  Portions of the query sequence
-        occurring over terminal gaps are not counted in the total.
-
-    Notes
-    -----
-    Because sequence positions are indexed from 1 in BLAST, the
-    start and end positions are indexed starting from 1.
-    """
-    if start is None:
-        start = 1
-    if end is None:
-        end = hit['qlen']
-
-    total = 0
-    matches = 0
-
-    # Count matches in alignment region.
-    qpos = hit['qstart']
-    for qchar, hchar in zip(hit['qseq'], hit['sseq']):
-        if start <= qpos <= end:
-            total += 1
-            if qchar == hchar:
-                matches += 1
-        if qchar != '-':
-            qpos += 1
-            
-    # If query is not aligned at the start position, count positions
-    # from the start position to the left of the alignment as
-    # mismatches.
-    if start < hit['qstart']:
-        # Number of nts in query from left end of alignment to query
-        # start position.
-        query_left = hit['qstart'] - start
-
-        # Want to make sure there are at least this many nts available
-        # for alignment in the subject sequence.  Number of nts in
-        # subject to left of alignment.
-        subject_left = hit['sstart'] - 1
-
-        # Add the minimum of query_left vs. subject_left to the total.
-        if query_left < subject_left:
-            total += query_left
-        else:
-            total += subject_left
-
-    # If query is not aligned at the end position, count positions to the
-    # right of the alignment as mismatches.
-    if end > hit['qend']:
-        # Number of nts in query from right end of alignment to query
-        # end position.
-        query_right = end - hit['qend']
-
-        # Number of nts in subject to right of alignment.
-        subject_right = hit['slen'] - hit['send']
-
-        # Again, add the smaller number to the total.
-        if query_right < subject_right:
-            total += query_right
-        else:
-            total += subject_right
-
-        
-    return matches, total
-

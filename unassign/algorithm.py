@@ -48,7 +48,6 @@ class BasicAlgorithm(UnassignerAlgorithm):
     def unassign(self, query_seqs):
         logging.info("Aligning query seqs to type strain seqs")
         species_hits = self.aligner.search_species(query_seqs)
-
         for h in species_hits:
             res = self._get_probability(h)
             yield res
@@ -60,8 +59,7 @@ class BasicAlgorithm(UnassignerAlgorithm):
         alpha = region_mismatches + self.prior_alpha
         beta = region_matches + self.prior_beta
 
-        total_positions = len(
-            [x for x in species_hit.subject_seq if x != '-'])
+        total_positions = species_hit.subject_len
         nonregion_positions = total_positions - region_positions
 
         species_mismatch_threshold = 1 - self.species_threshold
