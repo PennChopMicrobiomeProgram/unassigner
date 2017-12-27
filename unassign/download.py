@@ -29,7 +29,7 @@ GG_ACCESSIONS_URL = \
     "ftp://greengenes.microbio.me/greengenes_release/gg_13_5/gg_13_5_accessions.txt.gz"
 SPECIES_FASTA_FP = "species.fasta"
 REFSEQS_FASTA_FP = "refseqs.fasta"
-
+GG_DUPLICATE_FP = "gg_duplicate_ids.txt"
 
 def clean(db_dir):
     fps = [
@@ -39,6 +39,7 @@ def clean(db_dir):
         gunzip_fp(url_fp(GG_SEQS_URL)),
         gunzip_fp(url_fp(GG_ACCESSIONS_URL)),
         REFSEQS_FASTA_FP,
+        GG_DUPLICATE_FP
         ]
     fps += blastdb_fps(SPECIES_FASTA_FP)
     fps += blastdb_fps(REFSEQS_FASTA_FP)
@@ -94,7 +95,9 @@ def process_ltp_seqs(input_fp, output_fp=SPECIES_FASTA_FP):
 
 
 def process_greengenes_seqs(seqs_fp, accessions_fp, output_fp=REFSEQS_FASTA_FP):
+    duplicates_fp = GG_DUPLICATE_FP
     if os.path.isdir(output_fp):
+        duplicates_fp = os.path.join(output_fp, duplicates_fp)
         output_fp = os.path.join(output_fp, REFSEQS_FASTA_FP)
 
     # Extract table of accessions
@@ -119,7 +122,6 @@ def process_greengenes_seqs(seqs_fp, accessions_fp, output_fp=REFSEQS_FASTA_FP):
         for ggid, seq in parse_fasta(f):
             uniq_seqs[seq].append(ggid)
 
-    duplicates_fp = "gg_duplicate_ids.txt"
     with open(duplicates_fp, "w") as dups:
         with open(output_fp, "w") as f:
             for seq, ggids in uniq_seqs.items():
