@@ -139,8 +139,8 @@ class SemiGlobalAlignmentTests(unittest.TestCase):
 
 class BlastAlignerTests(unittest.TestCase):
     def setUp(self):
-        ggfp = os.path.join(DATA_DIR, "gg10.fasta")
-        self.a = BlastAligner(ggfp)
+        self.ggfp = os.path.join(DATA_DIR, "gg10.fasta")
+        self.a = BlastAligner(self.ggfp)
 
     def test_search_species(self):
         seqs = [
@@ -154,10 +154,38 @@ class BlastAlignerTests(unittest.TestCase):
         self.assertEqual(observed, expected)
 
     def test_polish_alignment(self):
-        seqs = ["a", ""]
-        
-        
+        seqs = [("b", "GCGTGGCGAACGGCTGACGAACACGTGG")]
+        hit = {
+            "qseqid": "b", "sseqid": "5",
+            "qseq": "GCGTGGCGAACGGCTGACGAACACGTGG",
+            "sseq": "GCGTGGCGAACGGCTGACGAACACGTGG",
+            "qstart": 1, "qend": 28, "qlen": 28,
+            "sstart": 41, "send": 68, "slen": 1336,
+        }
+        self.assertIsInstance(self.a._polish_alignment(hit, seqs, self.ggfp), BlastAlignment)
 
+    def test_polish_alignment_leftgap(self):
+        seqs = [("b", "GCGTGGCGAACGGCTGACGAACACGTGG")]
+        hit = {
+            "qseqid": "b", "sseqid": "5",
+            "qseq": "GCGTGGCGAACGGCTGACGAACACGTGG",
+            "sseq": "GCGTGGCGAACGGCTGACGAACACGTGG",
+            "qstart": 5, "qend": 28, "qlen": 28,
+            "sstart": 45, "send": 68, "slen": 1336,
+        }
+        self.assertIsInstance(self.a._polish_alignment(hit, seqs, self.ggfp), SemiGlobalAlignment)
+
+    def test_polish_alignment_rightgap(self):
+        seqs = [("b", "GCGTGGCGAACGGCTGACGAACACGTGG")]
+        hit = {
+            "qseqid": "b", "sseqid": "5",
+            "qseq": "GCGTGGCGAACGGCTGACGAACACGTGG",
+            "sseq": "GCGTGGCGAACGGCTGACGAACACGTGG",
+            "qstart": 1, "qend": 24, "qlen": 28,
+            "sstart": 41, "send": 64, "slen": 1336,
+        }
+        self.assertIsInstance(self.a._polish_alignment(hit, seqs, self.ggfp), SemiGlobalAlignment)
+        
 class HitIdentityTests(unittest.TestCase):
     def test_hit_identity_no_endgaps(self):
         # Hit has 15 positions and 2 mismatches (rightmost columns).
