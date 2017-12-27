@@ -28,23 +28,20 @@ class BlastAlignment(Alignment):
     
 class SemiGlobalAlignment(Alignment):
     def __init__(self, query_id, qseq_orj, subject_id, sseq_orj):
-        query_seq, subject_seq, qlen, slen  = self._get_aligned_seqs(qseq_orj, sseq_orj)
+        query_seq, subject_seq  = self._get_aligned_seqs(qseq_orj, sseq_orj)
         super(SemiGlobalAlignment, self).__init__(
-            (query_id, query_seq, qlen), (subject_id, subject_seq, slen))
+            (query_id, query_seq, len(qseq_orj)), (subject_id, subject_seq, len(sseq_orj)))
 
     def _get_aligned_seqs(self, qseq_orj, sseq_orj):
         alignment = pairwise2.align.globalms(sseq_orj, qseq_orj,
                                              5, -4, -10, -0.5, #match, mismatch, gapopen, gapextend #### TODO: make these configurable
                                              penalize_end_gaps=False, one_alignment_only=True)
         subj_seq, query_seq = self._trim_global_alignment(alignment[0][0], alignment[0][1])
-        return query_seq, subj_seq, len(qseq_orj), len(sseq_orj)
+        return query_seq, subj_seq
 
     def _trim_global_alignment(self, subj_seq, query_seq):
-        # trim only the gaps on either side of the QUERY sequence. If the subject has gaps
-        # at the beginning or the end they will be counted as mismatches!!
-        non_indel_indices = [i for i, c in enumerate(query_seq) if c!='-']
-        triml = non_indel_indices[0]
-        trimr = min(non_indel_indices[-1] + 1, len(query_seq))
+        triml = self.start_idx(subj_seq, query_seq)
+        trimr = self.end_idx(subj_seq, query_seq)
         return subj_seq[triml:trimr], query_seq[triml:trimr]
 
 class BlastAligner(object):

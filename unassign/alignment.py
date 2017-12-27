@@ -7,17 +7,16 @@ class Alignment(object):
         self.subject_id, self.subject_seq, self.subject_len = sseq
         assert(len(self.query_seq) == len(self.subject_seq))
 
-    @property
-    def start_idx(self):
-        return max(
-            count_while_equal(self.query_seq, "-"),
-            count_while_equal(self.subject_seq, "-"))
+    @staticmethod
+    def start_idx(subject_seq, query_seq):
+        return max(count_while_equal(query_seq, "-"),
+                   count_while_equal(subject_seq, "-"))
 
-    @property
-    def end_idx(self):
-        return len(self.query_seq) - max(
-            count_while_equal(reversed(self.query_seq), "-"),
-            count_while_equal(reversed(self.subject_seq), "-"))
+    @staticmethod
+    def end_idx(subject_seq, query_seq):
+        return len(query_seq) - max(
+            count_while_equal(reversed(query_seq), "-"),
+            count_while_equal(reversed(subject_seq), "-"))
 
     def get_pairs(self, start=None, end=None):
         astart = self.start_idx
