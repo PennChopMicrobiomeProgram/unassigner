@@ -31,7 +31,7 @@ SPECIES_FASTA_FP = "species.fasta"
 REFSEQS_FASTA_FP = "refseqs.fasta"
 
 
-def clean():
+def clean(db_dir):
     fps = [
         url_fp(LTP_METADATA_URL),
         url_fp(LTP_SEQS_URL),
@@ -43,8 +43,9 @@ def clean():
     fps += blastdb_fps(SPECIES_FASTA_FP)
     fps += blastdb_fps(REFSEQS_FASTA_FP)
     for fp in fps:
-        if os.path.exists(fp):
-            os.remove(fp)
+        fp_full = os.path.join(db_dir, fp)
+        if os.path.exists(fp_full):
+            os.remove(fp_full)
 
 
 def url_fp(url):
@@ -56,11 +57,11 @@ def gunzip_fp(fp):
 
 
 def blastdb_fps(fp):
-    return [fp + ".nhr", fp + ".nin", fp + ".nsq"]
+    return [fp + ".nhr", fp + ".nin", fp + ".nsq",
+            fp + ".nog", fp + ".nsd", fp + ".nsi"]
 
 
 def get_url(url, fp):
-    fp = url_fp(url)
     if os.path.exists(fp):
         os.remove(fp)
     subprocess.check_call(["wget", "-O", fp, url])

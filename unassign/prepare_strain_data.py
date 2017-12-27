@@ -39,24 +39,25 @@ def main(argv=None):
         "Filepath to download the files to."))
     args = p.parse_args(argv)
 
-    if args.clean is True:
-        clean()
-        sys.exit(0)
-
     if args.db_dir:
-        if not os.path.exists(args.db_dir):
+        db_dir = args.db_dir
+        if not os.path.exists(args.db_dir) and not args.clean:
             os.mkdir(args.db_dir)
     else:
-        args.db_dir = os.path.dirname(os.path.realpath(__file__))    
-    
+        db_dir = os.getcwd()
+
+    if args.clean is True:
+        clean(db_dir)
+        sys.exit(0)
+
     ltp_metadata_fp = use_or_download(
-        args.ltp_metadata_fp, LTP_METADATA_URL, args.db_dir)
+        args.ltp_metadata_fp, LTP_METADATA_URL, db_dir)
     ltp_seqs_fp = use_or_download(
-        args.ltp_seqs_fp, LTP_SEQS_URL, args.db_dir)
-    process_ltp_seqs(ltp_seqs_fp, args.db_dir)
+        args.ltp_seqs_fp, LTP_SEQS_URL, db_dir)
+    process_ltp_seqs(ltp_seqs_fp, db_dir)
 
     gg_seqs_fp = use_or_download(
-        args.greengenes_seqs_fp, GG_SEQS_URL, args.db_dir)
+        args.greengenes_seqs_fp, GG_SEQS_URL, db_dir)
     gg_accessions_fp = use_or_download(
-        args.greengenes_accessions_fp, GG_ACCESSIONS_URL, args.db_dir)
-    process_greengenes_seqs(gg_seqs_fp, gg_accessions_fp, args.db_dir)
+        args.greengenes_accessions_fp, GG_ACCESSIONS_URL, db_dir)
+    process_greengenes_seqs(gg_seqs_fp, gg_accessions_fp, db_dir)
