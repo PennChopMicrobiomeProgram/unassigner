@@ -1,4 +1,4 @@
-from unassign.util import count_while_equal
+from unassign.util import count_while_equal, count_matching_pairs
 
 
 class Alignment(object):
@@ -29,40 +29,19 @@ class Alignment(object):
 
         return list(zip(self.query_seq, self.subject_seq))[start:end]
 
-    def count_matches(self, start=None, end=None):
-        """Count regional and total matches in BLAST hit. 
+    def count_matches(self):
+        """Count regional and total matches in an alignment. 
         Parameters 
         ----------
         start : start position in query sequence
         end : end position in query sequence
-
         Returns
         -------
         tuple containing two ints:
         Number of matching positions and 
-        total number of query nucleotides in the alignment.
-        
-        Notes
-        -----
-        Because sequence positions are indexed from 1 in BLAST, the
-        start and end positions are indexed starting from 1.
+        total number of query nucleotides in the alignment.        
         """
         
-        if start is None:
-            start = 1
-        if end is None:
-            end = len(self.query_seq)
-
-        total = 0
-        matches = 0
-
-        qpos = start
-        for qchar, hchar in zip(self.query_seq, self.subject_seq):
-            if start <= qpos <= end: ## TODO: This can be simplified if we are sure we are given the full alignment for the query
-                total += 1
-                if qchar == hchar:
-                    matches += 1
-            if qchar != '-':
-                qpos += 1
-
-        return matches, total
+        matches, total_query, _ = count_matching_pairs(zip(self.query_seq, self.subject_seq))
+        #assert(total_query == self.query_len)
+        return matches, total_query
