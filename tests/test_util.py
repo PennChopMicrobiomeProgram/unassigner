@@ -22,10 +22,12 @@ class FunctionTests(unittest.TestCase):
 
     def test_count_matching_pairs(self):
         self.assertEquals(
-            count_matching_pairs(zip("ABCDEFG", "ABCDEFG")), (7, 7))
+            count_matching_pairs(zip("ABCDEFG", "ABCDEFG")), (7, 7, 7))
         self.assertEquals(
-            count_matching_pairs(zip("ABCDEFG", "ABXDYFZ")), (4, 7))
-
-
+            count_matching_pairs(zip("ABCDEFG", "ABXDYFZ")), (4, 7, 7))
+        self.assertEquals(
+            count_matching_pairs(zip("ABC-DEFG", "ABXADYFZ")), (4, 7, 8))
+        self.assertEquals(
+            count_matching_pairs(zip("ABCXDEFG", "ABX-DYFZ")), (4, 8, 7))
 if __name__ == "__main__":
     unittest.main()
