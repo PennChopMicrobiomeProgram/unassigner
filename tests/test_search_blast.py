@@ -45,7 +45,7 @@ class BlastAlignmentTests(unittest.TestCase):
         self.assertEqual(a.end_idx(a.subject_seq, a.query_seq), 17)
         self.assertEqual(a.query_len, 15)
         self.assertEqual(a.subject_len, 17)
-        self.assertEqual(a.count_matches(), (13,15))
+        self.assertEqual(a.count_matches(), (13,17))
 
 class SemiGlobalAlignmentTests(unittest.TestCase):
     def setUp(self):
@@ -212,7 +212,7 @@ class HitIdentityTests(unittest.TestCase):
             "sstart": 1, "send": 15, "slen": 20,
             }
         a = BlastAlignment(hit)
-        self.assertEqual(a.count_matches(), (12, 14))
+        self.assertEqual(a.count_matches(), (12, 16))
 
 if __name__ == "__main__":
     unittest.main()

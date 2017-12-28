@@ -44,4 +44,4 @@ class Alignment(object):
         
         matches, total_query, _ = count_matching_pairs(zip(self.query_seq, self.subject_seq))
         #assert(total_query == self.query_len)
-        return matches, total_query
+        return matches, len(self.query_seq)
