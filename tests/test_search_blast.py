@@ -5,7 +5,7 @@ import unittest
 
 from unassign.download import make_blast_db
 from unassign.search_blast import (
-    _hit_identity, BlastAligner, BlastAlignment,
+    BlastAligner, BlastAlignment, SemiGlobalAlignment
     )
 
 DATA_DIR = os.path.join(
@@ -28,108 +28,119 @@ class BlastAlignmentTests(unittest.TestCase):
         a = BlastAlignment(self.hit)
         self.assertEqual(a.query_seq, "CCCGGTCCGGTTATT")
         self.assertEqual(a.subject_seq, "CCCGGTCCGGTTAAC")
-        self.assertEqual(a.start_idx, 0)
-        self.assertEqual(a.end_idx, 15)
-        self.assertEqual(a.get_pairs(), self.pairs)
-
-    def test_equal_endgaps_left(self):
-        # Hit has 15 positions and 2 mismatches (rightmost columns).
-        # Both query and subject seqs have 5 unaligned bases to the
-        # left of the local alignment region.
+        self.assertEqual(a.start_idx(a.subject_seq, a.query_seq), 0)
+        self.assertEqual(a.end_idx(a.subject_seq, a.query_seq), 15)
+        self.assertEqual(a.query_len, 15)
+        self.assertEqual(a.subject_len, 15)
+        self.assertEqual(a.count_matches(), (13,15))
+        
+    def test_midgaps(self):
         self.hit.update({
-            "qstart": 6, "qend": 20, "qlen": 20,
-            "sstart": 6, "send": 20, "slen": 20,
+            "qseq":"CCCGGTC--CGGTTATT", "sseq":"CCCGGTCAACGGTTAAC",
+            "send":17, "slen":17
             })
         a = BlastAlignment(self.hit)
-        self.assertEqual(a.query_seq, "XXXXXCCCGGTCCGGTTATT")
-        self.assertEqual(a.subject_seq, "HHHHHCCCGGTCCGGTTAAC")
-        self.assertEqual(a.start_idx, 0)
-        self.assertEqual(a.end_idx, 20)
-        self.assertEqual(a.get_pairs(), list(zip("XXXXX", "HHHHH")) + self.pairs)
+        self.assertEqual(a.query_seq, "CCCGGTC--CGGTTATT")
+        self.assertEqual(a.subject_seq, "CCCGGTCAACGGTTAAC")
+        self.assertEqual(a.end_idx(a.subject_seq, a.query_seq), 17)
+        self.assertEqual(a.query_len, 15)
+        self.assertEqual(a.subject_len, 17)
+        self.assertEqual(a.count_matches(), (13,17))
 
-    def test_equal_endgaps_right(self):
-        # Hit has 15 positions and 2 mismatches (rightmost columns).
-        # Both query and subject seqs have 5 unaligned bases to the
-        # right of the local alignment region.
-        self.hit.update({"qlen": 20, "slen": 20})
-        a = BlastAlignment(self.hit)
-        self.assertEqual(a.query_seq, "CCCGGTCCGGTTATTXXXXX")
-        self.assertEqual(a.subject_seq, "CCCGGTCCGGTTAACHHHHH")
-        self.assertEqual(a.start_idx, 0)
-        self.assertEqual(a.end_idx, 20)
-        self.assertEqual(a.get_pairs(), self.pairs + list(zip("XXXXX", "HHHHH")))
+class SemiGlobalAlignmentTests(unittest.TestCase):
+    def setUp(self):
+        self.query_id = "a"
+        self.subject_id = "b"
+        self.qseq_orj = "CCCGGTCCGGTTATT"
+        self.sseq_orj = "CCCGGTCCGGTTAAC"
 
-    def test_query_endgaps_left(self):
-        # Hit has 15 positions and 2 mismatches (rightmost columns).
-        # Query has 3 unaligned bases to the left of the local
-        # alignment region.
-        self.hit.update({
-            "qstart": 4, "qend": 18, "qlen": 18,
-            "sstart": 6, "send": 20, "slen": 20,
-            })
-        a = BlastAlignment(self.hit)
-        self.assertEqual(a.query_seq,   "--XXXCCCGGTCCGGTTATT")
-        self.assertEqual(a.subject_seq, "HHHHHCCCGGTCCGGTTAAC")
-        self.assertEqual(a.start_idx, 2)
-        self.assertEqual(a.end_idx, 20)
-        self.assertEqual(a.get_pairs(), list(zip("XXX", "HHH")) + self.pairs)
+    def test_no_endgaps(self):
+        a = SemiGlobalAlignment(self.query_id, self.qseq_orj, self.subject_id, self.sseq_orj)
+        self.assertEqual(a.query_seq,   "CCCGGTCCGGTTATT")
+        self.assertEqual(a.subject_seq, "CCCGGTCCGGTTAAC")
+        self.assertEqual(a.start_idx(a.subject_seq, a.query_seq), 0)
+        self.assertEqual(a.end_idx(a.subject_seq, a.query_seq), 15)
+        self.assertEqual(a.query_len, 15)
+        self.assertEqual(a.subject_len, 15)
+        self.assertEqual(a.count_matches(), (13,15))
 
-    def test_query_endgaps_right(self):
-        # Hit has 15 positions and 2 mismatches (rightmost columns).
-        # Query has 3 unaligned bases to the right of the local
-        # alignment region.
-        self.hit.update({
-            "qend": 15, "qlen": 18,
-            "send": 15, "slen": 20,
-            })
-        a = BlastAlignment(self.hit)
-        self.assertEqual(a.query_seq, "CCCGGTCCGGTTATTXXX--")
-        self.assertEqual(a.subject_seq, "CCCGGTCCGGTTAACHHHHH")
+    def test_endgaps_both_sides_query(self):
+        self.sseq_orj = "CTCAGGATGAACGCTAGCTACAGGCTTAACACATGCAAGT"
+        self.qseq_orj =      "GATGAACGCTAGCTTCAGGCTTAAC"
+        a = SemiGlobalAlignment(self.query_id, self.qseq_orj, self.subject_id, self.sseq_orj)
+        self.assertEqual(a.query_seq, "GATGAACGCTAGCTTCAGGCTTAAC")
+        self.assertEqual(a.subject_seq, "GATGAACGCTAGCTACAGGCTTAAC")
+        self.assertEqual(a.start_idx(a.subject_seq, a.query_seq), 0)
+        self.assertEqual(a.end_idx(a.subject_seq, a.query_seq), 25)
+        self.assertEqual(a.query_len, 25)
+        self.assertEqual(a.subject_len, 40)
+        self.assertEqual(a.count_matches(), (24,25))
+        
+    def test_endgaps_left_query(self):
+        self.sseq_orj = "CTCAGGATGAACGCTAGCTACAGGCTTAAC"
+        self.qseq_orj =      "GATGAACGCTAGCTTCAGGCTTAAC"
+        a = SemiGlobalAlignment(self.query_id, self.qseq_orj, self.subject_id, self.sseq_orj)
+        self.assertEqual(a.query_seq, "GATGAACGCTAGCTTCAGGCTTAAC")
+        self.assertEqual(a.subject_seq, "GATGAACGCTAGCTACAGGCTTAAC")
+        self.assertEqual(a.start_idx(a.subject_seq, a.query_seq), 0)
+        self.assertEqual(a.end_idx(a.subject_seq, a.query_seq), 25)
+        self.assertEqual(a.query_len, 25)
+        self.assertEqual(a.subject_len, 30)
+        self.assertEqual(a.count_matches(), (24,25))
 
-    def test_subject_endgaps_left(self):
-        # Hit has 15 positions and 2 mismatches (rightmost columns).
-        # Subject has 3 unaligned bases to the left of the local
-        # alignment region.
-        self.hit.update({
-            "qstart": 6, "qend": 20, "qlen": 20,
-            "sstart": 4, "send": 18, "slen": 18,
-            })
-        a = BlastAlignment(self.hit)
-        self.assertEqual(a.query_seq, "XXXXXCCCGGTCCGGTTATT")
-        self.assertEqual(a.subject_seq, "--HHHCCCGGTCCGGTTAAC")
+    def test_endgaps_right_query(self):
+        self.sseq_orj = "GATGAACGCTAGCTACAGGCTTAACACATGCAAGT"
+        self.qseq_orj = "GATGAACGCTAGCTTCAGGCTTAAC"
+        a = SemiGlobalAlignment(self.query_id, self.qseq_orj, self.subject_id, self.sseq_orj)
+        self.assertEqual(a.query_seq, "GATGAACGCTAGCTTCAGGCTTAAC")
+        self.assertEqual(a.subject_seq, "GATGAACGCTAGCTACAGGCTTAAC")
+        self.assertEqual(a.start_idx(a.subject_seq, a.query_seq), 0)
+        self.assertEqual(a.end_idx(a.subject_seq, a.query_seq), 25)
+        self.assertEqual(a.query_len, 25)
+        self.assertEqual(a.subject_len, 35)
+        self.assertEqual(a.count_matches(), (24,25))
 
-    def test_subject_endgaps_right(self):
-        # Hit has 15 positions and 2 mismatches (rightmost columns).
-        # Query has 3 unaligned bases to the right of the local
-        # alignment region.
-        self.hit.update({
-            "qstart": 1, "qend": 15, "qlen": 20,
-            "sstart": 1, "send": 15, "slen": 18,
-            })
-        a = BlastAlignment(self.hit)
-        self.assertEqual(a.query_seq, "CCCGGTCCGGTTATTXXXXX")
-        self.assertEqual(a.subject_seq, "CCCGGTCCGGTTAACHHH--")
-
-    def test_query_gaps(self):
-        # Hit has 15 positions and 3 mismatches (rightmost columns).
-        # Query has 1 nt to right of the alignment.
-        # Total matches: 15 - 3 = 12
-        # Total positions counted: 15 + 1 = 16
-        self.hit.update({
-            "qseq": "CCCGGTCCGGTT-TT",
-            "sseq": "CCCGGTCCGGTTAAC",
-            "qstart": 1, "qend": 14, "qlen": 15,
-            "sstart": 1, "send": 15, "slen": 20,
-            })
-        a = BlastAlignment(self.hit)
-        self.assertEqual(a.query_seq, "CCCGGTCCGGTT-TTX----")
-        self.assertEqual(a.subject_seq, "CCCGGTCCGGTTAACHHHHH")
-
+    def test_ragged_left_subject(self):
+        self.qseq_orj = "CTCAGGATGAACGCTAGCTACAGGCTTAAC"
+        self.sseq_orj =      "GATGAACGCTAGCTTCAGGCTTAACACATG"
+        a = SemiGlobalAlignment(self.query_id, self.qseq_orj, self.subject_id, self.sseq_orj)
+        self.assertEqual(a.subject_seq, "GATGAACGCTAGCTTCAGGCTTAAC")
+        self.assertEqual(a.query_seq, "GATGAACGCTAGCTACAGGCTTAAC")
+        self.assertEqual(a.start_idx(a.subject_seq, a.query_seq), 0)
+        self.assertEqual(a.end_idx(a.subject_seq, a.query_seq), 25)
+        self.assertEqual(a.query_len, 30)
+        self.assertEqual(a.subject_len, 30)
+        self.assertEqual(a.count_matches(), (24,25))
+        
+    def test_ragged_right_subject(self):
+        self.qseq_orj =      "GATGAACGCTAGCTACAGGCTTAACACATG"
+        self.sseq_orj = "CTCAGGATGAACGCTAGCTTCAGGCTTAAC"
+        a = SemiGlobalAlignment(self.query_id, self.qseq_orj, self.subject_id, self.sseq_orj)
+        self.assertEqual(a.subject_seq, "GATGAACGCTAGCTTCAGGCTTAAC")
+        self.assertEqual(a.query_seq, "GATGAACGCTAGCTACAGGCTTAAC")
+        self.assertEqual(a.start_idx(a.subject_seq, a.query_seq), 0)
+        self.assertEqual(a.end_idx(a.subject_seq, a.query_seq), 25)
+        self.assertEqual(a.query_len, 30)
+        self.assertEqual(a.subject_len, 30)
+        self.assertEqual(a.count_matches(), (24,25))
+        
+    def test_funky_query_left(self):
+        self.qseq_orj =  "TTTTGATGAACGCTAGCTACAGGCTTA"
+        self.sseq_orj = "CTCAGGATGAACGCTAGCTTCAGGCTTAAC"
+        a = SemiGlobalAlignment(self.query_id, self.qseq_orj, self.subject_id, self.sseq_orj)
+        self.assertEqual(a.subject_seq, "TCAGGATGAACGCTAGCTTCAGGCTTA")
+        self.assertEqual(a.query_seq,   "TTTTGATGAACGCTAGCTACAGGCTTA")
+        self.assertEqual(a.start_idx(a.subject_seq, a.query_seq), 0)
+        self.assertEqual(a.end_idx(a.subject_seq, a.query_seq), 27)
+        self.assertEqual(a.query_len, 27)
+        self.assertEqual(a.subject_len, 30)
+        self.assertEqual(a.count_matches(), (23,27))
+    
 
 class BlastAlignerTests(unittest.TestCase):
     def setUp(self):
-        ggfp = os.path.join(DATA_DIR, "gg10.fasta")
-        self.a = BlastAligner(ggfp)
+        self.ggfp = os.path.join(DATA_DIR, "gg10.fasta")
+        self.a = BlastAligner(self.ggfp)
 
     def test_search_species(self):
         seqs = [
@@ -137,122 +148,71 @@ class BlastAlignerTests(unittest.TestCase):
             ("b", "GCGTGGCGAACGGCTGACGAACACGTGG"),
             ]
         hits = self.a.search_species(seqs)
+        print(hits)
         observed = [(hit.query_id, hit.subject_id) for hit in hits]
         expected = [("a", "8"), ("b", "5")]
         self.assertEqual(observed, expected)
 
+    def test_polish_alignment(self):
+        seqs = [("b", "GCGTGGCGAACGGCTGACGAACACGTGG")]
+        hit = {
+            "qseqid": "b", "sseqid": "5",
+            "qseq": "GCGTGGCGAACGGCTGACGAACACGTGG",
+            "sseq": "GCGTGGCGAACGGCTGACGAACACGTGG",
+            "qstart": 1, "qend": 28, "qlen": 28,
+            "sstart": 41, "send": 68, "slen": 1336,
+        }
+        self.assertIsInstance(self.a._polish_alignment(hit, seqs, self.ggfp), BlastAlignment)
 
+    def test_polish_alignment_leftgap(self):
+        seqs = [("b", "GCGTGGCGAACGGCTGACGAACACGTGG")]
+        hit = {
+            "qseqid": "b", "sseqid": "5",
+            "qseq": "GCGTGGCGAACGGCTGACGAACACGTGG",
+            "sseq": "GCGTGGCGAACGGCTGACGAACACGTGG",
+            "qstart": 5, "qend": 28, "qlen": 28,
+            "sstart": 45, "send": 68, "slen": 1336,
+        }
+        self.assertIsInstance(self.a._polish_alignment(hit, seqs, self.ggfp), SemiGlobalAlignment)
+
+    def test_polish_alignment_rightgap(self):
+        seqs = [("b", "GCGTGGCGAACGGCTGACGAACACGTGG")]
+        hit = {
+            "qseqid": "b", "sseqid": "5",
+            "qseq": "GCGTGGCGAACGGCTGACGAACACGTGG",
+            "sseq": "GCGTGGCGAACGGCTGACGAACACGTGG",
+            "qstart": 1, "qend": 24, "qlen": 28,
+            "sstart": 41, "send": 64, "slen": 1336,
+        }
+        self.assertIsInstance(self.a._polish_alignment(hit, seqs, self.ggfp), SemiGlobalAlignment)
+        
 class HitIdentityTests(unittest.TestCase):
     def test_hit_identity_no_endgaps(self):
         # Hit has 15 positions and 2 mismatches (rightmost columns).
         hit = {
+            "qseqid": "a", "sseqid": "b",
             "qseq": "CCCGGTCCGGTTATT",
             "sseq": "CCCGGTCCGGTTAAC",
             "qstart": 1, "qend": 15, "qlen": 15,
             "sstart": 1, "send": 15, "slen": 15,
             }
-        self.assertEqual(_hit_identity(hit), (13, 15))
-
-    def test_hit_identity_equal_endgaps_left(self):
-        # Hit has 15 positions and 2 mismatches (rightmost columns).
-        # Both query and subject seqs have 5 unaligned bases to the
-        # left of the local alignment region.
-        hit = {
-            "qseq": "CCCGGTCCGGTTATT",
-            "sseq": "CCCGGTCCGGTTAAC",
-            "qstart": 6, "qend": 20, "qlen": 20,
-            "sstart": 6, "send": 20, "slen": 20,
-            }
-        self.assertEqual(_hit_identity(hit), (13, 20))
-
-    def test_hit_identity_equal_endgaps_right(self):
-        # Hit has 15 positions and 2 mismatches (rightmost columns).
-        # Both query and subject seqs have 5 unaligned bases to the
-        # right of the local alignment region.
-        hit = {
-            "qseq": "CCCGGTCCGGTTATT",
-            "sseq": "CCCGGTCCGGTTAAC",
-            "qstart": 1, "qend": 15, "qlen": 20,
-            "sstart": 1, "send": 15, "slen": 20,
-            }
-        self.assertEqual(_hit_identity(hit), (13, 20))
-
-    def test_hit_identity_query_endgaps_left(self):
-        # Hit has 15 positions and 2 mismatches (rightmost columns).
-        # Query has 3 unaligned bases to the left of the local
-        # alignment region.
-        hit = {
-            "qseq": "CCCGGTCCGGTTATT",
-            "sseq": "CCCGGTCCGGTTAAC",
-            "qstart": 4, "qend": 18, "qlen": 18,
-            "sstart": 6, "send": 20, "slen": 20,
-            }
-        self.assertEqual(_hit_identity(hit), (13, 18))
-
-    def test_hit_identity_query_endgaps_right(self):
-        # Hit has 15 positions and 2 mismatches (rightmost columns).
-        # Query has 3 unaligned bases to the right of the local
-        # alignment region.
-        hit = {
-            "qseq": "CCCGGTCCGGTTATT",
-            "sseq": "CCCGGTCCGGTTAAC",
-            "qstart": 1, "qend": 15, "qlen": 18,
-            "sstart": 1, "send": 15, "slen": 20,
-            }
-        self.assertEqual(_hit_identity(hit), (13, 18))
-
-    def test_hit_identity_subject_endgaps_left(self):
-        # Hit has 15 positions and 2 mismatches (rightmost columns).
-        # Subject has 3 unaligned bases to the left of the local
-        # alignment region.
-        hit = {
-            "qseq": "CCCGGTCCGGTTATT",
-            "sseq": "CCCGGTCCGGTTAAC",
-            "qstart": 6, "qend": 20, "qlen": 20,
-            "sstart": 4, "send": 18, "slen": 18,
-            }
-        self.assertEqual(_hit_identity(hit), (13, 18))
-
-    def test_hit_identity_subject_endgaps_right(self):
-        # Hit has 15 positions and 2 mismatches (rightmost columns).
-        # Query has 3 unaligned bases to the right of the local
-        # alignment region.
-        hit = {
-            "qseq": "CCCGGTCCGGTTATT",
-            "sseq": "CCCGGTCCGGTTAAC",
-            "qstart": 1, "qend": 15, "qlen": 20,
-            "sstart": 1, "send": 15, "slen": 18,
-            }
-        self.assertEqual(_hit_identity(hit), (13, 18))
+        a = BlastAlignment(hit)
+        self.assertEqual(a.count_matches(), (13, 15))
 
     def test_hit_identity_query_gaps(self):
-        # Hit has 15 positions and 3 mismatches (rightmost columns).
+        # Hit has 14 positions and 2 gaps and 2 mismatches (rightmost columns).
         # Query has 1 nt to right of the alignment.
-        # Total matches: 15 - 3 = 12
-        # Total positions counted: 15 + 1 = 16
+        # Total matches: 14 - 2 = 12
+        # Total positions counted: 14 = query length
         hit = {
-            "qseq": "CCCGGTCCGGTT-TT",
-            "sseq": "CCCGGTCCGGTTAAC",
-            "qstart": 1, "qend": 14, "qlen": 15,
+            "qseqid": "a", "sseqid": "b",
+            "qseq": "CCCGGTCCGGTT--TT",
+            "sseq": "CCCGGTCCGGTTAACC",
+            "qstart": 1, "qend": 14, "qlen": 14,
             "sstart": 1, "send": 15, "slen": 20,
             }
-        self.assertEqual(_hit_identity(hit), (12, 16))
-
-    def test_hit_identity_region(self):
-        # Hit has 15 positions and 3 mismatches (rightmost columns).
-        # Query has 1 nt to right of the alignment.
-        # Specified region begins in position 5 of query (first 4
-        #   positions of query ignored).
-        # Total matches: 15 - 4 - 3 = 8
-        # Total positions counted: 15 - 4 + 1 = 12
-        hit = {
-            "qseq": "CCCGGTCCGGTT-TT",
-            "sseq": "CCCGGTCCGGTTAAC",
-            "qstart": 1, "qend": 14, "qlen": 15,
-            "sstart": 1, "send": 15, "slen": 20,
-            }
-        self.assertEqual(_hit_identity(hit, 5, 15), (8, 12))
-
+        a = BlastAlignment(hit)
+        self.assertEqual(a.count_matches(), (12, 16))
 
 if __name__ == "__main__":
     unittest.main()

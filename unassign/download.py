@@ -29,9 +29,9 @@ GG_ACCESSIONS_URL = \
     "ftp://greengenes.microbio.me/greengenes_release/gg_13_5/gg_13_5_accessions.txt.gz"
 SPECIES_FASTA_FP = "species.fasta"
 REFSEQS_FASTA_FP = "refseqs.fasta"
+GG_DUPLICATE_FP = "gg_duplicate_ids.txt"
 
-
-def clean():
+def clean(db_dir):
     fps = [
         url_fp(LTP_METADATA_URL),
         url_fp(LTP_SEQS_URL),
@@ -39,12 +39,14 @@ def clean():
         gunzip_fp(url_fp(GG_SEQS_URL)),
         gunzip_fp(url_fp(GG_ACCESSIONS_URL)),
         REFSEQS_FASTA_FP,
+        GG_DUPLICATE_FP
         ]
     fps += blastdb_fps(SPECIES_FASTA_FP)
     fps += blastdb_fps(REFSEQS_FASTA_FP)
     for fp in fps:
-        if os.path.exists(fp):
-            os.remove(fp)
+        fp_full = os.path.join(db_dir, fp)
+        if os.path.exists(fp_full):
+            os.remove(fp_full)
 
 
 def url_fp(url):
@@ -56,14 +58,14 @@ def gunzip_fp(fp):
 
 
 def blastdb_fps(fp):
-    return [fp + ".nhr", fp + ".nin", fp + ".nsq"]
+    return [fp + ".nhr", fp + ".nin", fp + ".nsq",
+            fp + ".nog", fp + ".nsd", fp + ".nsi"]
 
 
-def get_url(url):
-    fp = url_fp(url)
+def get_url(url, fp):
     if os.path.exists(fp):
         os.remove(fp)
-    subprocess.check_call(["wget", url])
+    subprocess.check_call(["wget", "-O", fp, url])
     return fp
 
 
@@ -72,16 +74,20 @@ def make_blast_db(fasta_fp):
         "makeblastdb",
         "-dbtype", "nucl",
         "-in", fasta_fp,
+        "-parse_seqids"
         ])
 
 
 def process_ltp_seqs(input_fp, output_fp=SPECIES_FASTA_FP):
+    if os.path.isdir(output_fp):
+        output_fp = os.path.join(output_fp, SPECIES_FASTA_FP)
     # Re-format FASTA file
     with open(input_fp) as f_in:
         seqs = parse_fasta(f_in)
         with open(output_fp, "w") as f_out:
             for desc, seq in seqs:
-                name = desc.split("\t")[0]
+                split_desc = desc.split("\t")
+                name = "_".join([split_desc[0], split_desc[1]])
                 f_out.write(">%s\n%s\n" % (name, seq))
 
     make_blast_db(output_fp)
@@ -89,6 +95,11 @@ def process_ltp_seqs(input_fp, output_fp=SPECIES_FASTA_FP):
 
 
 def process_greengenes_seqs(seqs_fp, accessions_fp, output_fp=REFSEQS_FASTA_FP):
+    duplicates_fp = GG_DUPLICATE_FP
+    if os.path.isdir(output_fp):
+        duplicates_fp = os.path.join(output_fp, duplicates_fp)
+        output_fp = os.path.join(output_fp, REFSEQS_FASTA_FP)
+
     # Extract table of accessions
     if accessions_fp.endswith(".gz"):
         subprocess.check_call(["gunzip", "-f", accessions_fp])
@@ -111,7 +122,6 @@ def process_greengenes_seqs(seqs_fp, accessions_fp, output_fp=REFSEQS_FASTA_FP):
         for ggid, seq in parse_fasta(f):
             uniq_seqs[seq].append(ggid)
 
-    duplicates_fp = "gg_duplicate_ids.txt"
     with open(duplicates_fp, "w") as dups:
         with open(output_fp, "w") as f:
             for seq, ggids in uniq_seqs.items():

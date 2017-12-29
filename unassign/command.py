@@ -31,7 +31,7 @@ def main(argv=None):
         return os.path.join(args.output_dir, filename)
 
     a = BlastAligner(args.type_strain_fp)
-    a.num_cpus = args.num_cpus
+    #a.num_cpus = args.num_cpus
     a.species_input_fp = mkfp("unassigner_query.fasta")
     a.species_output_fp = mkfp("unassigner_query_blastn.txt")
 
