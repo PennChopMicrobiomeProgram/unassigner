@@ -1,3 +1,4 @@
+import abc
 import argparse
 import collections
 import itertools
@@ -8,7 +9,7 @@ import sys
 from unassign.parse import parse_fasta, write_fasta
 from unassign.search_blast import BLAST_FMT, BlastAligner
 
-class TrimmableSeqs(object):
+class TrimmableSeqs:
     def __init__(self, recs):
         replicate_seqs = collections.defaultdict(list)
         self.descs = dict()
@@ -65,7 +66,7 @@ PrimerMatch = collections.namedtuple(
     "PrimerMatch", ["start", "end", "message"])
 
 
-class Matcher(object):
+class Matcher(abc.ABC):
     def __init__(self, queryset):
         self.queryset = queryset
 
