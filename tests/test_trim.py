@@ -8,6 +8,7 @@ from unassign.trim import (
     trim_left, trim_right, main,
     TrimmableSeqs, PrimerMatch,
     PartialMatcher, CompleteMatcher,
+    AlignmentMatcher,
 )
 
 BSF8 = "AGAGTTTGATCCTGGCTCAG"
@@ -103,6 +104,31 @@ class MatcherTests(unittest.TestCase):
         self.assertEqual(matchobj.end, 13)
         self.assertEqual(trim_left(seq, matchobj), trimmed_seq)
 
+    def test_alignment_match(self):
+        seq = "TAGAGTAAGATCCTGGCTCAGGACGAACGCTGGCGGCGTGCTTAACACATGCAAGTCGAACGG"
+        #      |||||||||||||||||||||  <- Primer seq
+        seq_trim3 =             "CAGGACGAACGCTGGCGGCGTGCTTAACACATGCAAGTCGAACGG"
+        # Our goal: trim 3 bp from the left of the sequence
+        class MockMatch:
+            start = 1
+            end = 21
+        m1 = MockMatch()
+        class MockSeqs:
+            matches = {"A": m1}
+            def all_matched(self):
+                return False
+            def get_matched_recs(self):
+                yield ("A", seq)
+            def get_unmatched_recs(self):
+                yield ("B", seq_trim3)
+        seqs = MockSeqs()
+        m = AlignmentMatcher()
+        alignment_matches = list(m.find_in_seqs(seqs))
+        match_id, matchobj = alignment_matches[0]
+        self.assertEqual(matchobj.start, 0)
+        self.assertEqual(matchobj.end, 3)
+
+
     def test_trim_right(self):
         seq = "TCCTAGAG"
         class MockMatch(object):
@@ -123,7 +149,6 @@ class TrimraggedMain(unittest.TestCase):
     def tearDown(self):
         shutil.rmtree(self.test_dir)
 
-    @unittest.skip("Alignment stage not fully implemented")
     def test_trimragged_main(self):
         input_fp = pathlib.Path(self.test_dir, "in.fasta")
         with input_fp.open("w") as f:
@@ -164,6 +189,8 @@ TCAGGACGAACGCTGGCGGCGTGCTTAACACATGCAAACGTGCA
 MAIN_OUTPUT = """\
 >AF403541 full BSF8
 GACGAACGCTGGCGGCGTGCTTA
+>AF403541b full BSF8
+GACGAACGCTGGCGGCGTGCTTA
 >AF403544 BSF8 with mismatch
 GACGAACGCTGGCGGCGTGCTTA
 >AF403542 partial BSF8
@@ -173,9 +200,10 @@ GACGAACGCTGGCGGCGTGCTTAACACATGCAAACGTGCA
 """
 
 MAIN_STATS = """\
-AF403541 Exact 1 21
-AF403544 Complete, 1 mismatch 1 21
-AF403542 Partial 0 13
-AF403545 Alignment 0 4
-AF403543 Unmatched NA NA
+AF403541	Exact	1	21
+AF403541b	Exact	1	21
+AF403544	Complete, 1 mismatch	1	21
+AF403542	Partial	0	13
+AF403545	Alignment	0	4
+AF403543	Unmatched	NA	NA
 """

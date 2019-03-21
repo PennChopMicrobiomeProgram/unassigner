@@ -161,8 +161,7 @@ class PartialMatcher(Matcher):
                 return PrimerMatch(0, end_idx, "Partial")
 
 class AlignmentMatcher(Matcher):
-    def __init__(self, queryset, min_pct_id, keep_files, cores):
-        super().__init__(queryset)
+    def __init__(self, min_pct_id = 90, keep_files = False, cores = 1):
         self.min_pct_id = min_pct_id
         self.keep_files = keep_files
         self.cores = cores
@@ -181,36 +180,64 @@ class AlignmentMatcher(Matcher):
         with open(database_fp, "w") as f:
             write_fasta(f, seqs.get_matched_recs())
         subprocess.check_call(
-            ["makeblastdb", "-dbtype", "nucl", "-in", database_fp])
+            ["makeblastdb", "-dbtype", "nucl", "-in", database_fp],
+            stdout = subprocess.DEVNULL, stderr = subprocess.DEVNULL,
+        )
 
         results_fp = ".trimragged.results.txt"
         command = [
-            "blastn", "-evalue", "1e-5",
-            "-outfmt", "6 " + BLAST_FMT,
+            "blastn",
+            "-outfmt", "7",
             "-query", query_fp,
             "-db", database_fp,
             "-out", results_fp,
+            "-max_target_seqs", "1",
         ]
-        if self.cores:
+        if self.cores > 1:
             command.extend(["-num_threads", str(self.cores)])
         subprocess.check_call(command)
 
         # Read output file, determine matches
         with open(results_fp, "r") as f:
-            for hit in BlastAligner._parse(f):
+            for hit in parse_blast7(f):
+                if hit["qstart"] > 1:
+                    continue
                 if hit["pident"] < self.min_pct_id:
                     continue
-                query_start_idx = hit["qstart"]
-                query_end_idx = hit["qend"]
-                query_id = hit["qseqid"]
+                subj_start_idx = hit["sstart"] - 1
+                subj_id = hit["sseqid"]
+                subj_match = seqs.matches[subj_id]
+                query_start_idx = 0 # Because qstart = 1, above
+                query_end_idx = subj_match.end - subj_start_idx
                 matchobj = PrimerMatch(
                     query_start_idx, query_end_idx, "Alignment")
+                query_id = hit["qseqid"]
                 yield query_id, matchobj
 
         if not self.keep_files:
             os.remove(database_fp)
             os.remove(query_fp)
             os.remove(results_fp)
+
+
+def parse_blast7(f):
+    BLAST_FIELDS = [
+        "qseqid", "sseqid", "pident", "length",
+        "mismatch", "gapopen", "qstart", "qend",
+        "sstart", "send", "evalue", "bitscore",
+    ]
+    BLAST_FIELD_TYPES = [
+        str, str, float, int,
+        int, int, int, int,
+        int, int, float, float,
+    ]
+    for line in f:
+        line = line.strip()
+        if line.startswith("#"):
+            continue
+        vals = line.split("\t")
+        vals = [fn(v) for fn, v in zip(BLAST_FIELD_TYPES, vals)]
+        yield dict(zip(BLAST_FIELDS, vals))
 
 
 def is_digit(char):
@@ -314,7 +341,7 @@ def main(argv=None):
         "--keep_alignment_files", action="store_true",
         help="Keep database, query, and results files from alignment stage")
     p.add_argument(
-        "--cores", type=int,
+        "--cores", type=int, default = 1,
         help="Number of CPU cores to use in alignment stage")
     p.add_argument(
         "--reverse_complement_query", action="store_true",
@@ -345,7 +372,7 @@ def main(argv=None):
     if not args.skip_alignment:
         matchers.append(
             AlignmentMatcher(
-                queryset, args.min_pct_id, args.keep_alignment_files,
+                args.min_pct_id, args.keep_alignment_files,
                 args.cores))
 
     for m in matchers:
