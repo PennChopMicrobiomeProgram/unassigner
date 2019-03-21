@@ -212,49 +212,13 @@ class AlignmentMatcher(Matcher):
             os.remove(results_fp)
 
 
-def get_query_idx(btop, subject_idx):
-    for btop_query_idx, btop_subject_idx in btop_idx(btop):
-        if btop_subject_idx >= subject_idx:
-            return btop_query_idx
-
 def is_digit(char):
     return char in "1234567890"
 
-def btop_idx(btop):
-    query_idx = 0
-    subject_idx = 0
-    for is_digit_group, vals in itertools.groupby(btop, is_digit):
-        val = "".join(vals)
-        if is_digit_group:
-            num_matches = int(val)
-            for _ in range(num_matches):
-                query_idx += 1
-                subject_idx += 1
-                yield query_idx, subject_idx
-        else:
-            for qchar, schar in pairs(val):
-                if qchar != "-":
-                    query_idx += 1
-                if schar != "-":
-                    subject_idx += 1
-                yield query_idx, subject_idx
 
 def pairs(xs):
     args = [iter(xs)] * 2
     return zip(*args)
-
-def parse_ggsearch_8CB(f):
-    for line in f:
-        if line.startswith("#"):
-            continue
-        line = line.rstrip()
-        vals = line.split("\t")
-        query_id = vals[0]
-        subject_id = vals[1]
-        pct_id = float(vals[2])
-        btop = vals[12]
-        # query, subject, btop
-        yield query_id, subject_id, pct_id, btop
 
 
 def partial_seqs(seq, min_length):
