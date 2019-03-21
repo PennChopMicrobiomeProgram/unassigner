@@ -11,6 +11,7 @@ setup(name='unassign',
           'console_scripts': [
               'unassignseqs=unassign.command:main',
               'prepare_strain_data=unassign.prepare_strain_data:main',
+              'trimragged=unassign.trim:main',
           ],
       }
 )
