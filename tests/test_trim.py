@@ -40,7 +40,7 @@ class TrimmableSeqsTest(unittest.TestCase):
         s = TrimmableSeqs.from_fasta(MAIN_INPUT.splitlines())
         self.assertEqual(list(s.get_unmatched_recs()), self.recs)
 
-    def test_get_unmatched_recs(self):
+    def test_get_matched_recs(self):
         s = TrimmableSeqs(self.recs)
         class MockMatch(object):
             pass
