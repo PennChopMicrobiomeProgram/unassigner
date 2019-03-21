@@ -35,30 +35,48 @@ class TrimmableSeqsTest(unittest.TestCase):
             ("AF403544", "TAGAGTATGATCCTGGCTCAGGACGAACGCTGGCGGCGTGCTTA"),
             ("AF403545", "TCAGGACGAACGCTGGCGGCGTGCTTAACACATGCAAACGTGCA"),
         ]
+        class MockMatch(object):
+            pass
+        self.matchobj = MockMatch()
 
     def test_from_fasta(self):
         s = TrimmableSeqs.from_fasta(MAIN_INPUT.splitlines())
         self.assertEqual(list(s.get_unmatched_recs()), self.recs)
 
-    def test_get_matched_recs(self):
+    def test_all_matched(self):
         s = TrimmableSeqs(self.recs)
-        class MockMatch(object):
-            pass
-        s.register_match("AF403541", MockMatch())
+
+        # register matches for all but the last item
+        for seq_id, _ in self.recs[:-1]:
+            s.register_match(seq_id, self.matchobj)
+        self.assertFalse(s.all_matched())
+
+        # register a match for the last item
+        for seq_id, _ in self.recs[-1:]:
+            s.register_match(seq_id, self.matchobj)
+        self.assertTrue(s.all_matched())
+
+    def test_get_matched_unmatched_recs(self):
+        s = TrimmableSeqs(self.recs)
+        s.register_match("AF403541", self.matchobj)
         self.assertEqual(list(s.get_unmatched_recs()), self.recs[1:])
         self.assertEqual(list(s.get_matched_recs()), self.recs[:1])
 
-class MatcherFunctions(unittest.TestCase):
-    def test_partial_match(self):
-        qset = [BSF8]
-        seq = "GATCCTGGCTCAGGACGAACGCTGGCGGCGTGCTTAACACATGCAAGTCGAACGG"
-        trimmed_seq =      "GACGAACGCTGGCGGCGTGCTTAACACATGCAAGTCGAACGG"
-        m = PartialMatcher(qset, 10)
-        matchobj = m.find_match(seq)
-        self.assertEqual(matchobj.start, 0)
-        self.assertEqual(matchobj.end, 13)
-        self.assertEqual(trim_left(seq, matchobj), trimmed_seq)
+    def test_get_replicate_ids_recs(self):
+        s = TrimmableSeqs.from_fasta(MAIN_INPUT.splitlines())
+        self.assertEqual(
+            list(s.get_replicate_ids("AF403541")), ["AF403541", "AF403541b"])
+        rep_recs = list(s.get_replicate_recs("AF403541"))
+        rep_rec_ids, rep_rec_seqs = zip(*rep_recs)
+        self.assertEqual(rep_rec_ids, ("AF403541", "AF403541b"))
+        self.assertEqual(rep_rec_seqs[0], rep_rec_seqs[1])
 
+    def test_get_desc(self):
+        s = TrimmableSeqs.from_fasta(MAIN_INPUT.splitlines())
+        self.assertEqual(s.get_desc("AF403541"), "AF403541 full BSF8")
+
+
+class MatcherTests(unittest.TestCase):
     def test_exact_match(self):
         qset = [BSF8]
         seq = "TAGAGTTTGATCCTGGCTCAGGACGAACGCTGGCGGCGTGCTTAACACATGCAAGTCGAACGG"
@@ -74,6 +92,16 @@ class MatcherFunctions(unittest.TestCase):
         matchobj = m.find_match(seq)
         self.assertEqual(matchobj.start, 1)
         self.assertEqual(matchobj.end, 21)
+
+    def test_partial_match(self):
+        qset = [BSF8]
+        seq = "GATCCTGGCTCAGGACGAACGCTGGCGGCGTGCTTAACACATGCAAGTCGAACGG"
+        trimmed_seq =      "GACGAACGCTGGCGGCGTGCTTAACACATGCAAGTCGAACGG"
+        m = PartialMatcher(qset, 10)
+        matchobj = m.find_match(seq)
+        self.assertEqual(matchobj.start, 0)
+        self.assertEqual(matchobj.end, 13)
+        self.assertEqual(trim_left(seq, matchobj), trimmed_seq)
 
     def test_trim_right(self):
         seq = "TCCTAGAG"
@@ -120,6 +148,8 @@ class TrimraggedMain(unittest.TestCase):
 
 MAIN_INPUT = """\
 >AF403541 full BSF8
+TAGAGTTTGATCCTGGCTCAGGACGAACGCTGGCGGCGTGCTTA
+>AF403541b full BSF8
 TAGAGTTTGATCCTGGCTCAGGACGAACGCTGGCGGCGTGCTTA
 >AF403542 partial BSF8
 GATCCTGGCTCAGGACGAACGCTGGCGGCGTGCTTAACACATGC
