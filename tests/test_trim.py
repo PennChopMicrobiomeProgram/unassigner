@@ -148,6 +148,18 @@ class AlignmentMatcherTests(unittest.TestCase):
         match_id, matchobj = alignment_matches[0]
         self.assertEqual((matchobj.start, matchobj.end), (7, 12))
 
+    def test_alignment_match_middle_gaps(self):
+        s = mock_trimmable_seqs(
+            "TCCTGGCTCAGGACGAACGCTGGCGGCGTGCTTAACACATGCAAGTCGAACGG",
+            #          ||//
+               "TGGCTCAGGCGAACGCTGGCGGCGTGCTTAACACATGCAAGTCGAACGG",
+            10, 15,
+        )
+        m = AlignmentMatcher()
+        alignment_matches = list(m.find_in_seqs(s))
+        match_id, matchobj = alignment_matches[0]
+        self.assertEqual((matchobj.start, matchobj.end), (7, 11))
+
     def test_trim_right(self):
         seq = "TCCTAGAG"
         matchobj = PrimerMatch(4, 6, "")
