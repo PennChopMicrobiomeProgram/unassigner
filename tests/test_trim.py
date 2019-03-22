@@ -1,4 +1,7 @@
-## Next: more tests and write primer region to stats file
+## Next:
+## - more tests
+## - merge blast aligner logic
+## - write primer region to stats file
 import pathlib
 import shutil
 import tempfile
@@ -120,7 +123,7 @@ def mock_trimmable_seqs(sseq, qseq, primer_start, primer_end):
 
 
 class AlignmentMatcherTests(unittest.TestCase):
-    def test_alignment_match(self):
+    def test_alignment_match_subj_left(self):
         s = mock_trimmable_seqs(
             "TCCTGGCTCAGGACGAACGCTGGCGGCGTGCTTAACACATGCAAGTCGAACGG",
             #|||||||||||
@@ -132,6 +135,18 @@ class AlignmentMatcherTests(unittest.TestCase):
         match_id, matchobj = alignment_matches[0]
         self.assertEqual(matchobj.start, 0)
         self.assertEqual(matchobj.end, 3)
+
+    def test_alignment_match_middle(self):
+        s = mock_trimmable_seqs(
+            "TCCTGGCTCAGGACGAACGCTGGCGGCGTGCTTAACACATGCAAGTCGAACGG",
+            #          |||||
+               "TGGCTCAGGACGAACGCTGGCGGCGTGCTTAACACATGCAAGTCGAACGG",
+            10, 15,
+        )
+        m = AlignmentMatcher()
+        alignment_matches = list(m.find_in_seqs(s))
+        match_id, matchobj = alignment_matches[0]
+        self.assertEqual((matchobj.start, matchobj.end), (7, 12))
 
     def test_trim_right(self):
         seq = "TCCTAGAG"

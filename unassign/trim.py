@@ -200,15 +200,21 @@ class AlignmentMatcher(Matcher):
         # Read output file, determine matches
         with open(results_fp, "r") as f:
             for hit in parse_blast7(f):
-                if hit["qstart"] > 1:
-                    continue
                 if hit["pident"] < self.min_pct_id:
                     continue
-                subj_start_idx = hit["sstart"] - 1
                 subj_id = hit["sseqid"]
                 subj_match = seqs.matches[subj_id]
-                query_start_idx = 0 # Because qstart = 1, above
-                query_end_idx = subj_match.end - subj_start_idx
+
+                query_alignment_start_idx = hit["qstart"] - 1
+                subj_alignment_start_idx = hit["sstart"] - 1
+
+                query_start_idx = subj_match.start - \
+                    (subj_alignment_start_idx - query_alignment_start_idx)
+                if query_start_idx < 0:
+                    query_start_idx = 0
+
+                query_end_idx = subj_match.end - \
+                    (subj_alignment_start_idx - query_alignment_start_idx)
                 matchobj = PrimerMatch(
                     query_start_idx, query_end_idx, "Alignment")
                 query_id = hit["qseqid"]
