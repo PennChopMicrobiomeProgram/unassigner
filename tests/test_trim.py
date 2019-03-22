@@ -1,3 +1,4 @@
+## Next: more tests and write primer region to stats file
 import pathlib
 import shutil
 import tempfile
@@ -77,7 +78,7 @@ class TrimmableSeqsTest(unittest.TestCase):
         self.assertEqual(s.get_desc("AF403541"), "AF403541 full BSF8")
 
 
-class MatcherTests(unittest.TestCase):
+class CompleteMatcherTests(unittest.TestCase):
     def test_exact_match(self):
         qset = [BSF8]
         seq = "TAGAGTTTGATCCTGGCTCAGGACGAACGCTGGCGGCGTGCTTAACACATGCAAGTCGAACGG"
@@ -94,6 +95,7 @@ class MatcherTests(unittest.TestCase):
         self.assertEqual(matchobj.start, 1)
         self.assertEqual(matchobj.end, 21)
 
+class PartialMatcherTests(unittest.TestCase):
     def test_partial_match(self):
         qset = [BSF8]
         seq = "GATCCTGGCTCAGGACGAACGCTGGCGGCGTGCTTAACACATGCAAGTCGAACGG"
@@ -104,37 +106,36 @@ class MatcherTests(unittest.TestCase):
         self.assertEqual(matchobj.end, 13)
         self.assertEqual(trim_left(seq, matchobj), trimmed_seq)
 
+
+def mock_trimmable_seqs(sseq, qseq, primer_start, primer_end):
+    class MockSeqs:
+        matches = {"A": PrimerMatch(primer_start, primer_end, "")}
+        def all_matched(self):
+            return False
+        def get_matched_recs(self):
+            yield ("A", sseq)
+        def get_unmatched_recs(self):
+            yield ("B", qseq)
+    return MockSeqs()
+
+
+class AlignmentMatcherTests(unittest.TestCase):
     def test_alignment_match(self):
-        seq = "TAGAGTAAGATCCTGGCTCAGGACGAACGCTGGCGGCGTGCTTAACACATGCAAGTCGAACGG"
-        #      |||||||||||||||||||||  <- Primer seq
-        seq_trim3 =             "CAGGACGAACGCTGGCGGCGTGCTTAACACATGCAAGTCGAACGG"
-        # Our goal: trim 3 bp from the left of the sequence
-        class MockMatch:
-            start = 1
-            end = 21
-        m1 = MockMatch()
-        class MockSeqs:
-            matches = {"A": m1}
-            def all_matched(self):
-                return False
-            def get_matched_recs(self):
-                yield ("A", seq)
-            def get_unmatched_recs(self):
-                yield ("B", seq_trim3)
-        seqs = MockSeqs()
+        s = mock_trimmable_seqs(
+            "TCCTGGCTCAGGACGAACGCTGGCGGCGTGCTTAACACATGCAAGTCGAACGG",
+            #|||||||||||
+                    "CAGGACGAACGCTGGCGGCGTGCTTAACACATGCAAGTCGAACGG",
+            0, 11,
+        )
         m = AlignmentMatcher()
-        alignment_matches = list(m.find_in_seqs(seqs))
+        alignment_matches = list(m.find_in_seqs(s))
         match_id, matchobj = alignment_matches[0]
         self.assertEqual(matchobj.start, 0)
         self.assertEqual(matchobj.end, 3)
 
-
     def test_trim_right(self):
         seq = "TCCTAGAG"
-        class MockMatch(object):
-            start = 4
-            end = 6
-        matchobj = MockMatch()
+        matchobj = PrimerMatch(4, 6, "")
         self.assertEqual(trim_right(seq, matchobj), "TCCT")
 
     def test_pairs(self):
