@@ -34,6 +34,7 @@ class UnassignAligner(object):
         for hit in hits:
             yield r.refine_hit(hit)
 
+
 class BlastSearch:
     def __init__(self, ref_seqs_fp):
         self.ref_seqs_fp = ref_seqs_fp
@@ -101,7 +102,7 @@ class BlastSearch:
 
 class BlastRefiner:
     def __init__(self, seqs, db):
-        self.seqs = seqs
+        self.seqs = dict(seqs)
         self.db = db
 
     @staticmethod
@@ -122,10 +123,7 @@ class BlastRefiner:
             return AlignedSubjectQuery.from_blast_hit(hit)
 
     def _get_query_seq(self, query_id):
-        ##### TODO: change seqs to a dictionary to save time here in read_fasta
-        for seq in self.seqs:
-            if seq[0] == query_id:
-                return seq[1]
+        return self.seqs.get(query_id)
 
     def _get_subject_seq(self, subject_id):
         subject_outfile = tempfile.NamedTemporaryFile()
