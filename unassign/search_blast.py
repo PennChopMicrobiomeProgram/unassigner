@@ -36,8 +36,6 @@ class SemiGlobalAlignment(Alignment):
         return subj_seq[triml:trimr], query_seq[triml:trimr]
 
 class UnassignAligner(object):
-    """Align sequences with BLAST."""
-
     def __init__(self, species_fp):
         self.species_fp = species_fp
         self.species_max_hits = 1
@@ -47,9 +45,12 @@ class UnassignAligner(object):
     def search_species(self, seqs):
         """Search species typestrains for match to query sequences."""
         b = BlastSearch(self.species_fp)
-        return b.search(
+        r = BlastRefiner(seqs, self.species_fp)
+        hits = b.search(
             seqs, self.species_max_hits,
             self.species_input_fp, self.species_output_fp)
+        for hit in hits:
+            yield r.refine_hit(hit)
 
 class BlastSearch:
     def __init__(self, ref_seqs_fp):
@@ -72,14 +73,10 @@ class BlastSearch:
         self._call(
             input_fp, self.ref_seqs_fp, output_fp,
             max_target_seqs=max_hits)
-        return self._load(output_fp, seqs, self.ref_seqs_fp)
 
-    @classmethod
-    def _load(self, output_fp, seqs, db):
-        """Load hits from an output file."""
-        with open(output_fp) as f:                
-            hits = [polish_blast_alignment(hit, seqs, db) for hit in self._parse(f)]
-        return hits
+        with open(output_fp) as f:
+            for hit in self._parse(f):
+                yield hit
 
     @classmethod
     def _parse(self, f):
@@ -120,30 +117,36 @@ class BlastSearch:
             ]
         subprocess.check_call(args)
 
-def polish_blast_alignment(hit, seqs, db):
-    bool_gaps_left = hit['qstart'] > 1
-    bool_gaps_right = hit['qend'] < hit['qlen']
-    if bool_gaps_left or bool_gaps_right:
-        qseq_orj = _get_query_seq(seqs, hit['qseqid'])
-        sseq_orj = _get_subject_seq(db, hit['sseqid'])
-        return SemiGlobalAlignment(hit['qseqid'], qseq_orj,  hit['sseqid'], sseq_orj)
-    else:
-        return Alignment.from_blast_hit(hit)
+class BlastRefiner:
+    def __init__(self, seqs, db):
+        self.seqs = seqs
+        self.db = db
 
-def _get_query_seq(seqs, query_id):
-    ##### TODO: change seqs to a dictionary to save time here in read_fasta
-    for seq in seqs:
-        if seq[0] == query_id:
-            return seq[1]
+    def refine_hit(self, hit):
+        bool_gaps_left = hit['qstart'] > 1
+        bool_gaps_right = hit['qend'] < hit['qlen']
+        if bool_gaps_left or bool_gaps_right:
+            qseq_orj = self._get_query_seq(hit['qseqid'])
+            sseq_orj = self._get_subject_seq(hit['sseqid'])
+            return SemiGlobalAlignment(
+                hit['qseqid'], qseq_orj,  hit['sseqid'], sseq_orj)
+        else:
+            return Alignment.from_blast_hit(hit)
 
-def _get_subject_seq(db, subject_id):
-    subject_outfile = tempfile.NamedTemporaryFile()
-    subject_outfile_fp = subject_outfile.name
-    args = ["blastdbcmd",
-            "-db", db,
-            "-entry", subject_id,
-            "-out", subject_outfile_fp
-    ]
-    subprocess.check_call(args)
-    with open(subject_outfile_fp) as f:
-        return list(parse_fasta(f, trim_desc=True))[0][1]
+    def _get_query_seq(self, query_id):
+        ##### TODO: change seqs to a dictionary to save time here in read_fasta
+        for seq in self.seqs:
+            if seq[0] == query_id:
+                return seq[1]
+
+    def _get_subject_seq(self, subject_id):
+        subject_outfile = tempfile.NamedTemporaryFile()
+        subject_outfile_fp = subject_outfile.name
+        args = ["blastdbcmd",
+                "-db", self.db,
+                "-entry", subject_id,
+                "-out", subject_outfile_fp
+        ]
+        subprocess.check_call(args)
+        with open(subject_outfile_fp) as f:
+            return list(parse_fasta(f, trim_desc=True))[0][1]

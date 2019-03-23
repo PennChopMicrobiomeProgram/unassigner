@@ -5,7 +5,7 @@ import unittest
 
 from unassign.download import make_blast_db
 from unassign.search_blast import (
-    UnassignAligner, SemiGlobalAlignment, Alignment, polish_blast_alignment,
+    UnassignAligner, SemiGlobalAlignment, Alignment, BlastRefiner,
     )
 
 DATA_DIR = os.path.join(
@@ -162,8 +162,9 @@ class BlastAlignerTests(unittest.TestCase):
             "qstart": 5, "qend": 28, "qlen": 28,
             "sstart": 45, "send": 68, "slen": 1336,
         }
+        r = BlastRefiner(seqs, self.ggfp)
         self.assertIsInstance(
-            polish_blast_alignment(hit, seqs, self.ggfp),
+            r.refine_hit(hit),
             SemiGlobalAlignment)
 
     def test_polish_alignment_rightgap(self):
@@ -175,8 +176,9 @@ class BlastAlignerTests(unittest.TestCase):
             "qstart": 1, "qend": 24, "qlen": 28,
             "sstart": 41, "send": 64, "slen": 1336,
         }
+        r = BlastRefiner(seqs, self.ggfp)
         self.assertIsInstance(
-            polish_blast_alignment(hit, seqs, self.ggfp),
+            r.refine_hit(hit),
             SemiGlobalAlignment)
         
 class HitIdentityTests(unittest.TestCase):
