@@ -7,7 +7,6 @@ import subprocess
 import sys
 
 from unassign.parse import parse_fasta, write_fasta
-from unassign.search_blast import BLAST_FMT, BlastAligner
 
 class TrimmableSeqs:
     def __init__(self, recs):

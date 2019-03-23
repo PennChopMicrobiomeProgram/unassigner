@@ -5,7 +5,7 @@ import unittest
 
 from unassign.download import make_blast_db
 from unassign.search_blast import (
-    BlastAligner, BlastAlignment, SemiGlobalAlignment
+    UnassignAligner, SemiGlobalAlignment, Alignment, polish_blast_alignment,
     )
 
 DATA_DIR = os.path.join(
@@ -25,7 +25,7 @@ class BlastAlignmentTests(unittest.TestCase):
         self.pairs = list(zip("CCCGGTCCGGTTATT", "CCCGGTCCGGTTAAC"))
 
     def test_no_endgaps(self):
-        a = BlastAlignment(self.hit)
+        a = Alignment.from_blast_hit(self.hit)
         self.assertEqual(a.query_seq, "CCCGGTCCGGTTATT")
         self.assertEqual(a.subject_seq, "CCCGGTCCGGTTAAC")
         self.assertEqual(a.start_idx(a.subject_seq, a.query_seq), 0)
@@ -39,7 +39,7 @@ class BlastAlignmentTests(unittest.TestCase):
             "qseq":"CCCGGTC--CGGTTATT", "sseq":"CCCGGTCAACGGTTAAC",
             "send":17, "slen":17
             })
-        a = BlastAlignment(self.hit)
+        a = Alignment.from_blast_hit(self.hit)
         self.assertEqual(a.query_seq, "CCCGGTC--CGGTTATT")
         self.assertEqual(a.subject_seq, "CCCGGTCAACGGTTAAC")
         self.assertEqual(a.end_idx(a.subject_seq, a.query_seq), 17)
@@ -140,7 +140,7 @@ class SemiGlobalAlignmentTests(unittest.TestCase):
 class BlastAlignerTests(unittest.TestCase):
     def setUp(self):
         self.ggfp = os.path.join(DATA_DIR, "gg10.fasta")
-        self.a = BlastAligner(self.ggfp)
+        self.a = UnassignAligner(self.ggfp)
 
     def test_search_species(self):
         seqs = [
@@ -153,17 +153,6 @@ class BlastAlignerTests(unittest.TestCase):
         expected = [("a", "8"), ("b", "5")]
         self.assertEqual(observed, expected)
 
-    def test_polish_alignment(self):
-        seqs = [("b", "GCGTGGCGAACGGCTGACGAACACGTGG")]
-        hit = {
-            "qseqid": "b", "sseqid": "5",
-            "qseq": "GCGTGGCGAACGGCTGACGAACACGTGG",
-            "sseq": "GCGTGGCGAACGGCTGACGAACACGTGG",
-            "qstart": 1, "qend": 28, "qlen": 28,
-            "sstart": 41, "send": 68, "slen": 1336,
-        }
-        self.assertIsInstance(self.a._polish_alignment(hit, seqs, self.ggfp), BlastAlignment)
-
     def test_polish_alignment_leftgap(self):
         seqs = [("b", "GCGTGGCGAACGGCTGACGAACACGTGG")]
         hit = {
@@ -173,7 +162,9 @@ class BlastAlignerTests(unittest.TestCase):
             "qstart": 5, "qend": 28, "qlen": 28,
             "sstart": 45, "send": 68, "slen": 1336,
         }
-        self.assertIsInstance(self.a._polish_alignment(hit, seqs, self.ggfp), SemiGlobalAlignment)
+        self.assertIsInstance(
+            polish_blast_alignment(hit, seqs, self.ggfp),
+            SemiGlobalAlignment)
 
     def test_polish_alignment_rightgap(self):
         seqs = [("b", "GCGTGGCGAACGGCTGACGAACACGTGG")]
@@ -184,7 +175,9 @@ class BlastAlignerTests(unittest.TestCase):
             "qstart": 1, "qend": 24, "qlen": 28,
             "sstart": 41, "send": 64, "slen": 1336,
         }
-        self.assertIsInstance(self.a._polish_alignment(hit, seqs, self.ggfp), SemiGlobalAlignment)
+        self.assertIsInstance(
+            polish_blast_alignment(hit, seqs, self.ggfp),
+            SemiGlobalAlignment)
         
 class HitIdentityTests(unittest.TestCase):
     def test_hit_identity_no_endgaps(self):
@@ -196,7 +189,7 @@ class HitIdentityTests(unittest.TestCase):
             "qstart": 1, "qend": 15, "qlen": 15,
             "sstart": 1, "send": 15, "slen": 15,
             }
-        a = BlastAlignment(hit)
+        a = Alignment.from_blast_hit(hit)
         self.assertEqual(a.count_matches(), (13, 15))
 
     def test_hit_identity_query_gaps(self):
@@ -211,7 +204,7 @@ class HitIdentityTests(unittest.TestCase):
             "qstart": 1, "qend": 14, "qlen": 14,
             "sstart": 1, "send": 15, "slen": 20,
             }
-        a = BlastAlignment(hit)
+        a = Alignment.from_blast_hit(hit)
         self.assertEqual(a.count_matches(), (12, 16))
 
 if __name__ == "__main__":

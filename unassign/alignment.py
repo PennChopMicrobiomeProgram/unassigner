@@ -18,16 +18,11 @@ class Alignment(object):
             count_while_equal(reversed(query_seq), "-"),
             count_while_equal(reversed(subject_seq), "-"))
 
-    def get_pairs(self, start=None, end=None):
-        astart = self.start_idx
-        if (start is None) or (start < astart):
-            start = astart
-
-        aend = self.end_idx
-        if (end is None) or (end > aend):
-            end = aend
-
-        return list(zip(self.query_seq, self.subject_seq))[start:end]
+    @classmethod
+    def from_blast_hit(cls, hit):
+        return cls(
+            (hit['qseqid'], hit['qseq'], hit['qlen']),
+            (hit['sseqid'], hit['sseq'], hit['slen']))
 
     def count_matches(self):
         """Count regional and total matches in an alignment. 
@@ -43,5 +38,4 @@ class Alignment(object):
         """
         
         matches, total_query, _ = count_matching_pairs(zip(self.query_seq, self.subject_seq))
-        #assert(total_query == self.query_len)
         return matches, len(self.query_seq)
