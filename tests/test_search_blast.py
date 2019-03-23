@@ -5,14 +5,14 @@ import unittest
 
 from unassign.download import make_blast_db
 from unassign.search_blast import (
-    UnassignAligner, Alignment, BlastRefiner, align_semiglobal,
+    UnassignAligner, AlignedSubjectQuery, BlastRefiner, align_semiglobal,
     )
 
 DATA_DIR = os.path.join(
     os.path.dirname(os.path.realpath(__file__)), "data")
 
 
-class BlastAlignmentTests(unittest.TestCase):
+class AlignedSubjectQueryTests(unittest.TestCase):
     def setUp(self):
         # Hit has 15 positions and 2 mismatches (rightmost columns).
         self.hit = {
@@ -25,7 +25,7 @@ class BlastAlignmentTests(unittest.TestCase):
         self.pairs = list(zip("CCCGGTCCGGTTATT", "CCCGGTCCGGTTAAC"))
 
     def test_no_endgaps(self):
-        a = Alignment.from_blast_hit(self.hit)
+        a = AlignedSubjectQuery.from_blast_hit(self.hit)
         self.assertEqual(a.query_seq, "CCCGGTCCGGTTATT")
         self.assertEqual(a.subject_seq, "CCCGGTCCGGTTAAC")
         self.assertEqual(a.start_idx(a.subject_seq, a.query_seq), 0)
@@ -39,7 +39,7 @@ class BlastAlignmentTests(unittest.TestCase):
             "qseq":"CCCGGTC--CGGTTATT", "sseq":"CCCGGTCAACGGTTAAC",
             "send":17, "slen":17
             })
-        a = Alignment.from_blast_hit(self.hit)
+        a = AlignedSubjectQuery.from_blast_hit(self.hit)
         self.assertEqual(a.query_seq, "CCCGGTC--CGGTTATT")
         self.assertEqual(a.subject_seq, "CCCGGTCAACGGTTAAC")
         self.assertEqual(a.end_idx(a.subject_seq, a.query_seq), 17)
@@ -47,7 +47,7 @@ class BlastAlignmentTests(unittest.TestCase):
         self.assertEqual(a.subject_len, 17)
         self.assertEqual(a.count_matches(), (13,17))
 
-class SemiGlobalAlignmentTests(unittest.TestCase):
+class AlignSemiglobalTests(unittest.TestCase):
     def setUp(self):
         self.query_id = "a"
         self.subject_id = "b"
@@ -153,7 +153,7 @@ class HitIdentityTests(unittest.TestCase):
             "qstart": 1, "qend": 15, "qlen": 15,
             "sstart": 1, "send": 15, "slen": 15,
             }
-        a = Alignment.from_blast_hit(hit)
+        a = AlignedSubjectQuery.from_blast_hit(hit)
         self.assertEqual(a.count_matches(), (13, 15))
 
     def test_hit_identity_query_gaps(self):
@@ -168,7 +168,7 @@ class HitIdentityTests(unittest.TestCase):
             "qstart": 1, "qend": 14, "qlen": 14,
             "sstart": 1, "send": 15, "slen": 20,
             }
-        a = Alignment.from_blast_hit(hit)
+        a = AlignedSubjectQuery.from_blast_hit(hit)
         self.assertEqual(a.count_matches(), (12, 16))
 
 if __name__ == "__main__":

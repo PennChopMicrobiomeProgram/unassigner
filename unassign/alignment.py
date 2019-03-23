@@ -1,7 +1,7 @@
 from unassign.util import count_while_equal, count_matching_pairs
 
 
-class Alignment(object):
+class AlignedSubjectQuery(object):
     def __init__(self, qseq, sseq):
         self.query_id, self.query_seq, self.query_len = qseq
         self.subject_id, self.subject_seq, self.subject_len = sseq

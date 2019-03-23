@@ -6,7 +6,7 @@ from Bio import pairwise2
 
 from unassign.parse import write_fasta, load_fasta, parse_fasta
 from unassign.util import uniq
-from unassign.alignment import Alignment
+from unassign.alignment import AlignedSubjectQuery
 
 BLAST_FMT = (
     "qseqid sseqid pident length mismatch gapopen "
@@ -115,11 +115,11 @@ class BlastRefiner:
             qseq = self._get_query_seq(hit['qseqid'])
             sseq = self._get_subject_seq(hit['sseqid'])
             aligned_qseq, aligned_sseq = align_semiglobal(qseq, sseq)
-            return Alignment(
+            return AlignedSubjectQuery(
                 (hit['qseqid'], aligned_qseq, len(qseq)),
                 (hit['sseqid'], aligned_sseq, len(sseq)))
         else:
-            return Alignment.from_blast_hit(hit)
+            return AlignedSubjectQuery.from_blast_hit(hit)
 
     def _get_query_seq(self, query_id):
         ##### TODO: change seqs to a dictionary to save time here in read_fasta
