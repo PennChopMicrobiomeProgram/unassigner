@@ -17,24 +17,6 @@ BLAST_FIELD_TYPES = [
     int, int, int, int, int, int, str, str]
 
 
-class SemiGlobalAlignment(Alignment):
-    def __init__(self, query_id, qseq_orj, subject_id, sseq_orj):
-        query_seq, subject_seq  = self._get_aligned_seqs(qseq_orj, sseq_orj)
-        super(SemiGlobalAlignment, self).__init__(
-            (query_id, query_seq, len(qseq_orj)), (subject_id, subject_seq, len(sseq_orj)))
-
-    def _get_aligned_seqs(self, qseq_orj, sseq_orj):
-        alignment = pairwise2.align.globalms(sseq_orj, qseq_orj,
-                                             5, -4, -10, -0.5, #match, mismatch, gapopen, gapextend #### TODO: make these configurable
-                                             penalize_end_gaps=False, one_alignment_only=True)
-        subj_seq, query_seq = self._trim_global_alignment(alignment[0][0], alignment[0][1])
-        return query_seq, subj_seq
-
-    def _trim_global_alignment(self, subj_seq, query_seq):
-        triml = self.start_idx(subj_seq, query_seq)
-        trimr = self.end_idx(subj_seq, query_seq)
-        return subj_seq[triml:trimr], query_seq[triml:trimr]
-
 class UnassignAligner(object):
     def __init__(self, species_fp):
         self.species_fp = species_fp
@@ -122,14 +104,20 @@ class BlastRefiner:
         self.seqs = seqs
         self.db = db
 
-    def refine_hit(self, hit):
+    @staticmethod
+    def _needs_refinement(hit):
         bool_gaps_left = hit['qstart'] > 1
         bool_gaps_right = hit['qend'] < hit['qlen']
-        if bool_gaps_left or bool_gaps_right:
-            qseq_orj = self._get_query_seq(hit['qseqid'])
-            sseq_orj = self._get_subject_seq(hit['sseqid'])
-            return SemiGlobalAlignment(
-                hit['qseqid'], qseq_orj,  hit['sseqid'], sseq_orj)
+        return (bool_gaps_left or bool_gaps_right)
+
+    def refine_hit(self, hit):
+        if self._needs_refinement(hit):
+            qseq = self._get_query_seq(hit['qseqid'])
+            sseq = self._get_subject_seq(hit['sseqid'])
+            aligned_qseq, aligned_sseq = align_semiglobal(qseq, sseq)
+            return Alignment(
+                (hit['qseqid'], aligned_qseq, len(qseq)),
+                (hit['sseqid'], aligned_sseq, len(sseq)))
         else:
             return Alignment.from_blast_hit(hit)
 
@@ -150,3 +138,13 @@ class BlastRefiner:
         subprocess.check_call(args)
         with open(subject_outfile_fp) as f:
             return list(parse_fasta(f, trim_desc=True))[0][1]
+
+def align_semiglobal(qseq, sseq):
+    alignment = pairwise2.align.globalms(
+        sseq, qseq,
+        5, -4, -10, -0.5, #match, mismatch, gapopen, gapextend
+        #### TODO: make these configurable
+        penalize_end_gaps=False, one_alignment_only=True)
+    subj_seq = alignment[0][0]
+    query_seq = alignment[0][1]
+    return query_seq, subj_seq

@@ -36,6 +36,6 @@ class Alignment(object):
         Number of matching positions and 
         total number of query nucleotides in the alignment.        
         """
-        
-        matches, total_query, _ = count_matching_pairs(zip(self.query_seq, self.subject_seq))
+        matches, total_query, _ = count_matching_pairs(
+            zip(self.query_seq, self.subject_seq))
         return matches, len(self.query_seq)

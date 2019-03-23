@@ -5,7 +5,7 @@ import unittest
 
 from unassign.download import make_blast_db
 from unassign.search_blast import (
-    UnassignAligner, SemiGlobalAlignment, Alignment, BlastRefiner,
+    UnassignAligner, Alignment, BlastRefiner, align_semiglobal,
     )
 
 DATA_DIR = os.path.join(
@@ -55,87 +55,52 @@ class SemiGlobalAlignmentTests(unittest.TestCase):
         self.sseq_orj = "CCCGGTCCGGTTAAC"
 
     def test_no_endgaps(self):
-        a = SemiGlobalAlignment(self.query_id, self.qseq_orj, self.subject_id, self.sseq_orj)
-        self.assertEqual(a.query_seq,   "CCCGGTCCGGTTATT")
-        self.assertEqual(a.subject_seq, "CCCGGTCCGGTTAAC")
-        self.assertEqual(a.start_idx(a.subject_seq, a.query_seq), 0)
-        self.assertEqual(a.end_idx(a.subject_seq, a.query_seq), 15)
-        self.assertEqual(a.query_len, 15)
-        self.assertEqual(a.subject_len, 15)
-        self.assertEqual(a.count_matches(), (13,15))
+        qseq = "CCCGGTCCGGTTATT"
+        sseq = "CCCGGTCCGGTTAAC"
+        self.assertEqual(align_semiglobal(qseq, sseq), (qseq, sseq))
 
     def test_endgaps_both_sides_query(self):
-        self.sseq_orj = "CTCAGGATGAACGCTAGCTACAGGCTTAACACATGCAAGT"
-        self.qseq_orj =      "GATGAACGCTAGCTTCAGGCTTAAC"
-        a = SemiGlobalAlignment(self.query_id, self.qseq_orj, self.subject_id, self.sseq_orj)
-        self.assertEqual(a.query_seq, "GATGAACGCTAGCTTCAGGCTTAAC")
-        self.assertEqual(a.subject_seq, "GATGAACGCTAGCTACAGGCTTAAC")
-        self.assertEqual(a.start_idx(a.subject_seq, a.query_seq), 0)
-        self.assertEqual(a.end_idx(a.subject_seq, a.query_seq), 25)
-        self.assertEqual(a.query_len, 25)
-        self.assertEqual(a.subject_len, 40)
-        self.assertEqual(a.count_matches(), (24,25))
+        qseq =      "GATGAACGCTAGCTTCAGGCTTAAC"
+        sseq = "CTCAGGATGAACGCTAGCTACAGGCTTAACACATGCAAGT"
+        aligned_qseq, aligned_sseq = align_semiglobal(qseq, sseq)
+        self.assertEqual(aligned_qseq, "-----" + qseq + "----------")
+        self.assertEqual(aligned_sseq, sseq)
         
     def test_endgaps_left_query(self):
-        self.sseq_orj = "CTCAGGATGAACGCTAGCTACAGGCTTAAC"
-        self.qseq_orj =      "GATGAACGCTAGCTTCAGGCTTAAC"
-        a = SemiGlobalAlignment(self.query_id, self.qseq_orj, self.subject_id, self.sseq_orj)
-        self.assertEqual(a.query_seq, "GATGAACGCTAGCTTCAGGCTTAAC")
-        self.assertEqual(a.subject_seq, "GATGAACGCTAGCTACAGGCTTAAC")
-        self.assertEqual(a.start_idx(a.subject_seq, a.query_seq), 0)
-        self.assertEqual(a.end_idx(a.subject_seq, a.query_seq), 25)
-        self.assertEqual(a.query_len, 25)
-        self.assertEqual(a.subject_len, 30)
-        self.assertEqual(a.count_matches(), (24,25))
+        qseq =      "GATGAACGCTAGCTTCAGGCTTAAC"
+        sseq = "CTCAGGATGAACGCTAGCTACAGGCTTAAC"
+        aligned_qseq, aligned_sseq = align_semiglobal(qseq, sseq)
+        self.assertEqual(aligned_qseq, "-----" + qseq)
+        self.assertEqual(aligned_sseq, sseq)
 
     def test_endgaps_right_query(self):
-        self.sseq_orj = "GATGAACGCTAGCTACAGGCTTAACACATGCAAGT"
-        self.qseq_orj = "GATGAACGCTAGCTTCAGGCTTAAC"
-        a = SemiGlobalAlignment(self.query_id, self.qseq_orj, self.subject_id, self.sseq_orj)
-        self.assertEqual(a.query_seq, "GATGAACGCTAGCTTCAGGCTTAAC")
-        self.assertEqual(a.subject_seq, "GATGAACGCTAGCTACAGGCTTAAC")
-        self.assertEqual(a.start_idx(a.subject_seq, a.query_seq), 0)
-        self.assertEqual(a.end_idx(a.subject_seq, a.query_seq), 25)
-        self.assertEqual(a.query_len, 25)
-        self.assertEqual(a.subject_len, 35)
-        self.assertEqual(a.count_matches(), (24,25))
+        qseq = "GATGAACGCTAGCTTCAGGCTTAAC"
+        sseq = "GATGAACGCTAGCTACAGGCTTAACACATGCAAGT"
+        aligned_qseq, aligned_sseq = align_semiglobal(qseq, sseq)
+        self.assertEqual(aligned_qseq, qseq + "----------")
+        self.assertEqual(aligned_sseq, sseq)
 
     def test_ragged_left_subject(self):
-        self.qseq_orj = "CTCAGGATGAACGCTAGCTACAGGCTTAAC"
-        self.sseq_orj =      "GATGAACGCTAGCTTCAGGCTTAACACATG"
-        a = SemiGlobalAlignment(self.query_id, self.qseq_orj, self.subject_id, self.sseq_orj)
-        self.assertEqual(a.subject_seq, "GATGAACGCTAGCTTCAGGCTTAAC")
-        self.assertEqual(a.query_seq, "GATGAACGCTAGCTACAGGCTTAAC")
-        self.assertEqual(a.start_idx(a.subject_seq, a.query_seq), 0)
-        self.assertEqual(a.end_idx(a.subject_seq, a.query_seq), 25)
-        self.assertEqual(a.query_len, 30)
-        self.assertEqual(a.subject_len, 30)
-        self.assertEqual(a.count_matches(), (24,25))
+        qseq = "CTCAGGATGAACGCTAGCTACAGGCTTAAC"
+        sseq =      "GATGAACGCTAGCTTCAGGCTTAACACATG"
+        aligned_qseq, aligned_sseq = align_semiglobal(qseq, sseq)
+        self.assertEqual(aligned_qseq, qseq + "-----")
+        self.assertEqual(aligned_sseq, "-----" + sseq)
         
     def test_ragged_right_subject(self):
-        self.qseq_orj =      "GATGAACGCTAGCTACAGGCTTAACACATG"
-        self.sseq_orj = "CTCAGGATGAACGCTAGCTTCAGGCTTAAC"
-        a = SemiGlobalAlignment(self.query_id, self.qseq_orj, self.subject_id, self.sseq_orj)
-        self.assertEqual(a.subject_seq, "GATGAACGCTAGCTTCAGGCTTAAC")
-        self.assertEqual(a.query_seq, "GATGAACGCTAGCTACAGGCTTAAC")
-        self.assertEqual(a.start_idx(a.subject_seq, a.query_seq), 0)
-        self.assertEqual(a.end_idx(a.subject_seq, a.query_seq), 25)
-        self.assertEqual(a.query_len, 30)
-        self.assertEqual(a.subject_len, 30)
-        self.assertEqual(a.count_matches(), (24,25))
+        qseq =      "GATGAACGCTAGCTACAGGCTTAACACATG"
+        sseq = "CTCAGGATGAACGCTAGCTTCAGGCTTAAC"
+        aligned_qseq, aligned_sseq = align_semiglobal(qseq, sseq)
+        self.assertEqual(aligned_qseq, "-----" + qseq)
+        self.assertEqual(aligned_sseq, sseq + "-----")
         
     def test_funky_query_left(self):
-        self.qseq_orj =  "TTTTGATGAACGCTAGCTACAGGCTTA"
-        self.sseq_orj = "CTCAGGATGAACGCTAGCTTCAGGCTTAAC"
-        a = SemiGlobalAlignment(self.query_id, self.qseq_orj, self.subject_id, self.sseq_orj)
-        self.assertEqual(a.subject_seq, "TCAGGATGAACGCTAGCTTCAGGCTTA")
-        self.assertEqual(a.query_seq,   "TTTTGATGAACGCTAGCTACAGGCTTA")
-        self.assertEqual(a.start_idx(a.subject_seq, a.query_seq), 0)
-        self.assertEqual(a.end_idx(a.subject_seq, a.query_seq), 27)
-        self.assertEqual(a.query_len, 27)
-        self.assertEqual(a.subject_len, 30)
-        self.assertEqual(a.count_matches(), (23,27))
-    
+        qseq =  "TTTTGATGAACGCTAGCTACAGGCTTA"
+        sseq = "CTCAGGATGAACGCTAGCTTCAGGCTTAAC"
+        aligned_qseq, aligned_sseq = align_semiglobal(qseq, sseq)
+        self.assertEqual(aligned_qseq, "-" + qseq + "--")
+        self.assertEqual(aligned_sseq, sseq)
+
 
 class BlastAlignerTests(unittest.TestCase):
     def setUp(self):
@@ -163,9 +128,7 @@ class BlastAlignerTests(unittest.TestCase):
             "sstart": 45, "send": 68, "slen": 1336,
         }
         r = BlastRefiner(seqs, self.ggfp)
-        self.assertIsInstance(
-            r.refine_hit(hit),
-            SemiGlobalAlignment)
+        self.assertTrue(r._needs_refinement(hit))
 
     def test_polish_alignment_rightgap(self):
         seqs = [("b", "GCGTGGCGAACGGCTGACGAACACGTGG")]
@@ -177,10 +140,9 @@ class BlastAlignerTests(unittest.TestCase):
             "sstart": 41, "send": 64, "slen": 1336,
         }
         r = BlastRefiner(seqs, self.ggfp)
-        self.assertIsInstance(
-            r.refine_hit(hit),
-            SemiGlobalAlignment)
-        
+        self.assertTrue(r._needs_refinement(hit))
+
+
 class HitIdentityTests(unittest.TestCase):
     def test_hit_identity_no_endgaps(self):
         # Hit has 15 positions and 2 mismatches (rightmost columns).
