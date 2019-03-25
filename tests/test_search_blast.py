@@ -206,6 +206,60 @@ class AlignedSubjectQueryTests(unittest.TestCase):
                 ("-", "J"), ("E", "K"), ("F", "-"),
             ])
 
+    def test_pairs_subject_no_endgaps(self):
+        a = AlignedSubjectQuery(
+            ("a", "ABCDEF", 6),
+            ("b", "HIJKLM", 6))
+        self.assertEqual(
+            list(a.pairs_subject(0, 3)),
+            [("A", "H"), ("B", "I"), ("C", "J")])
+        self.assertEqual(
+            list(a.pairs_subject(1, 5)),
+            [("B", "I"), ("C", "J"), ("D", "K"), ("E", "L")])
+        self.assertEqual(
+            list(a.pairs_subject()),
+            [
+                ("A", "H"), ("B", "I"), ("C", "J"),
+                ("D", "K"), ("E", "L"), ("F", "M"),
+            ])
+
+    def test_pairs_subject_with_endgaps(self):
+        a = AlignedSubjectQuery(
+            ("a", "--ABC-EF---", 5),
+            ("b", "HIJKLMNOPQR", 11))
+        self.assertEqual(
+            list(a.pairs_subject(0, 3)),
+            [("-", "H"), ("-", "I"), ("A", "J")])
+        self.assertEqual(
+            list(a.pairs_subject(1, 4)),
+            [("-", "I"), ("A", "J"), ("B", "K")])
+        self.assertEqual(
+            list(a.pairs_subject()),
+            [
+                ("-", "H"), ("-", "I"), ("A", "J"),
+                ("B", "K"), ("C", "L"), ("-", "M"),
+                ("E", "N"), ("F", "O"), ("-", "P"),
+                ("-", "Q"), ("-", "R"),
+            ])
+
+    def test_pairs_subject_crazy_alignment(self):
+        a = AlignedSubjectQuery(
+            ("a", "-A-BC-EF---", 5),
+            ("b", "--HI-JK-LMN", 11))
+        self.assertEqual(
+            list(a.pairs_subject(0, 3)),
+            [("-", "H"), ("B", "I"), ("C", "-"), ("-", "J")])
+        self.assertEqual(
+            list(a.pairs_subject(1, 4)),
+            [("B", "I"), ("C", "-"), ("-", "J"), ("E", "K")])
+        self.assertEqual(
+            list(a.pairs_subject()),
+            [
+                ("-", "H"), ("B", "I"), ("C", "-"),
+                ("-", "J"), ("E", "K"), ("F", "-"),
+                ("-", "L"), ("-", "M"), ("-", "N"),
+            ])
+
 
 if __name__ == "__main__":
     unittest.main()
