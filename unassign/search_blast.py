@@ -106,24 +106,84 @@ class BlastRefiner:
         self.db = db
 
     @staticmethod
-    def _needs_refinement(hit):
-        bool_gaps_left = hit['qstart'] > 1
-        bool_gaps_right = hit['qend'] < hit['qlen']
-        return (bool_gaps_left or bool_gaps_right)
+    def _needs_realignment(hit):
+        more_to_the_left = (hit['qstart'] > 1) and \
+                           (hit['sstart'] > 1)
+        more_to_the_right = (hit['qend'] < hit['qlen']) and \
+                            (hit['send'] < hit['slen'])
+        return (more_to_the_left or more_to_the_right)
+
+    @staticmethod
+    def _is_global(hit):
+        return (
+            (hit['qstart'] == 1) and \
+            (hit['sstart'] == 1) and \
+            (hit['qend'] == hit['qlen']) and \
+            (hit['send'] == hit['slen']))
 
     def refine_hit(self, hit):
-        if self._needs_refinement(hit):
-            qseq = self._get_query_seq(hit['qseqid'])
-            sseq = self._get_subject_seq(hit['sseqid'])
+        # Handle the simple case where the local alignment covers both
+        # sequences completely
+        if self._is_global(hit):
+            return AlignedSubjectQuery(
+                (hit['qseqid'], hit['qseq'], hit['qlen']),
+                (hit['sseqid'], hit['sseq'], hit['slen']))
+
+        # We are going to need some repair or realignment.
+        qseq = self.seqs[hit['qseqid']] # Raise error if not found
+        assert(len(qseq) == hit['qlen'])
+        sseq = self._get_subject_seq(hit['sseqid'])
+        assert(len(sseq) == hit['slen'])
+
+        if self._needs_realignment(hit):
             aligned_qseq, aligned_sseq = align_semiglobal(qseq, sseq)
             return AlignedSubjectQuery(
                 (hit['qseqid'], aligned_qseq, len(qseq)),
                 (hit['sseqid'], aligned_sseq, len(sseq)))
-        else:
-            return AlignedSubjectQuery.from_blast_hit(hit)
 
-    def _get_query_seq(self, query_id):
-        return self.seqs.get(query_id)
+        qleft, sleft = self._add_endgaps_left(hit, qseq, sseq)
+        qright, sright = self._add_endgaps_right(hit, qseq, sseq)
+        aligned_qseq = qleft + hit['qseq'] + qright
+        aligned_sseq = sleft + hit['sseq'] + sright
+        return AlignedSubjectQuery(
+                (hit['qseqid'], aligned_qseq, len(qseq)),
+                (hit['sseqid'], aligned_sseq, len(sseq)))
+
+    @staticmethod
+    def _add_endgaps_left(hit, qseq, sseq):
+        # No repair needed
+        if (hit['qstart'] == 1) and (hit['sstart'] == 1):
+            return ("", "")
+        # Query hanging off to the left
+        if (hit['qstart'] > 1) and (hit['sstart'] == 1):
+            endgap_len = hit['qstart'] - 1
+            return (qseq[:endgap_len], "-" * endgap_len)
+        # Subject hanging off to the left
+        if (hit['qstart'] == 1) and (hit['sstart'] > 1):
+            endgap_len = hit['sstart'] - 1
+            return ("-" * endgap_len, sseq[:endgap_len])
+        # Anything not meeting these conditions is bad
+        if (hit['qstart'] > 1) and (hit['sstart'] > 1):
+            raise ValueError("Unaligned sequence on left")
+        raise ValueError("Query or subject start position less than 1")
+
+    @staticmethod
+    def _add_endgaps_right(hit, qseq, sseq):
+        # No repair needed
+        if (hit['qend'] == hit['qlen']) and (hit['send'] == hit['slen']):
+            return ("", "")
+        # Query hanging off to the right
+        if (hit['qend'] < hit['qlen']) and (hit['send'] == hit['slen']):
+            endgap_len = hit['qlen'] - hit['qend']
+            return (qseq[-endgap_len:], "-" * endgap_len)
+        # Subject hanging off to the right
+        if (hit['qend'] == hit['qlen']) and (hit['send'] < hit['slen']):
+            endgap_len = hit['slen'] - hit['send']
+            return ("-" * endgap_len, sseq[-endgap_len:])
+        # Anything not meeting these conditions is bad
+        if (hit['qend'] < hit['qlen']) and (hit['send'] < hit['qlen']):
+            raise ValueError("Unaligned sequence on right")
+        raise ValueError("Query or subject end position greater than length")
 
     def _get_subject_seq(self, subject_id):
         subject_outfile = tempfile.NamedTemporaryFile()
