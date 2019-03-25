@@ -60,6 +60,26 @@ class AlignedSubjectQuery(object):
             if subject_idx > start_idx:
                 yield (q, s)
 
+    def region_query_to_subject(self, query_start_idx=0, query_end_idx=None):
+        "The region of the query inside the specified region of the query."
+        if query_end_idx is None:
+            query_end_idx = self.query_len
+        query_idx = 0
+        subject_idx = 0
+        subject_start_idx = None
+        for q, s in zip(self.query_seq, self.subject_seq):
+            if (subject_start_idx is None) and \
+               (query_idx >= query_start_idx) and \
+               (q != "-"):
+                subject_start_idx = subject_idx
+            if s != "-":
+                subject_idx += 1
+            if q != "-":
+                query_idx += 1
+            if query_idx >= query_end_idx:
+                break
+        return subject_start_idx, subject_idx
+
 def exact_match(a, b):
     return a == b
 
