@@ -1,15 +1,9 @@
-from collections import namedtuple
-import os.path
-import tempfile
 import unittest
 
 from unassign.download import make_blast_db
 from unassign.search_blast import (
-    UnassignAligner, BlastRefiner, align_semiglobal,
+    BlastRefiner, align_semiglobal,
     )
-
-DATA_DIR = os.path.join(
-    os.path.dirname(os.path.realpath(__file__)), "data")
 
 class AlignSemiglobalTests(unittest.TestCase):
     def setUp(self):
@@ -65,22 +59,6 @@ class AlignSemiglobalTests(unittest.TestCase):
         self.assertEqual(aligned_qseq, "-" + qseq + "--")
         self.assertEqual(aligned_sseq, sseq)
 
-
-class BlastAlignerTests(unittest.TestCase):
-    def setUp(self):
-        self.ggfp = os.path.join(DATA_DIR, "gg10.fasta")
-        self.a = UnassignAligner(self.ggfp)
-
-    def test_search_species(self):
-        seqs = [
-            ("a", "CTTGCTCTCGGGTGACGAGCGGCGGACGGGTGAGTAAT"),
-            ("b", "GCGTGGCGAACGGCTGACGAACACGTGG"),
-            ]
-        hits = self.a.search_species(seqs)
-        print(hits)
-        observed = [(hit.query_id, hit.subject_id) for hit in hits]
-        expected = [("a", "8"), ("b", "5")]
-        self.assertEqual(observed, expected)
 
 class BlastRefinerTests(unittest.TestCase):
     def test_polish_alignment_leftgap(self):

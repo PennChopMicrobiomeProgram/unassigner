@@ -6,6 +6,7 @@ import scipy
 import scipy.special
 import scipy.misc
 
+from unassign.search_blast import BlastSearch, BlastRefiner
 
 class UnassignerAlgorithm(object):
     def __init__(self, aligner):
@@ -36,6 +37,24 @@ def beta_binomial_cdf(k_max, n, alpha, beta):
         val += beta_binomial_pdf(k, n, alpha, beta)
         k += 1
     return val
+
+
+class UnassignAligner(object):
+    def __init__(self, species_fp):
+        self.species_fp = species_fp
+        self.species_max_hits = 1
+        self.species_input_fp = None
+        self.species_output_fp = None
+
+    def search_species(self, seqs):
+        """Search species typestrains for match to query sequences."""
+        b = BlastSearch(self.species_fp)
+        r = BlastRefiner(seqs, self.species_fp)
+        hits = b.search(
+            seqs, self.species_max_hits,
+            self.species_input_fp, self.species_output_fp)
+        for hit in hits:
+            yield r.refine_hit(hit)
 
 
 class BasicAlgorithm(UnassignerAlgorithm):
