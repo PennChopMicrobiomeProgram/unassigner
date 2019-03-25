@@ -5,8 +5,11 @@ import unittest
 
 from unassign.download import make_blast_db
 from unassign.search_blast import (
-    UnassignAligner, AlignedSubjectQuery, BlastRefiner, align_semiglobal,
+    UnassignAligner, BlastRefiner, align_semiglobal,
     )
+from unassign.alignment import (
+    AlignedSubjectQuery, count_matches,
+)
 
 DATA_DIR = os.path.join(
     os.path.dirname(os.path.realpath(__file__)), "data")
@@ -146,14 +149,14 @@ class AlignedSubjectQueryTests(unittest.TestCase):
             ("a", "CCCGGTCCGGTTATT"),
             #      |||||||||||||xx
             ("b", "CCCGGTCCGGTTAAC"))
-        self.assertEqual(a.count_matches(), (13, 15))
+        self.assertEqual(count_matches(a.pairs_query()), (13, 15, 15))
 
     def test_hit_identity_query_gaps(self):
         a = AlignedSubjectQuery(
             ("a", "CCCGGTCCGGTT--TT-----"),
             #      ||||||||||||  xx
             ("b", "CCCGGTCCGGTTAACCGGGTT"))
-        self.assertEqual(a.count_matches(), (12, 14))
+        self.assertEqual(count_matches(a.pairs_query()), (12, 14, 16))
 
     def test_pairs_query_no_endgaps(self):
         a = AlignedSubjectQuery(

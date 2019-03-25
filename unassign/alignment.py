@@ -1,6 +1,3 @@
-from unassign.util import count_while_equal, count_matching_pairs
-
-
 class AlignedSubjectQuery(object):
     def __init__(self, qseq, sseq):
         self.query_id, self.query_seq = qseq
@@ -43,17 +40,18 @@ class AlignedSubjectQuery(object):
             if subject_idx > start_idx:
                 yield (q, s)
 
-    def count_matches(self):
-        """Count regional and total matches in an alignment. 
-        Parameters 
-        ----------
-        start : start position in query sequence
-        end : end position in query sequence
-        Returns
-        -------
-        tuple containing two ints:
-        Number of matching positions and 
-        total number of query nucleotides in the alignment.        
-        """
-        matches, total_query, _ = count_matching_pairs(self.pairs_query())
-        return matches, total_query
+def exact_match(a, b):
+    return a == b
+
+def count_matches(sequence_pairs, match_fcn=exact_match):
+    match = 0
+    total_a = 0
+    total_b = 0
+    for a, b in sequence_pairs:
+        if match_fcn(a, b):
+            match += 1
+        if a != "-":
+            total_a += 1
+        if b != "-":
+            total_b += 1
+    return match, total_a, total_b
