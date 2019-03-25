@@ -5,7 +5,6 @@ import tempfile
 from Bio import pairwise2
 
 from unassign.parse import write_fasta, load_fasta, parse_fasta
-from unassign.util import uniq
 from unassign.alignment import AlignedSubjectQuery
 
 BLAST_FMT = (
