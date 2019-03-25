@@ -172,5 +172,23 @@ class AlignedSubjectQueryTests(unittest.TestCase):
                 ("D", "K"), ("E", "L"), ("F", "M"),
             ])
 
+    def test_pairs_query_with_endgaps(self):
+        a = AlignedSubjectQuery(
+            ("a", "--ABC-EF---", 5),
+            ("b", "HIJKLMNOPQR", 11))
+        self.assertEqual(
+            list(a.pairs_query(0, 3)),
+            [("A", "J"), ("B", "K"), ("C", "L")])
+        self.assertEqual(
+            list(a.pairs_query(1, 4)),
+            [("B", "K"), ("C", "L"), ("-", "M"), ("E", "N")])
+        self.assertEqual(
+            list(a.pairs_query()),
+            [
+                ("A", "J"), ("B", "K"), ("C", "L"),
+                ("-", "M"), ("E", "N"), ("F", "O"),
+            ])
+
+
 if __name__ == "__main__":
     unittest.main()

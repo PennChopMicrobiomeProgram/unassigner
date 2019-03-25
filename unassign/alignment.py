@@ -12,12 +12,14 @@ class AlignedSubjectQuery(object):
             end_idx = self.query_len
         query_idx = 0
         for q, s in zip(self.query_seq, self.subject_seq):
-            if query_idx >= end_idx:
-                break
-            if query_idx >= start_idx:
-                yield (q, s)
             if q != "-":
                 query_idx += 1
+            if (query_idx == end_idx) and (q == "-"):
+                break
+            if query_idx > end_idx:
+                break
+            if query_idx > start_idx:
+                yield (q, s)
 
     def count_matches(self):
         """Count regional and total matches in an alignment. 
