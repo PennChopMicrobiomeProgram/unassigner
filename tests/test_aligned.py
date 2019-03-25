@@ -70,6 +70,32 @@ class AlignedSubjectQueryTests(unittest.TestCase):
                 ("-", "J"), ("E", "K"), ("F", "-"),
             ])
 
+    def test_region_subject_to_query_no_endgaps(self):
+        a = AlignedSubjectQuery(
+            ("a", "ABCDEF"),
+            ("b", "HIJKLM"))
+        # In an alignment with no gaps, the query sequence coordinates should
+        # always match the subject sequence coordinates
+        self.assertEqual(a.region_subject_to_query(0, 3), (0, 3))
+        self.assertEqual(a.region_subject_to_query(1, 5), (1, 5))
+        self.assertEqual(a.region_subject_to_query(), (0, 6)) # whole sequence
+
+    def test_region_subject_to_query_with_endgaps(self):
+        a = AlignedSubjectQuery(
+            ("a", "--ABC-EF---"),
+            ("b", "HIJKLMNOPQR"))
+        self.assertEqual(a.region_subject_to_query(0, 3), (0, 1)) # A in HIJ
+        self.assertEqual(a.region_subject_to_query(1, 6), (0, 3)) # ABC in IJKLM
+        self.assertEqual(a.region_subject_to_query(), (0, 5)) # ABCEF in subject
+
+    def test_region_subject_to_query_crazy_alignment(self):
+        a = AlignedSubjectQuery(
+            ("a", "-A-BC-EF---"),
+            ("b", "--HI-JK-LMN"))
+        self.assertEqual(a.region_subject_to_query(0, 3), (1, 3)) # BC in HIJ
+        self.assertEqual(a.region_subject_to_query(1, 4), (1, 4)) # BCE in IJK
+        self.assertEqual(a.region_subject_to_query(), (1, 5)) # BCEF in subject
+
     def test_pairs_subject_no_endgaps(self):
         a = AlignedSubjectQuery(
             ("a", "ABCDEF"),

@@ -113,6 +113,5 @@ class BlastExtenderTests(unittest.TestCase):
             ("--", "OP"))
 
 
-
 if __name__ == "__main__":
     unittest.main()
