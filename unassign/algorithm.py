@@ -47,14 +47,14 @@ class UnassignAligner(object):
         self.species_output_fp = None
 
     def search_species(self, seqs):
-        """Search species typestrains for match to query sequences."""
         b = BlastAligner(self.species_fp)
-        r = BlastExtender(seqs, self.species_fp)
         hits = b.search(
             seqs, self.species_max_hits,
             self.species_input_fp, self.species_output_fp)
+
+        xt = BlastExtender(seqs, self.species_fp)
         for hit in hits:
-            yield r.refine_hit(hit)
+            yield xt.extend_hit(hit)
 
 
 class BasicAlgorithm(UnassignerAlgorithm):

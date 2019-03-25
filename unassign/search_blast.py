@@ -102,7 +102,7 @@ class BlastExtender:
             (hit['qend'] == hit['qlen']) and \
             (hit['send'] == hit['slen']))
 
-    def refine_hit(self, hit):
+    def extend_hit(self, hit):
         # Handle the simple case where the local alignment covers both
         # sequences completely
         if self._is_global(hit):
