@@ -6,7 +6,7 @@ import scipy
 import scipy.special
 import scipy.misc
 
-from unassign.search_blast import BlastAligner, BlastRefiner
+from unassign.search_blast import BlastAligner, BlastExtender
 
 class UnassignerAlgorithm(object):
     def __init__(self, aligner):
@@ -49,7 +49,7 @@ class UnassignAligner(object):
     def search_species(self, seqs):
         """Search species typestrains for match to query sequences."""
         b = BlastAligner(self.species_fp)
-        r = BlastRefiner(seqs, self.species_fp)
+        r = BlastExtender(seqs, self.species_fp)
         hits = b.search(
             seqs, self.species_max_hits,
             self.species_input_fp, self.species_output_fp)

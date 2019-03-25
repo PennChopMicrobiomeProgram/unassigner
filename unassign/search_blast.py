@@ -81,7 +81,7 @@ class BlastAligner:
             ]
         subprocess.check_call(args)
 
-class BlastRefiner:
+class BlastExtender:
     def __init__(self, seqs, db):
         self.seqs = dict(seqs)
         self.db = db
