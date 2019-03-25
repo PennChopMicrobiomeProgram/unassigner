@@ -3,9 +3,17 @@ from unassign.util import count_while_equal, count_matching_pairs
 
 class AlignedSubjectQuery(object):
     def __init__(self, qseq, sseq):
-        self.query_id, self.query_seq, self.query_len = qseq
-        self.subject_id, self.subject_seq, self.subject_len = sseq
+        self.query_id, self.query_seq = qseq
+        self.subject_id, self.subject_seq = sseq
         assert(len(self.query_seq) == len(self.subject_seq))
+
+    @property
+    def query_len(self):
+        return len(self.query_seq) - self.query_seq.count("-")
+
+    @property
+    def subject_len(self):
+        return len(self.subject_seq) - self.subject_seq.count("-")
 
     def pairs_query(self, start_idx = 0, end_idx = None):
         if end_idx is None:

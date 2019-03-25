@@ -126,8 +126,8 @@ class BlastRefiner:
         # sequences completely
         if self._is_global(hit):
             return AlignedSubjectQuery(
-                (hit['qseqid'], hit['qseq'], hit['qlen']),
-                (hit['sseqid'], hit['sseq'], hit['slen']))
+                (hit['qseqid'], hit['qseq']),
+                (hit['sseqid'], hit['sseq']))
 
         # We are going to need some repair or realignment.
         qseq = self.seqs[hit['qseqid']] # Raise error if not found
@@ -138,16 +138,16 @@ class BlastRefiner:
         if self._needs_realignment(hit):
             aligned_qseq, aligned_sseq = align_semiglobal(qseq, sseq)
             return AlignedSubjectQuery(
-                (hit['qseqid'], aligned_qseq, len(qseq)),
-                (hit['sseqid'], aligned_sseq, len(sseq)))
+                (hit['qseqid'], aligned_qseq),
+                (hit['sseqid'], aligned_sseq))
 
         qleft, sleft = self._add_endgaps_left(hit, qseq, sseq)
         qright, sright = self._add_endgaps_right(hit, qseq, sseq)
         aligned_qseq = qleft + hit['qseq'] + qright
         aligned_sseq = sleft + hit['sseq'] + sright
         return AlignedSubjectQuery(
-                (hit['qseqid'], aligned_qseq, len(qseq)),
-                (hit['sseqid'], aligned_sseq, len(sseq)))
+                (hit['qseqid'], aligned_qseq),
+                (hit['sseqid'], aligned_sseq))
 
     @staticmethod
     def _add_endgaps_left(hit, qseq, sseq):
