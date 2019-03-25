@@ -16,7 +16,7 @@ BLAST_FIELD_TYPES = [
     int, int, int, int, int, int, str, str]
 
 
-class BlastSearch:
+class BlastAligner:
     def __init__(self, ref_seqs_fp):
         self.ref_seqs_fp = ref_seqs_fp
 
