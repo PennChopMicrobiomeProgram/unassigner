@@ -86,22 +86,6 @@ class BlastExtender:
         self.seqs = dict(seqs)
         self.db = db
 
-    @staticmethod
-    def _needs_realignment(hit):
-        more_to_the_left = (hit['qstart'] > 1) and \
-                           (hit['sstart'] > 1)
-        more_to_the_right = (hit['qend'] < hit['qlen']) and \
-                            (hit['send'] < hit['slen'])
-        return (more_to_the_left or more_to_the_right)
-
-    @staticmethod
-    def _is_global(hit):
-        return (
-            (hit['qstart'] == 1) and \
-            (hit['sstart'] == 1) and \
-            (hit['qend'] == hit['qlen']) and \
-            (hit['send'] == hit['slen']))
-
     def extend_hit(self, hit):
         # Handle the simple case where the local alignment covers both
         # sequences completely
@@ -129,6 +113,22 @@ class BlastExtender:
         return AlignedSubjectQuery(
                 (hit['qseqid'], aligned_qseq),
                 (hit['sseqid'], aligned_sseq))
+
+    @staticmethod
+    def _is_global(hit):
+        return (
+            (hit['qstart'] == 1) and \
+            (hit['sstart'] == 1) and \
+            (hit['qend'] == hit['qlen']) and \
+            (hit['send'] == hit['slen']))
+
+    @staticmethod
+    def _needs_realignment(hit):
+        more_to_the_left = (hit['qstart'] > 1) and \
+                           (hit['sstart'] > 1)
+        more_to_the_right = (hit['qend'] < hit['qlen']) and \
+                            (hit['send'] < hit['slen'])
+        return (more_to_the_left or more_to_the_right)
 
     @staticmethod
     def _add_endgaps_left(hit, qseq, sseq):

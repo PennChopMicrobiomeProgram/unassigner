@@ -61,34 +61,30 @@ class AlignSemiglobalTests(unittest.TestCase):
 
 
 class BlastExtenderTests(unittest.TestCase):
-    def test_polish_alignment_leftgap(self):
-        seqs = [("b", "GCGTGGCGAACGGCTGACGAACACGTGG")]
-        hit = {
-            "qseqid": "b", "sseqid": "5",
-            "qseq": "GCGTGGCGAACGGCTGACGAACACGTGG",
-            "sseq": "GCGTGGCGAACGGCTGACGAACACGTGG",
-            "qstart": 5, "qend": 28, "qlen": 28,
-            "sstart": 45, "send": 68, "slen": 1336,
-        }
-        self.assertTrue(BlastExtender._needs_realignment(hit))
-
-    def test_polish_alignment_rightgap(self):
-        seqs = [("b", "GCGTGGCGAACGGCTGACGAACACGTGG")]
-        hit = {
-            "qseqid": "b", "sseqid": "5",
-            "qseq": "GCGTGGCGAACGGCTGACGAACACGTGG",
-            "sseq": "GCGTGGCGAACGGCTGACGAACACGTGG",
-            "qstart": 1, "qend": 24, "qlen": 28,
-            "sstart": 41, "send": 64, "slen": 1336,
-        }
-        self.assertTrue(BlastExtender._needs_realignment(hit))
-
     def test_is_global(self):
         hit = {
             "qstart": 1, "qend": 37, "qlen": 37,
             "sstart": 1, "send": 37, "slen": 37,
         }
         self.assertTrue(BlastExtender._is_global(hit))
+
+    def test_realign_leftgap(self):
+        hit = {
+            "qstart": 5, "qend": 28, "qlen": 28,
+            "sstart": 45, "send": 68, "slen": 1336,
+        }
+        self.assertTrue(BlastExtender._needs_realignment(hit))
+        hit["qstart"] = 1
+        self.assertFalse(BlastExtender._needs_realignment(hit))
+
+    def test_realign_rightgap(self):
+        hit = {
+            "qstart": 1, "qend": 24, "qlen": 28,
+            "sstart": 41, "send": 64, "slen": 1336,
+        }
+        self.assertTrue(BlastExtender._needs_realignment(hit))
+        hit["qend"] = 28
+        self.assertFalse(BlastExtender._needs_realignment(hit))
 
     def test_add_endgaps_left(self):
         no_endgaps = {"qstart": 1, "sstart": 1}
