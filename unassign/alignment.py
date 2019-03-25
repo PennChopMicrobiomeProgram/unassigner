@@ -7,6 +7,18 @@ class AlignedSubjectQuery(object):
         self.subject_id, self.subject_seq, self.subject_len = sseq
         assert(len(self.query_seq) == len(self.subject_seq))
 
+    def pairs_query(self, start_idx = 0, end_idx = None):
+        if end_idx is None:
+            end_idx = self.query_len
+        query_idx = 0
+        for q, s in zip(self.query_seq, self.subject_seq):
+            if query_idx >= end_idx:
+                break
+            if query_idx >= start_idx:
+                yield (q, s)
+            if q != "-":
+                query_idx += 1
+
     def count_matches(self):
         """Count regional and total matches in an alignment. 
         Parameters 
