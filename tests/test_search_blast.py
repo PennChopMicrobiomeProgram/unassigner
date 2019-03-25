@@ -12,41 +12,6 @@ DATA_DIR = os.path.join(
     os.path.dirname(os.path.realpath(__file__)), "data")
 
 
-class AlignedSubjectQueryTests(unittest.TestCase):
-    def setUp(self):
-        # Hit has 15 positions and 2 mismatches (rightmost columns).
-        self.hit = {
-            "qseqid": "a", "sseqid": "b",
-            "qseq": "CCCGGTCCGGTTATT",
-            "sseq": "CCCGGTCCGGTTAAC",
-            "qstart": 1, "qend": 15, "qlen": 15,
-            "sstart": 1, "send": 15, "slen": 15,
-            }
-        self.pairs = list(zip("CCCGGTCCGGTTATT", "CCCGGTCCGGTTAAC"))
-
-    def test_no_endgaps(self):
-        a = AlignedSubjectQuery.from_blast_hit(self.hit)
-        self.assertEqual(a.query_seq, "CCCGGTCCGGTTATT")
-        self.assertEqual(a.subject_seq, "CCCGGTCCGGTTAAC")
-        self.assertEqual(a.start_idx(a.subject_seq, a.query_seq), 0)
-        self.assertEqual(a.end_idx(a.subject_seq, a.query_seq), 15)
-        self.assertEqual(a.query_len, 15)
-        self.assertEqual(a.subject_len, 15)
-        self.assertEqual(a.count_matches(), (13,15))
-        
-    def test_midgaps(self):
-        self.hit.update({
-            "qseq":"CCCGGTC--CGGTTATT", "sseq":"CCCGGTCAACGGTTAAC",
-            "send":17, "slen":17
-            })
-        a = AlignedSubjectQuery.from_blast_hit(self.hit)
-        self.assertEqual(a.query_seq, "CCCGGTC--CGGTTATT")
-        self.assertEqual(a.subject_seq, "CCCGGTCAACGGTTAAC")
-        self.assertEqual(a.end_idx(a.subject_seq, a.query_seq), 17)
-        self.assertEqual(a.query_len, 15)
-        self.assertEqual(a.subject_len, 17)
-        self.assertEqual(a.count_matches(), (13,17))
-
 class AlignSemiglobalTests(unittest.TestCase):
     def setUp(self):
         self.query_id = "a"
@@ -175,33 +140,21 @@ class BlastRefinerTests(unittest.TestCase):
             ("--", "OP"))
 
 
-class HitIdentityTests(unittest.TestCase):
+class AlignedSubjectQueryTests(unittest.TestCase):
     def test_hit_identity_no_endgaps(self):
-        # Hit has 15 positions and 2 mismatches (rightmost columns).
-        hit = {
-            "qseqid": "a", "sseqid": "b",
-            "qseq": "CCCGGTCCGGTTATT",
-            "sseq": "CCCGGTCCGGTTAAC",
-            "qstart": 1, "qend": 15, "qlen": 15,
-            "sstart": 1, "send": 15, "slen": 15,
-            }
-        a = AlignedSubjectQuery.from_blast_hit(hit)
+        a = AlignedSubjectQuery(
+            ("a", "CCCGGTCCGGTTATT", 15),
+            #      |||||||||||||xx
+            ("b", "CCCGGTCCGGTTAAC", 15))
         self.assertEqual(a.count_matches(), (13, 15))
 
     def test_hit_identity_query_gaps(self):
-        # Hit has 14 positions and 2 gaps and 2 mismatches (rightmost columns).
-        # Query has 1 nt to right of the alignment.
-        # Total matches: 14 - 2 = 12
-        # Total positions counted: 14 = query length
-        hit = {
-            "qseqid": "a", "sseqid": "b",
-            "qseq": "CCCGGTCCGGTT--TT",
-            "sseq": "CCCGGTCCGGTTAACC",
-            "qstart": 1, "qend": 14, "qlen": 14,
-            "sstart": 1, "send": 15, "slen": 20,
-            }
-        a = AlignedSubjectQuery.from_blast_hit(hit)
-        self.assertEqual(a.count_matches(), (12, 16))
+        a = AlignedSubjectQuery(
+            ("a", "CCCGGTCCGGTT--TT-----", 14),
+            #      ||||||||||||  xx
+            ("b", "CCCGGTCCGGTTAACCGGGTT", 20))
+        self.assertEqual(a.count_matches(), (12, 14))
+
 
 if __name__ == "__main__":
     unittest.main()
