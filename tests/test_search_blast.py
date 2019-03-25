@@ -189,6 +189,23 @@ class AlignedSubjectQueryTests(unittest.TestCase):
                 ("-", "M"), ("E", "N"), ("F", "O"),
             ])
 
+    def test_pairs_query_crazy_alignment(self):
+        a = AlignedSubjectQuery(
+            ("a", "-A-BC-EF---", 5),
+            ("b", "--HI-JK-LMN", 11))
+        self.assertEqual(
+            list(a.pairs_query(0, 3)),
+            [("A", "-"), ("-", "H"), ("B", "I"), ("C", "-")])
+        self.assertEqual(
+            list(a.pairs_query(1, 4)),
+            [("B", "I"), ("C", "-"), ("-", "J"), ("E", "K")])
+        self.assertEqual(
+            list(a.pairs_query()),
+            [
+                ("A", "-"), ("-", "H"), ("B", "I"), ("C", "-"),
+                ("-", "J"), ("E", "K"), ("F", "-"),
+            ])
+
 
 if __name__ == "__main__":
     unittest.main()
