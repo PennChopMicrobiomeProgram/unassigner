@@ -59,7 +59,7 @@ class BlastAligner:
             "makeblastdb",
             "-dbtype", "nucl",
             "-in", fasta_fp,
-            ])
+            ], stdout=subprocess.DEVNULL)
 
     def _call(self, query_fp, database_fp, output_fp, **kwargs):
         """Call the BLAST program."""
@@ -82,9 +82,9 @@ class BlastAligner:
         subprocess.check_call(args)
 
 class BlastExtender:
-    def __init__(self, seqs, db):
-        self.seqs = dict(seqs)
-        self.db = db
+    def __init__(self, query_seqs, ref_seqs):
+        self.query_seqs = dict(query_seqs)
+        self.ref_seqs = dict(ref_seqs)
 
     def extend_hit(self, hit):
         # Handle the simple case where the local alignment covers both
@@ -95,9 +95,9 @@ class BlastExtender:
                 (hit['sseqid'], hit['sseq']))
 
         # We are going to need some repair or realignment.
-        qseq = self.seqs[hit['qseqid']] # Raise error if not found
+        qseq = self.query_seqs[hit['qseqid']]
         assert(len(qseq) == hit['qlen'])
-        sseq = self._get_subject_seq(hit['sseqid'])
+        sseq = self.ref_seqs[hit['sseqid']]
         assert(len(sseq) == hit['slen'])
 
         if self._needs_realignment(hit):

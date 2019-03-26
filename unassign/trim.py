@@ -7,6 +7,7 @@ import subprocess
 import sys
 
 from unassign.parse import parse_fasta, write_fasta
+from unassign.search_blast import BlastAligner, BlastExtender
 
 class TrimmableSeqs:
     def __init__(self, recs):
@@ -159,6 +160,9 @@ class PartialMatcher(Matcher):
                 end_idx = len(partial_query)
                 return PrimerMatch(0, end_idx, "Partial")
 
+# NEXT: use BlastAligner to find matches
+# THEN: use BlastExtender.region_subject_to_query to get query region
+
 class AlignmentMatcher(Matcher):
     def __init__(self, min_pct_id = 90, keep_files = False, cores = 1):
         self.min_pct_id = min_pct_id
@@ -169,55 +173,33 @@ class AlignmentMatcher(Matcher):
         if seqs.all_matched():
             raise StopIteration()
 
-        # Write query
-        query_fp = ".trimragged.query.fa"
-        with open(query_fp, "w") as f:
-            write_fasta(f, seqs.get_unmatched_recs())
-
         # Write database
         database_fp = ".trimragged.database.fa"
         with open(database_fp, "w") as f:
             write_fasta(f, seqs.get_matched_recs())
-        subprocess.check_call(
-            ["makeblastdb", "-dbtype", "nucl", "-in", database_fp],
-            stdout = subprocess.DEVNULL, stderr = subprocess.DEVNULL,
-        )
+        BlastAligner._index(database_fp)
+        ba = BlastAligner(database_fp)
 
+        # Write query
+        query_fp = ".trimragged.query.fa"
         results_fp = ".trimragged.results.txt"
-        command = [
-            "blastn",
-            "-outfmt", "7",
-            "-query", query_fp,
-            "-db", database_fp,
-            "-out", results_fp,
-            "-max_target_seqs", "1",
-        ]
-        if self.cores > 1:
-            command.extend(["-num_threads", str(self.cores)])
-        subprocess.check_call(command)
-
-        # Read output file, determine matches
-        with open(results_fp, "r") as f:
-            for hit in parse_blast7(f):
-                if hit["pident"] < self.min_pct_id:
-                    continue
-                subj_id = hit["sseqid"]
-                subj_match = seqs.matches[subj_id]
-
-                query_alignment_start_idx = hit["qstart"] - 1
-                subj_alignment_start_idx = hit["sstart"] - 1
-
-                query_start_idx = subj_match.start - \
-                    (subj_alignment_start_idx - query_alignment_start_idx)
-                if query_start_idx < 0:
-                    query_start_idx = 0
-
-                query_end_idx = subj_match.end - \
-                    (subj_alignment_start_idx - query_alignment_start_idx)
-                matchobj = PrimerMatch(
-                    query_start_idx, query_end_idx, "Alignment")
-                query_id = hit["qseqid"]
-                yield query_id, matchobj
+        hits = ba.search(
+            seqs.get_unmatched_recs(),
+            max_hits=1,
+            input_fp=query_fp,
+            output_fp=results_fp,
+        )
+        bext = BlastExtender(seqs.get_unmatched_recs(), seqs.get_matched_recs())
+        for hit in hits:
+            if hit["pident"] < self.min_pct_id:
+                continue
+            alignment = bext.extend_hit(hit)
+            subject_match = seqs.matches[alignment.subject_id]
+            query_start_idx, query_end_idx = alignment.region_subject_to_query(
+                subject_match.start, subject_match.end)
+            matchobj = PrimerMatch(
+                query_start_idx, query_end_idx, "Alignment")
+            yield alignment.query_id, matchobj
 
         if not self.keep_files:
             os.remove(database_fp)
