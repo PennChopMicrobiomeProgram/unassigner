@@ -164,31 +164,15 @@ class PartialMatcher(Matcher):
 # THEN: use BlastExtender.region_subject_to_query to get query region
 
 class AlignmentMatcher(Matcher):
-    def __init__(self, min_pct_id = 90, keep_files = False, cores = 1):
+    def __init__(self, min_pct_id = 90):
         self.min_pct_id = min_pct_id
-        self.keep_files = keep_files
-        self.cores = cores
 
     def find_in_seqs(self, seqs):
         if seqs.all_matched():
             raise StopIteration()
 
-        # Write database
-        database_fp = ".trimragged.database.fa"
-        with open(database_fp, "w") as f:
-            write_fasta(f, seqs.get_matched_recs())
-        BlastAligner._index(database_fp)
-        ba = BlastAligner(database_fp)
-
-        # Write query
-        query_fp = ".trimragged.query.fa"
-        results_fp = ".trimragged.results.txt"
-        hits = ba.search(
-            seqs.get_unmatched_recs(),
-            max_hits=1,
-            input_fp=query_fp,
-            output_fp=results_fp,
-        )
+        ba = BlastAligner.from_ref_seqs(seqs.get_matched_recs())
+        hits = ba.search(seqs.get_unmatched_recs(), max_hits=1)
         bext = BlastExtender(seqs.get_unmatched_recs(), seqs.get_matched_recs())
         for hit in hits:
             if hit["pident"] < self.min_pct_id:
@@ -200,11 +184,6 @@ class AlignmentMatcher(Matcher):
             matchobj = PrimerMatch(
                 query_start_idx, query_end_idx, "Alignment")
             yield alignment.query_id, matchobj
-
-        if not self.keep_files:
-            os.remove(database_fp)
-            os.remove(query_fp)
-            os.remove(results_fp)
 
 
 def parse_blast7(f):
@@ -357,10 +336,7 @@ def main(argv=None):
     if not args.skip_partial:
         matchers.append(PartialMatcher(queryset, args.min_partial))
     if not args.skip_alignment:
-        matchers.append(
-            AlignmentMatcher(
-                args.min_pct_id, args.keep_alignment_files,
-                args.cores))
+        matchers.append(AlignmentMatcher(args.min_pct_id))
 
     for m in matchers:
         app.apply_matcher(m)

@@ -20,6 +20,14 @@ class BlastAligner:
     def __init__(self, ref_seqs_fp):
         self.ref_seqs_fp = ref_seqs_fp
 
+    @classmethod
+    def from_ref_seqs(cls, ref_seqs):
+        with tempfile.NamedTemporaryFile(mode="w+t", encoding="utf-8") as f:
+            write_fasta(f, ref_seqs)
+            f.seek(0)
+            cls._index(f.name)
+            return cls(f.name)
+
     def search(self, seqs, max_hits, input_fp=None, output_fp=None):
         if input_fp is None:
             infile = tempfile.NamedTemporaryFile(mode="w+t", encoding="utf-8")
