@@ -109,10 +109,9 @@ class PartialMatcherTests(unittest.TestCase):
 
 
 def mock_trimmable_seqs(sseq, qseq, primer_start, primer_end):
-    obs_primer = sseq[primer_start:primer_end]
     class MockSeqs:
         matches = {
-            "A": PrimerMatch(primer_start, primer_end, "Test", obs_primer),
+            "A": PrimerMatch(primer_start, primer_end, "Test"),
         }
         def all_matched(self):
             return False
@@ -163,7 +162,7 @@ class AlignmentMatcherTests(unittest.TestCase):
 
     def test_trim_right(self):
         seq = "TCCTAGAG"
-        matchobj = PrimerMatch(4, 6, "", "AG")
+        matchobj = PrimerMatch(4, 6, "")
         self.assertEqual(trim_right(seq, matchobj), "TCCT")
 
     def test_pairs(self):
@@ -229,9 +228,9 @@ GACGAACGCTGGCGGCGTGCTTAACACATGCAAACGTGCA
 """
 
 MAIN_STATS = """\
-AF403541	Exact	1	21	GAGTTTGATCCTGGCTCAG
-AF403541b	Exact	1	21	GAGTTTGATCCTGGCTCAG
-AF403544	Complete, 1 mismatch	1	21	GAGTATGATCCTGGCTCAG
+AF403541	Exact	1	21	AGAGTTTGATCCTGGCTCAG
+AF403541b	Exact	1	21	AGAGTTTGATCCTGGCTCAG
+AF403544	Complete, 1 mismatch	1	21	AGAGTATGATCCTGGCTCAG
 AF403542	Partial	0	13	GATCCTGGCTCAG
 AF403545	Alignment	0	4	TCAG
 AF403543	Unmatched	NA	NA	

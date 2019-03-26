@@ -2,8 +2,6 @@ import abc
 import argparse
 import collections
 import itertools
-import os
-import subprocess
 import sys
 
 from unassign.parse import parse_fasta, write_fasta
@@ -63,7 +61,7 @@ class TrimmableSeqs:
 
 
 PrimerMatch = collections.namedtuple(
-    "PrimerMatch", ["start", "end", "message", "seq"])
+    "PrimerMatch", ["start", "end", "message"])
 
 
 class Matcher(abc.ABC):
@@ -134,8 +132,8 @@ class CompleteMatcher(Matcher):
                     else:
                         msg = "Complete, {0} mismatches".format(n_mismatches)
                     end_idx = start_idx + len(query)
-                    obs_primer = query[start_idx:end_idx]
-                    return PrimerMatch(start_idx, end_idx, msg, obs_primer)
+                    obs_primer = seq[start_idx:end_idx]
+                    return PrimerMatch(start_idx, end_idx, msg)
 
 
 def replace_with_n(seq, idxs):
@@ -159,11 +157,7 @@ class PartialMatcher(Matcher):
         for partial_query in self.partial_queries:
             if seq.startswith(partial_query):
                 end_idx = len(partial_query)
-                obs_primer = seq[:end_idx]
-                return PrimerMatch(0, end_idx, "Partial", obs_primer)
-
-# NEXT: use BlastAligner to find matches
-# THEN: use BlastExtender.region_subject_to_query to get query region
+                return PrimerMatch(0, end_idx, "Partial")
 
 class AlignmentMatcher(Matcher):
     def __init__(self, min_pct_id = 90):
@@ -183,11 +177,7 @@ class AlignmentMatcher(Matcher):
             subject_match = seqs.matches[alignment.subject_id]
             query_start_idx, query_end_idx = alignment.region_subject_to_query(
                 subject_match.start, subject_match.end)
-            obs_primer_query, obs_primer_subject = zip(
-                *alignment.pairs_subject(subject_match.start, subject_match.end))
-            obs_primer_query = "".join(obs_primer_query).replace("-", "")
-            matchobj = PrimerMatch(
-                query_start_idx, query_end_idx, "Alignment", obs_primer_query)
+            matchobj = PrimerMatch(query_start_idx, query_end_idx, "Alignment")
             yield alignment.query_id, matchobj
 
 
@@ -241,14 +231,14 @@ class TrimraggedApp(object):
                     desc = self.seqs.get_desc(seq_id)
                     trimmed_seq = self.trim_fcn(seq, matchobj)
                     self.writer.write_trimmed(desc, trimmed_seq)
-                    self.writer.write_stats(seq_id, matchobj)
+                    self.writer.write_stats(seq_id, seq, matchobj)
 
     def finish(self):
         for rep_seq_id, seq in self.seqs.get_unmatched_recs():
             for seq_id in self.seqs.get_replicate_ids(rep_seq_id):
                 desc = self.seqs.get_desc(seq_id)
                 self.writer.write_untrimmed(desc, seq)
-                self.writer.write_stats(seq_id, None)
+                self.writer.write_stats(seq_id, seq, None)
 
 
 class Writer(object):
@@ -260,13 +250,14 @@ class Writer(object):
     def write_trimmed(self, desc, seq):
         self.trimmed_file.write(">{0}\n{1}\n".format(desc, seq))
 
-    def write_stats(self, seq_id, matchobj):
+    def write_stats(self, seq_id, seq, matchobj):
         if matchobj is None:
             self.stats_file.write("{0}\tUnmatched\tNA\tNA\t\n".format(seq_id))
         else:
+            matched_seq = seq[matchobj.start:matchobj.end]
             self.stats_file.write("{0}\t{1}\t{2}\t{3}\t{4}\n".format(
                 seq_id, matchobj.message, matchobj.start, matchobj.end,
-                matchobj.seq))
+                matched_seq))
 
     def write_untrimmed(self, desc, seq):
         if self.untrimmed_file is not None:
@@ -278,6 +269,9 @@ def trim_left(seq, matchobj):
 
 def trim_right(seq, matchobj):
     return seq[:matchobj.start]
+
+def trim_middle(seq, matchobj):
+    return seq[matchobj.start:matchobj.end]
 
 def main(argv=None):
     p = argparse.ArgumentParser()
