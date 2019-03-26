@@ -1,6 +1,4 @@
 ## Next:
-## - more tests
-## - merge blast aligner logic
 ## - write primer region to stats file
 import pathlib
 import shutil
@@ -111,8 +109,11 @@ class PartialMatcherTests(unittest.TestCase):
 
 
 def mock_trimmable_seqs(sseq, qseq, primer_start, primer_end):
+    obs_primer = sseq[primer_start:primer_end]
     class MockSeqs:
-        matches = {"A": PrimerMatch(primer_start, primer_end, "")}
+        matches = {
+            "A": PrimerMatch(primer_start, primer_end, "Test", obs_primer),
+        }
         def all_matched(self):
             return False
         def get_matched_recs(self):
@@ -162,7 +163,7 @@ class AlignmentMatcherTests(unittest.TestCase):
 
     def test_trim_right(self):
         seq = "TCCTAGAG"
-        matchobj = PrimerMatch(4, 6, "")
+        matchobj = PrimerMatch(4, 6, "", "AG")
         self.assertEqual(trim_right(seq, matchobj), "TCCT")
 
     def test_pairs(self):
@@ -228,10 +229,10 @@ GACGAACGCTGGCGGCGTGCTTAACACATGCAAACGTGCA
 """
 
 MAIN_STATS = """\
-AF403541	Exact	1	21
-AF403541b	Exact	1	21
-AF403544	Complete, 1 mismatch	1	21
-AF403542	Partial	0	13
-AF403545	Alignment	0	4
-AF403543	Unmatched	NA	NA
+AF403541	Exact	1	21	GAGTTTGATCCTGGCTCAG
+AF403541b	Exact	1	21	GAGTTTGATCCTGGCTCAG
+AF403544	Complete, 1 mismatch	1	21	GAGTATGATCCTGGCTCAG
+AF403542	Partial	0	13	GATCCTGGCTCAG
+AF403545	Alignment	0	4	TCAG
+AF403543	Unmatched	NA	NA	
 """

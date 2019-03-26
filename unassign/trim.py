@@ -63,7 +63,7 @@ class TrimmableSeqs:
 
 
 PrimerMatch = collections.namedtuple(
-    "PrimerMatch", ["start", "end", "message"])
+    "PrimerMatch", ["start", "end", "message", "seq"])
 
 
 class Matcher(abc.ABC):
@@ -134,7 +134,8 @@ class CompleteMatcher(Matcher):
                     else:
                         msg = "Complete, {0} mismatches".format(n_mismatches)
                     end_idx = start_idx + len(query)
-                    return PrimerMatch(start_idx, end_idx, msg)
+                    obs_primer = query[start_idx:end_idx]
+                    return PrimerMatch(start_idx, end_idx, msg, obs_primer)
 
 
 def replace_with_n(seq, idxs):
@@ -158,7 +159,8 @@ class PartialMatcher(Matcher):
         for partial_query in self.partial_queries:
             if seq.startswith(partial_query):
                 end_idx = len(partial_query)
-                return PrimerMatch(0, end_idx, "Partial")
+                obs_primer = seq[:end_idx]
+                return PrimerMatch(0, end_idx, "Partial", obs_primer)
 
 # NEXT: use BlastAligner to find matches
 # THEN: use BlastExtender.region_subject_to_query to get query region
@@ -181,8 +183,11 @@ class AlignmentMatcher(Matcher):
             subject_match = seqs.matches[alignment.subject_id]
             query_start_idx, query_end_idx = alignment.region_subject_to_query(
                 subject_match.start, subject_match.end)
+            obs_primer_query, obs_primer_subject = zip(
+                *alignment.pairs_subject(subject_match.start, subject_match.end))
+            obs_primer_query = "".join(obs_primer_query).replace("-", "")
             matchobj = PrimerMatch(
-                query_start_idx, query_end_idx, "Alignment")
+                query_start_idx, query_end_idx, "Alignment", obs_primer_query)
             yield alignment.query_id, matchobj
 
 
@@ -257,10 +262,11 @@ class Writer(object):
 
     def write_stats(self, seq_id, matchobj):
         if matchobj is None:
-            self.stats_file.write("{0}\tUnmatched\tNA\tNA\n".format(seq_id))
+            self.stats_file.write("{0}\tUnmatched\tNA\tNA\t\n".format(seq_id))
         else:
-            self.stats_file.write("{0}\t{1}\t{2}\t{3}\n".format(
-                seq_id, matchobj.message, matchobj.start, matchobj.end))
+            self.stats_file.write("{0}\t{1}\t{2}\t{3}\t{4}\n".format(
+                seq_id, matchobj.message, matchobj.start, matchobj.end,
+                matchobj.seq))
 
     def write_untrimmed(self, desc, seq):
         if self.untrimmed_file is not None:

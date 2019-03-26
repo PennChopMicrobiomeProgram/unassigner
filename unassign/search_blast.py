@@ -1,5 +1,3 @@
-from __future__ import division
-import itertools
 import subprocess
 import tempfile
 from Bio import pairwise2
