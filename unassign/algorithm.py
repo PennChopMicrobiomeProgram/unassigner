@@ -50,8 +50,9 @@ class UnassignAligner(object):
     def search_species(self, seqs):
         b = BlastAligner(self.species_fp)
         hits = b.search(
-            seqs, self.species_max_hits,
-            self.species_input_fp, self.species_output_fp)
+            seqs, self.species_input_fp, self.species_output_fp,
+            max_target_seqs=self.species_max_hits,
+        )
 
         with open(self.species_fp) as f:
             ref_seqs = list(parse_fasta(f))

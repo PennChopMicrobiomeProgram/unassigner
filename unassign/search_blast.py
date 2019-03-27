@@ -26,7 +26,7 @@ class BlastAligner:
             cls._index(f.name)
             return cls(f.name)
 
-    def search(self, seqs, max_hits, input_fp=None, output_fp=None):
+    def search(self, seqs, input_fp=None, output_fp=None, **kwargs):
         if input_fp is None:
             infile = tempfile.NamedTemporaryFile(mode="w+t", encoding="utf-8")
             write_fasta(infile, seqs)
@@ -40,9 +40,7 @@ class BlastAligner:
             outfile = tempfile.NamedTemporaryFile()
             output_fp = outfile.name
 
-        self._call(
-            input_fp, self.ref_seqs_fp, output_fp,
-            max_target_seqs=max_hits)
+        self._call(input_fp, self.ref_seqs_fp, output_fp, **kwargs)
 
         with open(output_fp) as f:
             for hit in self._parse(f):

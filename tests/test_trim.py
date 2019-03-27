@@ -6,7 +6,7 @@ import tempfile
 import unittest
 
 from unassign.trim import (
-    deambiguate, partial_seqs, pairs,
+    deambiguate, partial_seqs,
     trim_left, trim_right, main,
     TrimmableSeqs, PrimerMatch,
     PartialMatcher, CompleteMatcher,
@@ -165,10 +165,6 @@ class AlignmentMatcherTests(unittest.TestCase):
         matchobj = PrimerMatch(4, 6, "")
         self.assertEqual(trim_right(seq, matchobj), "TCCT")
 
-    def test_pairs(self):
-        self.assertEqual(
-            list(pairs("ABCDEFG")),
-            [("A", "B"), ("C", "D"), ("E", "F")])
 
 class TrimraggedMain(unittest.TestCase):
     def setUp(self):

@@ -68,6 +68,7 @@ class Matcher(abc.ABC):
     def __init__(self, queryset):
         self.queryset = queryset
 
+    # TODO: parallelize this
     def find_in_seqs(self, seqs):
         recs = seqs.get_unmatched_recs()
         for seq_id, seq in recs:
@@ -160,15 +161,16 @@ class PartialMatcher(Matcher):
                 return PrimerMatch(0, end_idx, "Partial")
 
 class AlignmentMatcher(Matcher):
-    def __init__(self, min_pct_id = 90):
+    def __init__(self, min_pct_id = 90, cores = 1):
         self.min_pct_id = min_pct_id
+        self.cores = cores
 
     def find_in_seqs(self, seqs):
         if seqs.all_matched():
             raise StopIteration()
 
         ba = BlastAligner.from_ref_seqs(seqs.get_matched_recs())
-        hits = ba.search(seqs.get_unmatched_recs(), max_hits=1)
+        hits = ba.search(seqs.get_unmatched_recs(), max_target_seqs=1)
         bext = BlastExtender(seqs.get_unmatched_recs(), seqs.get_matched_recs())
         for hit in hits:
             if hit["pident"] < self.min_pct_id:
@@ -179,35 +181,6 @@ class AlignmentMatcher(Matcher):
                 subject_match.start, subject_match.end)
             matchobj = PrimerMatch(query_start_idx, query_end_idx, "Alignment")
             yield alignment.query_id, matchobj
-
-
-def parse_blast7(f):
-    BLAST_FIELDS = [
-        "qseqid", "sseqid", "pident", "length",
-        "mismatch", "gapopen", "qstart", "qend",
-        "sstart", "send", "evalue", "bitscore",
-    ]
-    BLAST_FIELD_TYPES = [
-        str, str, float, int,
-        int, int, int, int,
-        int, int, float, float,
-    ]
-    for line in f:
-        line = line.strip()
-        if line.startswith("#"):
-            continue
-        vals = line.split("\t")
-        vals = [fn(v) for fn, v in zip(BLAST_FIELD_TYPES, vals)]
-        yield dict(zip(BLAST_FIELDS, vals))
-
-
-def is_digit(char):
-    return char in "1234567890"
-
-
-def pairs(xs):
-    args = [iter(xs)] * 2
-    return zip(*args)
 
 
 def partial_seqs(seq, min_length):
@@ -336,7 +309,7 @@ def main(argv=None):
     if not args.skip_partial:
         matchers.append(PartialMatcher(queryset, args.min_partial))
     if not args.skip_alignment:
-        matchers.append(AlignmentMatcher(args.min_pct_id))
+        matchers.append(AlignmentMatcher(args.min_pct_id, args.cores))
 
     for m in matchers:
         app.apply_matcher(m)
