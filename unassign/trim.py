@@ -284,10 +284,6 @@ def main(argv=None):
     p.add_argument(
         "--min_pct_id", type=float, default=80.0,
         help="Minimum percent identity in alignment stage")
-    p.add_argument(
-        "--num_alignment_stages", type=int, default=1,
-        help="Number of times to go through alignment stage"
-    )
 
     # Overall program behavior
     p.add_argument(
@@ -329,11 +325,10 @@ def main(argv=None):
     if not args.skip_partial:
         matchers.append(PartialMatcher(queryset, args.min_partial))
     if not args.skip_alignment:
-        for _ in range(args.num_alignment_stages):
-            matchers.append(AlignmentMatcher(
-                min_pct_id = args.min_pct_id,
-                cores = args.cores,
-            ))
+        matchers.append(AlignmentMatcher(
+            min_pct_id = args.min_pct_id,
+            cores = args.cores,
+        ))
 
     for m in matchers:
         app.apply_matcher(m)
