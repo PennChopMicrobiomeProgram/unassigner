@@ -161,8 +161,9 @@ class PartialMatcher(Matcher):
                 return PrimerMatch(0, end_idx, "Partial")
 
 class AlignmentMatcher(Matcher):
-    def __init__(self, min_pct_id = 90, cores = 1):
+    def __init__(self, min_pct_id=90, min_aligned_frac=0.9, cores=1):
         self.min_pct_id = min_pct_id
+        self.min_aligned_frac = min_aligned_frac
         self.cores = cores
 
     def find_in_seqs(self, seqs):
@@ -170,10 +171,15 @@ class AlignmentMatcher(Matcher):
             raise StopIteration()
 
         ba = BlastAligner.from_ref_seqs(seqs.get_matched_recs())
-        hits = ba.search(seqs.get_unmatched_recs(), max_target_seqs=1)
+        search_args = {"max_target_seqs": 1}
+        if self.cores > 1:
+            search_args["num_threads"] = self.cores
+        hits = ba.search(seqs.get_unmatched_recs(), **search_args)
         bext = BlastExtender(seqs.get_unmatched_recs(), seqs.get_matched_recs())
         for hit in hits:
             if hit["pident"] < self.min_pct_id:
+                continue
+            if aligned_frac(hit) < self.min_aligned_frac:
                 continue
             alignment = bext.extend_hit(hit)
             subject_match = seqs.matches[alignment.subject_id]
@@ -188,6 +194,15 @@ def partial_seqs(seq, min_length):
     for start_idx in range(1, max_start_idx):
         yield seq[start_idx:]
 
+def aligned_frac(hit):
+    unaligned_left = min(hit["qstart"], hit["sstart"])
+    unaligned_right = min(
+        hit["qlen"] - hit["qend"],
+        hit["slen"] - hit["send"],
+    )
+    unaligned = unaligned_left + unaligned_right
+    aligned = hit["length"]
+    return aligned / (aligned + unaligned)
 
 class TrimraggedApp(object):
     def __init__(self, seqs, trim_fcn, writer):
@@ -309,7 +324,10 @@ def main(argv=None):
     if not args.skip_partial:
         matchers.append(PartialMatcher(queryset, args.min_partial))
     if not args.skip_alignment:
-        matchers.append(AlignmentMatcher(args.min_pct_id, args.cores))
+        matchers.append(AlignmentMatcher(
+            min_pct_id = args.min_pct_id,
+            cores = args.cores,
+        ))
 
     for m in matchers:
         app.apply_matcher(m)
