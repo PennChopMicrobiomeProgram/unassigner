@@ -96,6 +96,14 @@ class AlignedSubjectQueryTests(unittest.TestCase):
         self.assertEqual(a.region_subject_to_query(1, 4), (1, 4)) # BCE in IJK
         self.assertEqual(a.region_subject_to_query(), (1, 5)) # BCEF in subject
 
+    def test_region_subject_to_query_00(self):
+        a = AlignedSubjectQuery(
+            ("a", "ABCDEFG"),
+            ("b", "---KLMN"),
+        )
+        self.assertEqual(a.region_subject_to_query(0, 2), (3, 5)) # DE in KL
+        self.assertEqual(a.region_subject_to_query(0, 0), (3, 3))
+
     def test_region_query_to_subject_no_endgaps(self):
         a = AlignedSubjectQuery(
             ("a", "ABCDEF"),
@@ -121,6 +129,14 @@ class AlignedSubjectQueryTests(unittest.TestCase):
         self.assertEqual(a.region_query_to_subject(0, 3), (0, 2)) # HI in ABC
         self.assertEqual(a.region_query_to_subject(1, 4), (1, 4)) # IJK in BCE
         self.assertEqual(a.region_query_to_subject(), (0, 4)) # HIJK in query
+
+    def test_region_query_to_subject_00(self):
+        a = AlignedSubjectQuery(
+            ("a", "--DEFG"),
+            ("b", "HJKLMN"),
+        )
+        self.assertEqual(a.region_query_to_subject(0, 2), (2, 4)) # DE in KL
+        self.assertEqual(a.region_query_to_subject(0, 0), (2, 2))
 
     def test_pairs_subject_no_endgaps(self):
         a = AlignedSubjectQuery(

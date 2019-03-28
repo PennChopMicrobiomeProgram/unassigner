@@ -34,16 +34,18 @@ class AlignedSubjectQuery(object):
         subject_idx = 0
         query_start_idx = None
         for q, s in zip(self.query_seq, self.subject_seq):
-            if (query_start_idx is None) and \
-               (subject_idx >= subject_start_idx) and \
-               (s != "-"):
-                query_start_idx = query_idx
+            # Have we started on the query yet?
+            if query_start_idx is None:
+                if (subject_idx >= subject_start_idx) and (s != "-"):
+                    query_start_idx = query_idx
+            # Given that we've started on the query, have we reached the end?
+            if query_start_idx is not None:
+                if subject_idx >= subject_end_idx:
+                    break
             if s != "-":
                 subject_idx += 1
             if q != "-":
                 query_idx += 1
-            if subject_idx >= subject_end_idx:
-                break
         return query_start_idx, query_idx
 
     def pairs_subject(self, start_idx = 0, end_idx = None):
@@ -68,16 +70,18 @@ class AlignedSubjectQuery(object):
         subject_idx = 0
         subject_start_idx = None
         for q, s in zip(self.query_seq, self.subject_seq):
-            if (subject_start_idx is None) and \
-               (query_idx >= query_start_idx) and \
-               (q != "-"):
-                subject_start_idx = subject_idx
+            # Have we started on the subject yet?
+            if subject_start_idx is None:
+                if (query_idx >= query_start_idx) and (q != "-"):
+                    subject_start_idx = subject_idx
+            # Given that we've started on the subject, have we reached the end?
+            if subject_start_idx is not None:
+                if query_idx >= query_end_idx:
+                    break
             if s != "-":
                 subject_idx += 1
             if q != "-":
                 query_idx += 1
-            if query_idx >= query_end_idx:
-                break
         return subject_start_idx, subject_idx
 
 def exact_match(a, b):
