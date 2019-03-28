@@ -160,8 +160,9 @@ class PartialMatcher(Matcher):
                 end_idx = len(partial_query)
                 return PrimerMatch(0, end_idx, "Partial")
 
+
 class AlignmentMatcher(Matcher):
-    def __init__(self, min_pct_id=90, min_aligned_frac=0.9, cores=1):
+    def __init__(self, min_pct_id=90, min_aligned_frac=0.6, cores=1):
         self.min_pct_id = min_pct_id
         self.min_aligned_frac = min_aligned_frac
         self.cores = cores
@@ -283,6 +284,10 @@ def main(argv=None):
     p.add_argument(
         "--min_pct_id", type=float, default=80.0,
         help="Minimum percent identity in alignment stage")
+    p.add_argument(
+        "--num_alignment_stages", type=int, default=1,
+        help="Number of times to go through alignment stage"
+    )
 
     # Overall program behavior
     p.add_argument(
@@ -290,7 +295,7 @@ def main(argv=None):
         help= "Skip pairwise alignment stage")
     p.add_argument(
         "--skip_partial", action="store_true",
-        help="Skip partial alignment stage")
+        help="Skip partial matching stage")
     p.add_argument(
         "--keep_alignment_files", action="store_true",
         help="Keep database, query, and results files from alignment stage")
@@ -324,10 +329,11 @@ def main(argv=None):
     if not args.skip_partial:
         matchers.append(PartialMatcher(queryset, args.min_partial))
     if not args.skip_alignment:
-        matchers.append(AlignmentMatcher(
-            min_pct_id = args.min_pct_id,
-            cores = args.cores,
-        ))
+        for _ in range(args.num_alignment_stages):
+            matchers.append(AlignmentMatcher(
+                min_pct_id = args.min_pct_id,
+                cores = args.cores,
+            ))
 
     for m in matchers:
         app.apply_matcher(m)
