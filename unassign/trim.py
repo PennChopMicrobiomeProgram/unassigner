@@ -351,12 +351,12 @@ def main(argv=None):
         alignment_dir = tempfile.mkdtemp()
     else:
         alignment_dir = args.alignment_dir
-    if os.path.exists(alignment_dir):
-        if not os.path.isdir(alignment_dir):
-            raise FileExistsError(
-                "Alignment dir exists but is not a directory.")
-    else:
-        os.mkdir(alignment_dir)
+        if os.path.exists(alignment_dir):
+            if not os.path.isdir(alignment_dir):
+                raise FileExistsError(
+                    "Alignment dir exists but is not a directory.")
+        else:
+            os.mkdir(alignment_dir)
 
     matchers = [CompleteMatcher(queryset, args.max_mismatch)]
     if not args.skip_partial:
