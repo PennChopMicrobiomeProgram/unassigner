@@ -123,6 +123,12 @@ def mock_trimmable_seqs(sseq, qseq, primer_start, primer_end):
 
 
 class AlignmentMatcherTests(unittest.TestCase):
+    def setUp(self):
+        self.test_dir = tempfile.mkdtemp()
+
+    def tearDown(self):
+        shutil.rmtree(self.test_dir)
+
     def test_alignment_match_subj_left(self):
         s = mock_trimmable_seqs(
             "TCCTGGCTCAGGACGAACGCTGGCGGCGTGCTTAACACATGCAAGTCGAACGG",
@@ -130,7 +136,7 @@ class AlignmentMatcherTests(unittest.TestCase):
                     "CAGGACGAACGCTGGCGGCGTGCTTAACACATGCAAGTCGAACGG",
             0, 11,
         )
-        m = AlignmentMatcher()
+        m = AlignmentMatcher(self.test_dir)
         alignment_matches = list(m.find_in_seqs(s))
         match_id, matchobj = alignment_matches[0]
         self.assertEqual(matchobj.start, 0)
@@ -143,7 +149,7 @@ class AlignmentMatcherTests(unittest.TestCase):
                "TGGCTCAGGACGAACGCTGGCGGCGTGCTTAACACATGCAAGTCGAACGG",
             10, 15,
         )
-        m = AlignmentMatcher()
+        m = AlignmentMatcher(self.test_dir)
         alignment_matches = list(m.find_in_seqs(s))
         match_id, matchobj = alignment_matches[0]
         self.assertEqual((matchobj.start, matchobj.end), (7, 12))
@@ -155,7 +161,7 @@ class AlignmentMatcherTests(unittest.TestCase):
                "TGGCTCAGGCGAACGCTGGCGGCGTGCTTAACACATGCAAGTCGAACGG",
             10, 15,
         )
-        m = AlignmentMatcher()
+        m = AlignmentMatcher(self.test_dir)
         alignment_matches = list(m.find_in_seqs(s))
         match_id, matchobj = alignment_matches[0]
         self.assertEqual((matchobj.start, matchobj.end), (7, 11))

@@ -2,7 +2,10 @@ import abc
 import argparse
 import collections
 import itertools
+import os
+import shutil
 import sys
+import tempfile
 
 from unassign.parse import parse_fasta, write_fasta
 from unassign.search_blast import BlastAligner, BlastExtender
@@ -162,20 +165,41 @@ class PartialMatcher(Matcher):
 
 
 class AlignmentMatcher(Matcher):
-    def __init__(self, min_pct_id=90, min_aligned_frac=0.6, cores=1):
+    def __init__(
+            self, alignment_dir, min_pct_id=90, min_aligned_frac=0.6,
+            cores=1):
+        assert(os.path.exists(alignment_dir))
+        assert(os.path.isdir(alignment_dir))
+        self.alignment_dir = alignment_dir
         self.min_pct_id = min_pct_id
         self.min_aligned_frac = min_aligned_frac
         self.cores = cores
+
+    def _make_fp(self, filename):
+        return os.path.join(self.alignment_dir, filename)
 
     def find_in_seqs(self, seqs):
         if seqs.all_matched():
             raise StopIteration()
 
-        ba = BlastAligner.from_ref_seqs(seqs.get_matched_recs())
+        # Create the file paths
+        subject_fp = self._make_fp("subject.fa")
+        query_fp = self._make_fp("query.fa")
+        result_fp = self._make_fp("query.txt")
+
+        # Search
+        with open(subject_fp, "w") as f:
+            write_fasta(f, seqs.get_matched_recs())
+        BlastAligner._index(subject_fp)
+        ba = BlastAligner(subject_fp)
         search_args = {"max_target_seqs": 1}
         if self.cores > 1:
             search_args["num_threads"] = self.cores
-        hits = ba.search(seqs.get_unmatched_recs(), **search_args)
+        hits = ba.search(
+            seqs.get_unmatched_recs(), input_fp=query_fp, output_fp=result_fp,
+            **search_args)
+
+        # Refine
         bext = BlastExtender(seqs.get_unmatched_recs(), seqs.get_matched_recs())
         for hit in hits:
             if hit["pident"] < self.min_pct_id:
@@ -293,8 +317,10 @@ def main(argv=None):
         "--skip_partial", action="store_true",
         help="Skip partial matching stage")
     p.add_argument(
-        "--keep_alignment_files", action="store_true",
-        help="Keep database, query, and results files from alignment stage")
+        "--alignment_dir",
+        help=(
+            "Directory for files in alignment stage.  If not provided, "
+            "a temporary directory will be used."))
     p.add_argument(
         "--cores", type=int, default = 1,
         help="Number of CPU cores to use in alignment stage")
@@ -321,11 +347,23 @@ def main(argv=None):
     if args.reverse_complement_query:
         queryset = [reverse_complement(q) for q in queryset]
 
+    if args.alignment_dir is None:
+        alignment_dir = tempfile.mkdtemp()
+    else:
+        alignment_dir = args.alignment_dir
+    if os.path.exists(alignment_dir):
+        if not os.path.isdir(alignment_dir):
+            raise FileExistsError(
+                "Alignment dir exists but is not a directory.")
+    else:
+        os.mkdir(alignment_dir)
+
     matchers = [CompleteMatcher(queryset, args.max_mismatch)]
     if not args.skip_partial:
         matchers.append(PartialMatcher(queryset, args.min_partial))
     if not args.skip_alignment:
         matchers.append(AlignmentMatcher(
+            alignment_dir,
             min_pct_id = args.min_pct_id,
             cores = args.cores,
         ))
@@ -334,6 +372,8 @@ def main(argv=None):
         app.apply_matcher(m)
     app.finish()
 
+    if args.alignment_dir is None:
+        shutil.rmtree(alignment_dir)
 
 AMBIGUOUS_BASES = {
     "T": "T",
