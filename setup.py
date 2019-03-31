@@ -12,6 +12,7 @@ setup(name='unassign',
               'unassignseqs=unassign.command:main',
               'prepare_strain_data=unassign.prepare_strain_data:main',
               'trimragged=unassign.trim:main',
+              'fastagrep=unassign.find:main',
           ],
       }
 )

@@ -359,6 +359,7 @@ def main(argv=None):
             os.mkdir(alignment_dir)
 
     matchers = [CompleteMatcher(queryset, args.max_mismatch)]
+    # TODO: Partial matching does not work on right hand side
     if not args.skip_partial:
         matchers.append(PartialMatcher(queryset, args.min_partial))
     if not args.skip_alignment:
