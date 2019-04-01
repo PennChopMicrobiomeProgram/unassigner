@@ -211,7 +211,6 @@ def align_semiglobal(qseq, sseq):
     alignment = pairwise2.align.globalms(
         sseq, qseq,
         5, -4, -10, -0.5, #match, mismatch, gapopen, gapextend
-        #### TODO: make these configurable
         penalize_end_gaps=False, one_alignment_only=True)
     subj_seq = alignment[0][0]
     query_seq = alignment[0][1]
