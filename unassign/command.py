@@ -2,7 +2,7 @@ import argparse
 import os
 
 from unassign.algorithm import BasicAlgorithm
-from unassign.aligner import BlastAligner
+from unassign.align import BlastAligner
 from unassign.parse import parse_fasta
 
 def main(argv=None):

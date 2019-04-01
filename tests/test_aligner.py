@@ -1,6 +1,6 @@
 import unittest
 
-from unassign.aligner import (
+from unassign.align import (
     HitExtender, align_semiglobal,
     )
 

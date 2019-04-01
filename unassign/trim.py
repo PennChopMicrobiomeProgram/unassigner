@@ -8,7 +8,7 @@ import sys
 import tempfile
 
 from unassign.parse import parse_fasta, write_fasta
-from unassign.aligner import VsearchAligner, HitExtender
+from unassign.align import VsearchAligner, HitExtender
 
 class TrimmableSeqs:
     def __init__(self, recs):
