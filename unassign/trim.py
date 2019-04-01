@@ -166,7 +166,7 @@ class PartialMatcher(Matcher):
 
 class AlignmentMatcher(Matcher):
     def __init__(
-            self, alignment_dir, min_pct_id=90, min_aligned_frac=0.6,
+            self, alignment_dir, min_pct_id=75, min_aligned_frac=0.6,
             cores=1):
         assert(os.path.exists(alignment_dir))
         assert(os.path.isdir(alignment_dir))
@@ -192,7 +192,10 @@ class AlignmentMatcher(Matcher):
             write_fasta(f, seqs.get_matched_recs())
         BlastAligner._index(subject_fp)
         ba = BlastAligner(subject_fp)
-        search_args = {"max_target_seqs": 1}
+        search_args = {
+            "max_target_seqs": 1,
+            "qcov_hsp_perc": 75,
+        }
         if self.cores > 1:
             search_args["num_threads"] = self.cores
         hits = ba.search(
@@ -306,7 +309,7 @@ def main(argv=None):
         "--min_partial", type=int, default=5,
         help="Minimum length of partial sequence match")
     p.add_argument(
-        "--min_pct_id", type=float, default=80.0,
+        "--min_pct_id", type=float, default=50.0,
         help="Minimum percent identity in alignment stage")
 
     # Overall program behavior
@@ -363,6 +366,8 @@ def main(argv=None):
     if not args.skip_partial:
         matchers.append(PartialMatcher(queryset, args.min_partial))
     if not args.skip_alignment:
+        # TODO: can't use multiple alignment matchers unless
+        # we can check that region is inside or adjacent to read
         matchers.append(AlignmentMatcher(
             alignment_dir,
             min_pct_id = args.min_pct_id,

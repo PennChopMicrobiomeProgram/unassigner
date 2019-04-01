@@ -13,6 +13,7 @@ BLAST_FIELD_TYPES = [
     str, str, float, int, int, int,
     int, int, int, int, int, int, str, str]
 
+# TODO: Need a BlastFilter to collect multiple hits and get the best one
 
 class BlastAligner:
     def __init__(self, ref_seqs_fp):
