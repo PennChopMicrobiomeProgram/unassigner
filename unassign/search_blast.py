@@ -1,3 +1,4 @@
+import abc
 import subprocess
 import tempfile
 from Bio import pairwise2
@@ -15,7 +16,7 @@ BLAST_FIELD_TYPES = [
 
 # TODO: Need a BlastFilter to collect multiple hits and get the best one
 
-class BlastAligner:
+class Aligner(abc.ABC):
     def __init__(self, ref_seqs_fp):
         self.ref_seqs_fp = ref_seqs_fp
 
@@ -50,6 +51,43 @@ class BlastAligner:
             vals = [fn(v) for fn, v in zip(BLAST_FIELD_TYPES, vals)]
             yield dict(zip(BLAST_FIELDS, vals))
 
+
+class VsearchAligner(Aligner):
+    @staticmethod
+    def _index(fasta_fp):
+        pass
+
+    def _call(self, query_fp, database_fp, output_fp, min_id = 0.5, **kwargs):
+        """Call the VSEARCH program.
+
+        min_id is a required argument for this program.
+
+        Typical use is to add --top_hits_only
+        """
+        args = [
+            "vsearch", "--usearch_global", query_fp,
+            "--db", database_fp,
+            "--iddef", "2",
+            "--id", str(min_id),
+            "--userout", output_fp,
+            "--userfields",
+            "query+target+id2+alnlen+mism+gaps+qilo+qihi+tilo+tihi+qs+ts+qrow+trow"
+            ]
+        for arg, val in kwargs.items():
+            arg = "--" + arg
+            if val is None:
+                args.append(arg)
+            else:
+                args += [arg, str(val)]
+        args += [
+            "-query", query_fp,
+            "-db", database_fp,
+            "-out", output_fp,
+            ]
+        subprocess.check_call(args)
+
+
+class BlastAligner(Aligner):
     @staticmethod
     def _index(fasta_fp):
         return subprocess.check_call([
