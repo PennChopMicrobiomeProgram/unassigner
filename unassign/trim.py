@@ -8,7 +8,7 @@ import sys
 import tempfile
 
 from unassign.parse import parse_fasta, write_fasta
-from unassign.search_blast import BlastAligner, BlastExtender
+from unassign.search_blast import VsearchAligner, BlastAligner, BlastExtender
 
 class TrimmableSeqs:
     def __init__(self, recs):
@@ -190,14 +190,12 @@ class AlignmentMatcher(Matcher):
         # Search
         with open(subject_fp, "w") as f:
             write_fasta(f, seqs.get_matched_recs())
-        BlastAligner._index(subject_fp)
-        ba = BlastAligner(subject_fp)
+        ba = VsearchAligner(subject_fp)
         search_args = {
-            "max_target_seqs": 1,
-            "qcov_hsp_perc": 75,
-        }
-        if self.cores > 1:
-            search_args["num_threads"] = self.cores
+            "min_id": round(self.min_pct_id / 100, 2),
+            "top_hits_only": None}
+        if self.cores > 0:
+            search_args["threads"] = self.cores
         hits = ba.search(
             seqs.get_unmatched_recs(), input_fp=query_fp, output_fp=result_fp,
             **search_args)
@@ -205,10 +203,6 @@ class AlignmentMatcher(Matcher):
         # Refine
         bext = BlastExtender(seqs.get_unmatched_recs(), seqs.get_matched_recs())
         for hit in hits:
-            if hit["pident"] < self.min_pct_id:
-                continue
-            if aligned_frac(hit) < self.min_aligned_frac:
-                continue
             alignment = bext.extend_hit(hit)
             subject_match = seqs.matches[alignment.subject_id]
             query_start_idx, query_end_idx = alignment.region_subject_to_query(

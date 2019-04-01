@@ -79,12 +79,7 @@ class VsearchAligner(Aligner):
                 args.append(arg)
             else:
                 args += [arg, str(val)]
-        args += [
-            "-query", query_fp,
-            "-db", database_fp,
-            "-out", output_fp,
-            ]
-        subprocess.check_call(args)
+        subprocess.check_call(args, stderr=subprocess.DEVNULL)
 
 
 class BlastAligner(Aligner):
