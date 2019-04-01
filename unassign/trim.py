@@ -8,7 +8,7 @@ import sys
 import tempfile
 
 from unassign.parse import parse_fasta, write_fasta
-from unassign.search_blast import VsearchAligner, BlastAligner, BlastExtender
+from unassign.search_blast import VsearchAligner, HitExtender
 
 class TrimmableSeqs:
     def __init__(self, recs):
@@ -201,7 +201,7 @@ class AlignmentMatcher(Matcher):
             **search_args)
 
         # Refine
-        bext = BlastExtender(seqs.get_unmatched_recs(), seqs.get_matched_recs())
+        bext = HitExtender(seqs.get_unmatched_recs(), seqs.get_matched_recs())
         for hit in hits:
             alignment = bext.extend_hit(hit)
             subject_match = seqs.matches[alignment.subject_id]

@@ -60,9 +60,8 @@ class VsearchAligner(Aligner):
     def _call(self, query_fp, database_fp, output_fp, min_id = 0.5, **kwargs):
         """Call the VSEARCH program.
 
-        min_id is a required argument for this program.
-
-        Typical use is to add --top_hits_only
+        --id is a required argument to run the program. We expose the
+        argument here as min_id.
         """
         args = [
             "vsearch", "--usearch_global", query_fp,
@@ -111,7 +110,7 @@ class BlastAligner(Aligner):
             ]
         subprocess.check_call(args)
 
-class BlastExtender:
+class HitExtender:
     def __init__(self, query_seqs, ref_seqs):
         self.query_seqs = dict(query_seqs)
         self.ref_seqs = dict(ref_seqs)

@@ -6,7 +6,7 @@ import scipy
 import scipy.special
 import scipy.misc
 
-from unassign.search_blast import BlastAligner, BlastExtender
+from unassign.search_blast import BlastAligner, HitExtender
 from unassign.parse import parse_fasta
 
 class UnassignerAlgorithm(object):
@@ -56,7 +56,7 @@ class UnassignAligner(object):
 
         with open(self.species_fp) as f:
             ref_seqs = list(parse_fasta(f))
-        xt = BlastExtender(seqs, ref_seqs)
+        xt = HitExtender(seqs, ref_seqs)
         for hit in hits:
             yield xt.extend_hit(hit)
 
