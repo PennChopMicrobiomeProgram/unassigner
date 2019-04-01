@@ -6,7 +6,7 @@ import scipy
 import scipy.special
 import scipy.misc
 
-from unassign.search_blast import BlastAligner, HitExtender
+from unassign.aligner import BlastAligner, HitExtender
 from unassign.parse import parse_fasta
 
 class UnassignerAlgorithm(object):
