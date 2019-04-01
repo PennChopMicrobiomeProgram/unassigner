@@ -1,7 +1,6 @@
 import unittest
 
-from unassign.download import make_blast_db
-from unassign.search_blast import (
+from unassign.aligner import (
     HitExtender, align_semiglobal,
     )
 
