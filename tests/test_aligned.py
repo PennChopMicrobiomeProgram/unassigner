@@ -1,193 +1,258 @@
 import unittest
 
 from unassign.alignment import (
-    AlignedSubjectQuery, count_matches,
+    AlignedPair, AlignedRegion, count_matches,
 )
 
-class AlignedSubjectQueryTests(unittest.TestCase):
+class AlignedPairTests(unittest.TestCase):
     def test_hit_identity_no_endgaps(self):
-        a = AlignedSubjectQuery(
+        a = AlignedPair(
             ("a", "CCCGGTCCGGTTATT"),
             #      |||||||||||||xx
             ("b", "CCCGGTCCGGTTAAC"))
-        self.assertEqual(count_matches(a.pairs_query()), (13, 15, 15))
+        r = AlignedRegion.from_query(a)
+        self.assertEqual(count_matches(r.pairs()), (13, 15, 15))
 
     def test_hit_identity_query_gaps(self):
-        a = AlignedSubjectQuery(
+        a = AlignedPair(
             ("a", "CCCGGTCCGGTT--TT-----"),
             #      ||||||||||||  xx
             ("b", "CCCGGTCCGGTTAACCGGGTT"))
-        self.assertEqual(count_matches(a.pairs_query()), (12, 14, 16))
+        r = AlignedRegion.from_query(a)
+        self.assertEqual(count_matches(r.pairs()), (12, 14, 16))
 
     def test_pairs_query_no_endgaps(self):
-        a = AlignedSubjectQuery(
+        a = AlignedPair(
             ("a", "ABCDEF"),
             ("b", "HIJKLM"))
+        r = AlignedRegion.from_query(a, 0, 3)
         self.assertEqual(
-            list(a.pairs_query(0, 3)),
+            list(r.pairs()),
             [("A", "H"), ("B", "I"), ("C", "J")])
+        r = AlignedRegion.from_query(a, 1, 5)
         self.assertEqual(
-            list(a.pairs_query(1, 5)),
+            list(r.pairs()),
             [("B", "I"), ("C", "J"), ("D", "K"), ("E", "L")])
+        r = AlignedRegion.from_query(a)
         self.assertEqual(
-            list(a.pairs_query()),
+            list(r.pairs()),
             [
                 ("A", "H"), ("B", "I"), ("C", "J"),
                 ("D", "K"), ("E", "L"), ("F", "M"),
             ])
 
     def test_pairs_query_with_endgaps(self):
-        a = AlignedSubjectQuery(
+        a = AlignedPair(
             ("a", "--ABC-EF---"),
             ("b", "HIJKLMNOPQR"))
+        r = AlignedRegion.from_query(a, 0, 3)
         self.assertEqual(
-            list(a.pairs_query(0, 3)),
+            list(r.pairs()),
             [("A", "J"), ("B", "K"), ("C", "L")])
+        r = AlignedRegion.from_query(a, 1, 4)
         self.assertEqual(
-            list(a.pairs_query(1, 4)),
+            list(r.pairs()),
             [("B", "K"), ("C", "L"), ("-", "M"), ("E", "N")])
+        r = AlignedRegion.from_query(a)
         self.assertEqual(
-            list(a.pairs_query()),
+            list(r.pairs()),
             [
                 ("A", "J"), ("B", "K"), ("C", "L"),
                 ("-", "M"), ("E", "N"), ("F", "O"),
             ])
 
     def test_pairs_query_crazy_alignment(self):
-        a = AlignedSubjectQuery(
+        a = AlignedPair(
             ("a", "-A-BC-EF---"),
             ("b", "--HI-JK-LMN"))
+        r = AlignedRegion.from_query(a, 0, 3)
         self.assertEqual(
-            list(a.pairs_query(0, 3)),
+            list(r.pairs()),
             [("A", "-"), ("-", "H"), ("B", "I"), ("C", "-")])
+        r = AlignedRegion.from_query(a, 1, 4)
         self.assertEqual(
-            list(a.pairs_query(1, 4)),
+            list(r.pairs()),
             [("B", "I"), ("C", "-"), ("-", "J"), ("E", "K")])
+        r = AlignedRegion.from_query(a)
         self.assertEqual(
-            list(a.pairs_query()),
+            list(r.pairs()),
             [
                 ("A", "-"), ("-", "H"), ("B", "I"), ("C", "-"),
                 ("-", "J"), ("E", "K"), ("F", "-"),
             ])
 
     def test_region_subject_to_query_no_endgaps(self):
-        a = AlignedSubjectQuery(
+        a = AlignedPair(
             ("a", "ABCDEF"),
             ("b", "HIJKLM"))
         # In an alignment with no gaps, the query sequence coordinates should
         # always match the subject sequence coordinates
-        self.assertEqual(a.region_subject_to_query(0, 3), (0, 3))
-        self.assertEqual(a.region_subject_to_query(1, 5), (1, 5))
-        self.assertEqual(a.region_subject_to_query(), (0, 6)) # whole sequence
+        r = AlignedRegion.from_subject(a, 0, 3)
+        self.assertEqual(r.in_alignment(), (0, 3))
+        rq = AlignedRegion.from_query(a, 0, 3)
+        self.assertEqual(r, rq)
+
+        r = AlignedRegion.from_subject(a, 1, 5)
+        self.assertEqual(r.in_alignment(), (1, 5))
+        rq = AlignedRegion.from_query(a, 1, 5)
+        self.assertEqual(r, rq)
+
+        r = AlignedRegion.from_subject(a)
+        self.assertEqual(r.in_alignment(), (0, 6))
+        rq = AlignedRegion.from_query(a)
+        self.assertEqual(r, rq)
 
     def test_region_subject_to_query_with_endgaps(self):
-        a = AlignedSubjectQuery(
+        a = AlignedPair(
             ("a", "--ABC-EF---"),
             ("b", "HIJKLMNOPQR"))
-        self.assertEqual(a.region_subject_to_query(0, 3), (0, 1)) # A in HIJ
-        self.assertEqual(a.region_subject_to_query(1, 6), (0, 3)) # ABC in IJKLM
-        self.assertEqual(a.region_subject_to_query(), (0, 5)) # ABCEF in subject
+
+        r = AlignedRegion.from_subject(a, 0, 3)
+        self.assertEqual(r.in_subject(), (0, 3)) # HIJ
+        self.assertEqual(r.in_alignment(), (0, 3))
+        self.assertEqual(r.in_query(), (0, 1)) # A in HIJ
+
+        r = AlignedRegion.from_subject(a, 1, 6)
+        self.assertEqual(r.in_subject(), (1, 6)) # IJKLM
+        self.assertEqual(r.in_alignment(), (1, 6))
+        self.assertEqual(r.in_query(), (0, 3)) # ABC in IJKLM
+
+        r = AlignedRegion.from_subject(a)
+        self.assertEqual(r.in_subject(), (0, 11)) # whole sequence
+        self.assertEqual(r.in_alignment(), (0, 11))
+        self.assertEqual(r.in_query(), (0, 5)) # ABCEF in subject
 
     def test_region_subject_to_query_crazy_alignment(self):
-        a = AlignedSubjectQuery(
+        a = AlignedPair(
             ("a", "-A-BC-EF---"),
             ("b", "--HI-JK-LMN"))
-        self.assertEqual(a.region_subject_to_query(0, 3), (1, 3)) # BC in HIJ
-        self.assertEqual(a.region_subject_to_query(1, 4), (1, 4)) # BCE in IJK
-        self.assertEqual(a.region_subject_to_query(), (1, 5)) # BCEF in subject
+
+        r = AlignedRegion.from_subject(a, 0, 3)
+        self.assertEqual(r.in_subject(), (0, 3)) # HIJ
+        self.assertEqual(r.in_alignment(), (2, 6)) # HI-J
+        self.assertEqual(r.in_query(), (1, 3)) # BC in HIJ
+
+        r = AlignedRegion.from_subject(a, 1, 4)
+        self.assertEqual(r.in_subject(), (1, 4)) # IJK
+        self.assertEqual(r.in_alignment(), (3, 7)) # I-JK
+        self.assertEqual(r.in_query(), (1, 4)) # BCE in IJK
+
+        r = AlignedRegion.from_subject(a)
+        self.assertEqual(r.in_subject(), (0, 7)) # whole sequence, HIJKLMN
+        self.assertEqual(r.in_alignment(), (2, 11)) # HI-JK-LMN
+        self.assertEqual(r.in_query(), (1, 5)) # BCEF in subject
 
     def test_region_subject_to_query_00(self):
-        a = AlignedSubjectQuery(
+        a = AlignedPair(
             ("a", "ABCDEFG"),
             ("b", "---KLMN"),
         )
-        self.assertEqual(a.region_subject_to_query(0, 2), (3, 5)) # DE in KL
-        self.assertEqual(a.region_subject_to_query(0, 0), (3, 3))
 
-    def test_region_query_to_subject_no_endgaps(self):
-        a = AlignedSubjectQuery(
+        r = AlignedRegion.from_subject(a, 0, 2)
+        self.assertEqual(r.in_subject(), (0, 2)) # KL
+        self.assertEqual(r.in_alignment(), (3, 5)) # KL
+        self.assertEqual(r.in_query(), (3, 5)) # DE
+
+        r = AlignedRegion.from_subject(a, 0, 0)
+        self.assertEqual(r.in_subject(), (0, 0)) # empty sequence
+        self.assertEqual(r.in_alignment(), (3, 3)) # --- | KLMN
+        self.assertEqual(r.in_query(), (3, 3)) # ABC | DEFG
+
+
+class AlignedRegionTests(unittest.TestCase):
+    def test_from_subject_no_endgaps(self):
+        a = AlignedPair(
             ("a", "ABCDEF"),
             ("b", "HIJKLM"))
-        # In an alignment with no gaps, the query sequence coordinates should
-        # always match the subject sequence coordinates
-        self.assertEqual(a.region_query_to_subject(0, 3), (0, 3))
-        self.assertEqual(a.region_query_to_subject(1, 5), (1, 5))
-        self.assertEqual(a.region_query_to_subject(), (0, 6)) # whole sequence
+        r = AlignedRegion.from_subject(a, 2, 5)
+        self.assertEqual(r.start_idx, 2)
+        self.assertEqual(r.end_idx, 5)
 
-    def test_region_query_to_subject_with_endgaps(self):
-        a = AlignedSubjectQuery(
+    def test_from_subject_with_endgaps(self):
+        a = AlignedPair(
             ("a", "--ABC-EF---"),
             ("b", "HIJKLMNOPQR"))
-        self.assertEqual(a.region_query_to_subject(0, 3), (2, 5)) # JKL in ABC
-        self.assertEqual(a.region_query_to_subject(2, 5), (4, 8)) # LMNO in CEF
-        self.assertEqual(a.region_query_to_subject(), (2, 8)) # JKLMNO in query
+        r = AlignedRegion.from_subject(a, 1, 7)
+        self.assertEqual(r.start_idx, 1)
+        self.assertEqual(r.end_idx, 7)
 
-    def test_region_query_to_subject_crazy_alignment(self):
-        a = AlignedSubjectQuery(
+    def test_from_subject_region_crazy(self):
+        a = AlignedPair(
             ("a", "-A-BC-EF---"),
             ("b", "--HI-JK-LMN"))
-        self.assertEqual(a.region_query_to_subject(0, 3), (0, 2)) # HI in ABC
-        self.assertEqual(a.region_query_to_subject(1, 4), (1, 4)) # IJK in BCE
-        self.assertEqual(a.region_query_to_subject(), (0, 4)) # HIJK in query
+        r = AlignedRegion.from_subject(a, 0, 3)
+        self.assertEqual(r.start_idx, 2)
+        self.assertEqual(r.end_idx, 6)
 
-    def test_region_query_to_subject_00(self):
-        a = AlignedSubjectQuery(
-            ("a", "--DEFG"),
-            ("b", "HJKLMN"),
-        )
-        self.assertEqual(a.region_query_to_subject(0, 2), (2, 4)) # DE in KL
-        self.assertEqual(a.region_query_to_subject(0, 0), (2, 2))
-
-    def test_pairs_subject_no_endgaps(self):
-        a = AlignedSubjectQuery(
+    def test_from_query_no_endgaps(self):
+        a = AlignedPair(
             ("a", "ABCDEF"),
             ("b", "HIJKLM"))
-        self.assertEqual(
-            list(a.pairs_subject(0, 3)),
-            [("A", "H"), ("B", "I"), ("C", "J")])
-        self.assertEqual(
-            list(a.pairs_subject(1, 5)),
-            [("B", "I"), ("C", "J"), ("D", "K"), ("E", "L")])
-        self.assertEqual(
-            list(a.pairs_subject()),
-            [
-                ("A", "H"), ("B", "I"), ("C", "J"),
-                ("D", "K"), ("E", "L"), ("F", "M"),
-            ])
+        r = AlignedRegion.from_query(a, 2, 5)
+        self.assertEqual(r.start_idx, 2)
+        self.assertEqual(r.end_idx, 5)
+        self.assertEqual(r.in_query(), (2, 5))
+        self.assertEqual(r.in_subject(), (2, 5))
+        self.assertEqual(r.query_offset(), 0)
+        self.assertEqual(r.subject_offset(), 0)
 
-    def test_pairs_subject_with_endgaps(self):
-        a = AlignedSubjectQuery(
+    def test_from_query_with_endgaps(self):
+        a = AlignedPair(
             ("a", "--ABC-EF---"),
             ("b", "HIJKLMNOPQR"))
-        self.assertEqual(
-            list(a.pairs_subject(0, 3)),
-            [("-", "H"), ("-", "I"), ("A", "J")])
-        self.assertEqual(
-            list(a.pairs_subject(1, 4)),
-            [("-", "I"), ("A", "J"), ("B", "K")])
-        self.assertEqual(
-            list(a.pairs_subject()),
-            [
-                ("-", "H"), ("-", "I"), ("A", "J"),
-                ("B", "K"), ("C", "L"), ("-", "M"),
-                ("E", "N"), ("F", "O"), ("-", "P"),
-                ("-", "Q"), ("-", "R"),
-            ])
+        r = AlignedRegion.from_query(a, 1, 4)
+        self.assertEqual(r.start_idx, 3)
+        self.assertEqual(r.end_idx, 7)
+        self.assertEqual(r.in_query(), (1, 4))
+        self.assertEqual(r.in_subject(), (3, 7))
+        self.assertEqual(r.query_offset(), 0)
+        self.assertEqual(r.subject_offset(), 0)
 
-    def test_pairs_subject_crazy_alignment(self):
-        a = AlignedSubjectQuery(
+    def test_from_query_region_crazy(self):
+        a = AlignedPair(
             ("a", "-A-BC-EF---"),
+            #       ||||          (1, 5)
             ("b", "--HI-JK-LMN"))
-        self.assertEqual(
-            list(a.pairs_subject(0, 3)),
-            [("-", "H"), ("B", "I"), ("C", "-"), ("-", "J")])
-        self.assertEqual(
-            list(a.pairs_subject(1, 4)),
-            [("B", "I"), ("C", "-"), ("-", "J"), ("E", "K")])
-        self.assertEqual(
-            list(a.pairs_subject()),
-            [
-                ("-", "H"), ("B", "I"), ("C", "-"),
-                ("-", "J"), ("E", "K"), ("F", "-"),
-                ("-", "L"), ("-", "M"), ("-", "N"),
-            ])
+        r = AlignedRegion.from_query(a, 0, 3)
+        self.assertEqual(r.start_idx, 1)
+        self.assertEqual(r.end_idx, 5)
+        self.assertEqual(r.in_query(), (0, 3))
+        self.assertEqual(r.in_subject(), (0, 2))
+        self.assertEqual(r.query_offset(), 0)
+        self.assertEqual(r.subject_offset(), 0)
+
+    def test_query_offset_right(self):
+        a = AlignedPair(
+            ("a", "------ABCDEF"),
+            #       |||
+            ("b", "GHIJKLMNOP--"))
+        r = AlignedRegion(a, 1, 4)
+        self.assertEqual(r.in_query(), (0, 0))
+        self.assertEqual(r.in_subject(), (1, 4))
+        self.assertEqual(r.query_offset(), 2)
+        self.assertEqual(r.subject_offset(), 0)
+
+    def test_query_offset_left(self):
+        a = AlignedPair(
+            ("a", "ABCDEF------"),
+            #             |||
+            ("b", "--JKLMNOPQRS"))
+        r = AlignedRegion(a, 7, 10)
+        self.assertEqual(r.in_query(), (6, 6))
+        self.assertEqual(r.in_subject(), (5, 8))
+        self.assertEqual(r.query_offset(), -1)
+        self.assertEqual(r.subject_offset(), 0)
+
+    def test_aligned_start_idx(self):
+        seq = "---AB-C-DEF--"
+        self.assertEqual(AlignedRegion.aligned_start_idx(seq, 0), 3)
+        self.assertEqual(AlignedRegion.aligned_start_idx(seq, 1), 4)
+        self.assertEqual(AlignedRegion.aligned_start_idx(seq, 2), 6)
+        self.assertEqual(AlignedRegion.aligned_start_idx(seq, 6), 11)
+
+    def test_aligned_end_idx(self):
+        seq = "---AB-C-DEF--"
+        self.assertEqual(AlignedRegion.aligned_end_idx(seq, 0), 3)
+        self.assertEqual(AlignedRegion.aligned_end_idx(seq, 1), 4)
+        self.assertEqual(AlignedRegion.aligned_end_idx(seq, 2), 5)
+        self.assertEqual(AlignedRegion.aligned_start_idx(seq, 6), 11)

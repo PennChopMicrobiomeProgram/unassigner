@@ -4,7 +4,7 @@ import tempfile
 from Bio import pairwise2
 
 from unassign.parse import write_fasta, load_fasta, parse_fasta
-from unassign.alignment import AlignedSubjectQuery
+from unassign.alignment import AlignedPair
 
 BLAST_FMT = (
     "qseqid sseqid pident length mismatch gapopen "
@@ -119,7 +119,7 @@ class HitExtender:
         # Handle the simple case where the local alignment covers both
         # sequences completely
         if self._is_global(hit):
-            return AlignedSubjectQuery(
+            return AlignedPair(
                 (hit['qseqid'], hit['qseq']),
                 (hit['sseqid'], hit['sseq']))
 
@@ -131,7 +131,7 @@ class HitExtender:
 
         if self._needs_realignment(hit):
             aligned_qseq, aligned_sseq = align_semiglobal(qseq, sseq)
-            return AlignedSubjectQuery(
+            return AlignedPair(
                 (hit['qseqid'], aligned_qseq),
                 (hit['sseqid'], aligned_sseq))
 
@@ -139,7 +139,7 @@ class HitExtender:
         qright, sright = self._add_endgaps_right(hit, qseq, sseq)
         aligned_qseq = qleft + hit['qseq'] + qright
         aligned_sseq = sleft + hit['sseq'] + sright
-        return AlignedSubjectQuery(
+        return AlignedPair(
                 (hit['qseqid'], aligned_qseq),
                 (hit['sseqid'], aligned_sseq))
 

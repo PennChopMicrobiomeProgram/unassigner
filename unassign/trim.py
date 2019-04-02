@@ -9,6 +9,7 @@ import tempfile
 
 from unassign.parse import parse_fasta, write_fasta
 from unassign.align import VsearchAligner, HitExtender
+from unassign.alignment import AlignedRegion
 
 class TrimmableSeqs:
     def __init__(self, recs):
@@ -64,7 +65,7 @@ class TrimmableSeqs:
 
 
 PrimerMatch = collections.namedtuple(
-    "PrimerMatch", ["start", "end", "message"])
+    "PrimerMatch", ["start", "end", "offset", "message"])
 
 
 class Matcher(abc.ABC):
@@ -137,7 +138,7 @@ class CompleteMatcher(Matcher):
                         msg = "Complete, {0} mismatches".format(n_mismatches)
                     end_idx = start_idx + len(query)
                     obs_primer = seq[start_idx:end_idx]
-                    return PrimerMatch(start_idx, end_idx, msg)
+                    return PrimerMatch(start_idx, end_idx, 0, msg)
 
 
 def replace_with_n(seq, idxs):
@@ -161,7 +162,7 @@ class PartialMatcher(Matcher):
         for partial_query in self.partial_queries:
             if seq.startswith(partial_query):
                 end_idx = len(partial_query)
-                return PrimerMatch(0, end_idx, "Partial")
+                return PrimerMatch(0, end_idx, 0, "Partial")
 
 
 class AlignmentMatcher(Matcher):
@@ -205,9 +206,12 @@ class AlignmentMatcher(Matcher):
         for hit in hits:
             alignment = bext.extend_hit(hit)
             subject_match = seqs.matches[alignment.subject_id]
-            query_start_idx, query_end_idx = alignment.region_subject_to_query(
-                subject_match.start, subject_match.end)
-            matchobj = PrimerMatch(query_start_idx, query_end_idx, "Alignment")
+            aligned_region = AlignedRegion.from_subject(
+                alignment, subject_match.start, subject_match.end)
+            query_start_idx, query_end_idx = aligned_region.in_query()
+            query_offset = aligned_region.query_offset()
+            matchobj = PrimerMatch(
+                query_start_idx, query_end_idx, query_offset, "Alignment")
             yield alignment.query_id, matchobj
 
 
@@ -262,12 +266,12 @@ class Writer(object):
 
     def write_stats(self, seq_id, seq, matchobj):
         if matchobj is None:
-            self.stats_file.write("{0}\tUnmatched\tNA\tNA\t\n".format(seq_id))
+            self.stats_file.write("{0}\tUnmatched\tNA\tNA\tNA\t\n".format(seq_id))
         else:
             matched_seq = seq[matchobj.start:matchobj.end]
-            self.stats_file.write("{0}\t{1}\t{2}\t{3}\t{4}\n".format(
+            self.stats_file.write("{0}\t{1}\t{2}\t{3}\t{4}\t{5}\n".format(
                 seq_id, matchobj.message, matchobj.start, matchobj.end,
-                matched_seq))
+                matchobj.offset, matched_seq))
 
     def write_untrimmed(self, desc, seq):
         if self.untrimmed_file is not None:
