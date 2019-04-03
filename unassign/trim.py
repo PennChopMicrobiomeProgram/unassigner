@@ -182,7 +182,7 @@ class AlignmentMatcher(Matcher):
 
     def find_in_seqs(self, seqs):
         if seqs.all_matched():
-            raise StopIteration()
+            return
 
         # Create the file paths
         subject_fp = self._make_fp("subject_{0}.fa".format(self.suffix))
@@ -302,7 +302,7 @@ def main(argv=None):
 
     # Parameters for each step
     p.add_argument(
-        "--max_mismatch", type=int, default=2,
+        "--max_mismatch", type=int, default=0,
         help="Maximum number of mismatches in complete match")
     p.add_argument(
         "--min_partial", type=int, default=0,
@@ -310,7 +310,7 @@ def main(argv=None):
             "Minimum length of partial sequence match. "
             "Skip partial matching if 0."))
     p.add_argument(
-        "--min_pct_id", type=float, default=50.0,
+        "--min_pct_id", type=float, default=70.0,
         help="Minimum percent identity in alignment stage")
 
     # Overall program behavior
