@@ -244,13 +244,14 @@ class TrimraggedApp(object):
             for rep_seq_id, matchobj in matches:
                 if matchobj is not None:
                     self.seqs.register_match(rep_seq_id, matchobj)
-                    recs = self.seqs.get_replicate_recs(rep_seq_id)
-                    for seq_id, seq in recs:
+                    seq_ids = self.seqs.seq_ids[rep_seq_id]
+                    seq = self.seqs.seqs[rep_seq_id]
+                    if self.trim_right:
+                        trimmed_seq = trim_right(seq, matchobj)
+                    else:
+                        trimmed_seq = trim_left(seq, matchobj)
+                    for seq_id in seq_ids:
                         desc = self.seqs.get_desc(seq_id)
-                        if self.trim_right:
-                            trimmed_seq = trim_right(seq, matchobj)
-                        else:
-                            trimmed_seq = trim_left(seq, matchobj)
                         self.writer.write_trimmed(desc, trimmed_seq)
                         self.writer.write_stats(seq_id, seq, matchobj)
 
