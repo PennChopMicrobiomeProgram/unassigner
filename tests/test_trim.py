@@ -39,7 +39,7 @@ class TrimmableSeqsTest(unittest.TestCase):
             ("AF403545", "TCAGGACGAACGCTGGCGGCGTGCTTAACACATGCAAACGTGCA"),
         ]
         class MockMatch(object):
-            pass
+            offset = 0
         self.matchobj = MockMatch()
 
     def test_from_fasta(self):
@@ -63,7 +63,7 @@ class TrimmableSeqsTest(unittest.TestCase):
         s = TrimmableSeqs(self.recs)
         s.register_match("AF403541", self.matchobj)
         self.assertEqual(list(s.get_unmatched_recs()), self.recs[1:])
-        self.assertEqual(list(s.get_matched_recs()), self.recs[:1])
+        self.assertEqual(list(s.get_matched_offset0()), self.recs[:1])
 
     def test_get_replicate_ids_recs(self):
         s = TrimmableSeqs.from_fasta(MAIN_INPUT.splitlines())
@@ -115,7 +115,7 @@ def mock_trimmable_seqs(sseq, qseq, primer_start, primer_end):
         }
         def all_matched(self):
             return False
-        def get_matched_recs(self):
+        def get_matched_offset0(self):
             yield ("A", sseq)
         def get_unmatched_recs(self):
             yield ("B", qseq)

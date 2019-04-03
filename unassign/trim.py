@@ -31,14 +31,14 @@ class TrimmableSeqs:
     def all_matched(self):
         return set(self.matches) == set(self.seq_ids)
 
-    def get_matched_recs(self):
-        for rep_seq_id in sorted(self.seq_ids):
-            if rep_seq_id in self.matches:
+    def get_matched_offset0(self):
+        for rep_seq_id, matchobj in self.matches.items():
+            if matchobj.offset == 0:
                 seq = self.seqs[rep_seq_id]
                 yield rep_seq_id, seq
 
     def get_unmatched_recs(self):
-        for rep_seq_id in sorted(self.seq_ids):
+        for rep_seq_id in self.seq_ids:
             if rep_seq_id not in self.matches:
                 seq = self.seqs[rep_seq_id]
                 yield rep_seq_id, seq
@@ -190,7 +190,7 @@ class AlignmentMatcher(Matcher):
 
         # Search
         with open(subject_fp, "w") as f:
-            write_fasta(f, seqs.get_matched_recs())
+            write_fasta(f, seqs.get_matched_offset0())
         ba = VsearchAligner(subject_fp)
         search_args = {
             "min_id": round(self.min_pct_id / 100, 2),
@@ -202,7 +202,7 @@ class AlignmentMatcher(Matcher):
             **search_args)
 
         # Refine
-        bext = HitExtender(seqs.get_unmatched_recs(), seqs.get_matched_recs())
+        bext = HitExtender(seqs.get_unmatched_recs(), seqs.get_matched_offset0())
         for hit in hits:
             alignment = bext.extend_hit(hit)
             subject_match = seqs.matches[alignment.subject_id]
