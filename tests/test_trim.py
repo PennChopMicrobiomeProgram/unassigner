@@ -190,6 +190,7 @@ class TrimraggedMain(unittest.TestCase):
             "--trimmed_output_file", str(output_fp),
             "--stats_output_file", str(stats_fp),
             "--query", BSF8,
+            "--min_partial", "5",
         ]
         main(args)
 

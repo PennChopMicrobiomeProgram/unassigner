@@ -168,13 +168,14 @@ class PartialMatcher(Matcher):
 class AlignmentMatcher(Matcher):
     def __init__(
             self, alignment_dir, min_pct_id=75, min_aligned_frac=0.6,
-            cores=1):
+            cores=1, suffix="0"):
         assert(os.path.exists(alignment_dir))
         assert(os.path.isdir(alignment_dir))
         self.alignment_dir = alignment_dir
         self.min_pct_id = min_pct_id
         self.min_aligned_frac = min_aligned_frac
         self.cores = cores
+        self.suffix = suffix
 
     def _make_fp(self, filename):
         return os.path.join(self.alignment_dir, filename)
@@ -184,9 +185,9 @@ class AlignmentMatcher(Matcher):
             raise StopIteration()
 
         # Create the file paths
-        subject_fp = self._make_fp("subject.fa")
-        query_fp = self._make_fp("query.fa")
-        result_fp = self._make_fp("query.txt")
+        subject_fp = self._make_fp("subject_{0}.fa".format(self.suffix))
+        query_fp = self._make_fp("query_{0}.fa".format(self.suffix))
+        result_fp = self._make_fp("query_{0}.txt".format(self.suffix))
 
         # Search
         with open(subject_fp, "w") as f:
@@ -304,16 +305,18 @@ def main(argv=None):
         "--max_mismatch", type=int, default=2,
         help="Maximum number of mismatches in complete match")
     p.add_argument(
-        "--min_partial", type=int, default=5,
-        help="Minimum length of partial sequence match")
+        "--min_partial", type=int, default=0,
+        help=(
+            "Minimum length of partial sequence match. "
+            "Skip partial matching if 0."))
     p.add_argument(
         "--min_pct_id", type=float, default=50.0,
         help="Minimum percent identity in alignment stage")
 
     # Overall program behavior
     p.add_argument(
-        "--skip_alignment", action="store_true",
-        help= "Skip pairwise alignment stage")
+        "--alignment_stages", type=int, default=1,
+        help= "Number of pairwise alignment stages")
     p.add_argument(
         "--skip_partial", action="store_true",
         help="Skip partial matching stage")
@@ -361,15 +364,16 @@ def main(argv=None):
 
     matchers = [CompleteMatcher(queryset, args.max_mismatch)]
     # TODO: Partial matching does not work on right hand side
-    if not args.skip_partial:
+    if args.min_partial > 0:
         matchers.append(PartialMatcher(queryset, args.min_partial))
-    if not args.skip_alignment:
+    for n in range(args.alignment_stages):
         # TODO: can't use multiple alignment matchers unless
         # we can check that region is inside or adjacent to read
         matchers.append(AlignmentMatcher(
             alignment_dir,
             min_pct_id = args.min_pct_id,
             cores = args.cores,
+            suffix = str(n),
         ))
 
     for m in matchers:
