@@ -232,23 +232,28 @@ def aligned_frac(hit):
     return aligned / (aligned + unaligned)
 
 class TrimraggedApp(object):
-    def __init__(self, seqs, trim_fcn, writer):
+    def __init__(self, seqs, trim_right, writer):
         self.seqs = seqs
-        self.trim_fcn = trim_fcn
+        self.trim_right = trim_right
         self.writer = writer
+        self.matchers = []
 
-    def apply_matcher(self, matcher):
-        matches = matcher.find_in_seqs(self.seqs)
-        for rep_seq_id, matchobj in matches:
-            if matchobj is not None:
-                self.seqs.register_match(rep_seq_id, matchobj)
-                for seq_id, seq in self.seqs.get_replicate_recs(rep_seq_id):
-                    desc = self.seqs.get_desc(seq_id)
-                    trimmed_seq = self.trim_fcn(seq, matchobj)
-                    self.writer.write_trimmed(desc, trimmed_seq)
-                    self.writer.write_stats(seq_id, seq, matchobj)
+    def run(self):
+        for matcher in self.matchers:
+            matches = matcher.find_in_seqs(self.seqs)
+            for rep_seq_id, matchobj in matches:
+                if matchobj is not None:
+                    self.seqs.register_match(rep_seq_id, matchobj)
+                    recs = self.seqs.get_replicate_recs(rep_seq_id)
+                    for seq_id, seq in recs:
+                        desc = self.seqs.get_desc(seq_id)
+                        if self.trim_right:
+                            trimmed_seq = trim_right(seq, matchobj)
+                        else:
+                            trimmed_seq = trim_left(seq, matchobj)
+                        self.writer.write_trimmed(desc, trimmed_seq)
+                        self.writer.write_stats(seq_id, seq, matchobj)
 
-    def finish(self):
         for rep_seq_id, seq in self.seqs.get_unmatched_recs():
             for seq_id in self.seqs.get_replicate_ids(rep_seq_id):
                 desc = self.seqs.get_desc(seq_id)
@@ -341,11 +346,7 @@ def main(argv=None):
     writer = Writer(
         args.trimmed_output_file, args.stats_output_file,
         args.unmatched_output_file)
-    if args.trim_right:
-        trim_fcn = trim_right
-    else:
-        trim_fcn = trim_left
-    app = TrimraggedApp(seqs, trim_fcn, writer)
+    app = TrimraggedApp(seqs, args.trim_right, writer)
 
     queryset = deambiguate(args.query)
     if args.reverse_complement_query:
@@ -357,28 +358,24 @@ def main(argv=None):
         alignment_dir = args.alignment_dir
         if os.path.exists(alignment_dir):
             if not os.path.isdir(alignment_dir):
-                raise FileExistsError(
-                    "Alignment dir exists but is not a directory.")
+                raise RuntimeError(
+                    "{0} exists and is not a directory".format(alignment_dir))
         else:
             os.mkdir(alignment_dir)
 
-    matchers = [CompleteMatcher(queryset, args.max_mismatch)]
+    app.matchers.append(CompleteMatcher(queryset, args.max_mismatch))
     # TODO: Partial matching does not work on right hand side
     if args.min_partial > 0:
-        matchers.append(PartialMatcher(queryset, args.min_partial))
+        app.matchers.append(PartialMatcher(queryset, args.min_partial))
     for n in range(args.alignment_stages):
-        # TODO: can't use multiple alignment matchers unless
-        # we can check that region is inside or adjacent to read
-        matchers.append(AlignmentMatcher(
+        app.matchers.append(AlignmentMatcher(
             alignment_dir,
             min_pct_id = args.min_pct_id,
             cores = args.cores,
             suffix = str(n),
         ))
 
-    for m in matchers:
-        app.apply_matcher(m)
-    app.finish()
+    app.run()
 
     if args.alignment_dir is None:
         shutil.rmtree(alignment_dir)
