@@ -258,15 +258,13 @@ class TrimraggedApp(object):
         for rep_seq_id, seq in self.seqs.get_unmatched_recs():
             for seq_id in self.seqs.get_replicate_ids(rep_seq_id):
                 desc = self.seqs.get_desc(seq_id)
-                self.writer.write_untrimmed(desc, seq)
                 self.writer.write_stats(seq_id, seq, None)
 
 
 class Writer(object):
-    def __init__(self, trimmed_file, stats_file, untrimmed_file):
+    def __init__(self, trimmed_file, stats_file):
         self.trimmed_file = trimmed_file
         self.stats_file = stats_file
-        self.untrimmed_file = untrimmed_file
 
     def write_trimmed(self, desc, seq):
         self.trimmed_file.write(">{0}\n{1}\n".format(desc, seq))
@@ -280,10 +278,6 @@ class Writer(object):
                 seq_id, matchobj.message, matchobj.start, matchobj.end,
                 matchobj.offset, matched_seq))
 
-    def write_untrimmed(self, desc, seq):
-        if self.untrimmed_file is not None:
-            self.untrimmed_file.write(">{0}\n{1}\n".format(desc, seq))
-
 
 def trim_left(seq, matchobj):
     return seq[matchobj.end:]
@@ -296,15 +290,13 @@ def trim_middle(seq, matchobj):
 
 def main(argv=None):
     p = argparse.ArgumentParser()
+    p.add_argument("query")
     p.add_argument(
         "--input_file", type=argparse.FileType("r"), default=sys.stdin)
     p.add_argument(
         "--trimmed_output_file", type=argparse.FileType("w"), default=sys.stdout)
     p.add_argument(
         "--stats_output_file", type=argparse.FileType("w"), default=sys.stderr)
-    p.add_argument(
-        "--unmatched_output_file", type=argparse.FileType("w"))
-    p.add_argument("--query", required=True)
 
     # Parameters for each step
     p.add_argument(
@@ -344,9 +336,7 @@ def main(argv=None):
     args = p.parse_args(argv)
 
     seqs = TrimmableSeqs.from_fasta(args.input_file)
-    writer = Writer(
-        args.trimmed_output_file, args.stats_output_file,
-        args.unmatched_output_file)
+    writer = Writer(args.trimmed_output_file, args.stats_output_file)
     app = TrimraggedApp(seqs, args.trim_right, writer)
 
     queryset = deambiguate(args.query)

@@ -186,10 +186,10 @@ class TrimraggedMain(unittest.TestCase):
         output_fp = pathlib.Path(self.test_dir, "out.fasta")
         stats_fp = pathlib.Path(self.test_dir, "stats.txt")
         args = [
+            BSF8,
             "--input_file", str(input_fp),
             "--trimmed_output_file", str(output_fp),
             "--stats_output_file", str(stats_fp),
-            "--query", BSF8,
             "--min_partial", "5",
             "--max_mismatch", "1",
         ]
