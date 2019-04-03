@@ -232,10 +232,11 @@ def aligned_frac(hit):
     return aligned / (aligned + unaligned)
 
 class TrimraggedApp(object):
-    def __init__(self, seqs, trim_right, writer):
+    def __init__(self, seqs, trim_right, writer, min_trimmed_length):
         self.seqs = seqs
         self.trim_right = trim_right
         self.writer = writer
+        self.min_trimmed_length = min_trimmed_length
         self.matchers = []
 
     def run(self):
@@ -252,7 +253,8 @@ class TrimraggedApp(object):
                         trimmed_seq = trim_left(seq, matchobj)
                     for seq_id in seq_ids:
                         desc = self.seqs.get_desc(seq_id)
-                        self.writer.write_trimmed(desc, trimmed_seq)
+                        if len(trimmed_seq) >= self.min_trimmed_length:
+                            self.writer.write_trimmed(desc, trimmed_seq)
                         self.writer.write_stats(seq_id, seq, matchobj)
 
         for rep_seq_id, seq in self.seqs.get_unmatched_recs():
@@ -298,7 +300,7 @@ def main(argv=None):
     p.add_argument(
         "--stats_output_file", type=argparse.FileType("w"), default=sys.stderr)
 
-    # Parameters for each step
+    # Matching parameters
     p.add_argument(
         "--max_mismatch", type=int, default=0,
         help="Maximum number of mismatches in complete match")
@@ -313,11 +315,11 @@ def main(argv=None):
 
     # Overall program behavior
     p.add_argument(
+        "--min_trimmed_length", type=int, default=1,
+        help="Minimum length of trimmed output sequences")
+    p.add_argument(
         "--alignment_stages", type=int, default=1,
         help= "Number of pairwise alignment stages")
-    p.add_argument(
-        "--skip_partial", action="store_true",
-        help="Skip partial matching stage")
     p.add_argument(
         "--alignment_dir",
         help=(
@@ -337,7 +339,7 @@ def main(argv=None):
 
     seqs = TrimmableSeqs.from_fasta(args.input_file)
     writer = Writer(args.trimmed_output_file, args.stats_output_file)
-    app = TrimraggedApp(seqs, args.trim_right, writer)
+    app = TrimraggedApp(seqs, args.trim_right, writer, args.min_trimmed_length)
 
     queryset = deambiguate(args.query)
     if args.reverse_complement_query:
