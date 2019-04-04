@@ -93,8 +93,8 @@ class AlignedRegion:
         assert(subject_end_idx >= 0)
         assert(subject_end_idx <= a.subject_len)
         assert(subject_start_idx <= subject_end_idx)
-        start_idx = cls.aligned_start_idx(a.subject_seq, subject_start_idx)
-        end_idx = cls.aligned_end_idx(a.subject_seq, subject_end_idx)
+        start_idx = aligned_start_idx(a.subject_seq, subject_start_idx)
+        end_idx = aligned_end_idx(a.subject_seq, subject_end_idx)
         return cls(a, start_idx, end_idx)
 
     @classmethod
@@ -106,36 +106,34 @@ class AlignedRegion:
         assert(query_end_idx >= 0)
         assert(query_end_idx <= a.query_len)
         assert(query_start_idx <= query_end_idx)
-        start_idx = cls.aligned_start_idx(a.query_seq, query_start_idx)
-        end_idx = cls.aligned_end_idx(a.query_seq, query_end_idx)
+        start_idx = aligned_start_idx(a.query_seq, query_start_idx)
+        end_idx = aligned_end_idx(a.query_seq, query_end_idx)
         return cls(a, start_idx, end_idx)
 
-    @classmethod
-    def aligned_end_idx(cls, seq, end_idx):
-        # Work in reverse mode, find the complimentary start_idx
-        ungapped_seq_len = len(seq) - seq.count("-")
-        rev_start_idx = ungapped_seq_len - end_idx
-        rev_alignment_start_idx = cls.aligned_start_idx(
-            list(reversed(seq)), rev_start_idx)
+def aligned_end_idx(seq, end_idx):
+    # Work in reverse mode, find the complimentary start_idx
+    ungapped_seq_len = len(seq) - seq.count("-")
+    rev_start_idx = ungapped_seq_len - end_idx
+    rev_seq = seq[::-1]
+    rev_alignment_start_idx = aligned_start_idx(rev_seq, rev_start_idx)
+    return len(seq) - rev_alignment_start_idx
+
+def aligned_start_idx(seq, start_idx):
+    ungapped_seq_len = len(seq) - seq.count("-")
+    # Special case: start_idx is equal to ungapped sequence length
+    # We will never count enough bases to reach the start_idx
+    # Reverse the sequence and find the start position for index 0,
+    # then subtract from the alignment length to get the forward-facing
+    # index after the last base.
+    if start_idx == ungapped_seq_len:
+        rev_seq = seq[::-1]
+        rev_alignment_start_idx = aligned_start_idx(rev_seq, 0)
         return len(seq) - rev_alignment_start_idx
+    start_idxs = [n - 1 for n in cumulative_bases(seq)]
+    return start_idxs.index(start_idx)
 
-    @classmethod
-    def aligned_start_idx(cls, seq, start_idx):
-        ungapped_seq_len = len(seq) - seq.count("-")
-        # Special case: start_idx is equal to ungapped sequence length
-        # We will never count enough bases to reach the start_idx
-        # Reverse the sequence and find the start position for index 0,
-        # then subtract from the alignment length to get the forward-facing
-        # index after the last base.
-        if start_idx == ungapped_seq_len:
-            rev_alignment_start_idx = cls.aligned_start_idx(
-                list(reversed(seq)), 0)
-            return len(seq) - rev_alignment_start_idx
-        is_base = [b != "-" for b in seq]
-        cum_bases = list(itertools.accumulate(int(b) for b in is_base))
-        start_idxs = [n - 1 for n in cum_bases]
-        return start_idxs.index(start_idx)
-
+def cumulative_bases(seq):
+    return itertools.accumulate(int(b != "-") for b in seq)
 
 def count_while_equal(xs, y):
     n = 0

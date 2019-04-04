@@ -2,6 +2,7 @@ import unittest
 
 from unassign.alignment import (
     AlignedPair, AlignedRegion, count_matches,
+    aligned_start_idx, aligned_end_idx,
 )
 
 class AlignedPairTests(unittest.TestCase):
@@ -66,10 +67,14 @@ class AlignedPairTests(unittest.TestCase):
             ("a", "-A-BC-EF---"),
             ("b", "--HI-JK-LMN"))
         r = AlignedRegion.from_query(a, 0, 3)
+        self.assertEqual(r.in_alignment(), (1, 5))
+        self.assertEqual(r.in_query(), (0, 3))
         self.assertEqual(
             list(r.pairs()),
             [("A", "-"), ("-", "H"), ("B", "I"), ("C", "-")])
         r = AlignedRegion.from_query(a, 1, 4)
+        self.assertEqual(r.in_alignment(), (3, 7))
+        self.assertEqual(r.in_query(), (1, 4))
         self.assertEqual(
             list(r.pairs()),
             [("B", "I"), ("C", "-"), ("-", "J"), ("E", "K")])
@@ -149,13 +154,13 @@ class AlignedPairTests(unittest.TestCase):
         )
 
         r = AlignedRegion.from_subject(a, 0, 2)
-        self.assertEqual(r.in_subject(), (0, 2)) # KL
         self.assertEqual(r.in_alignment(), (3, 5)) # KL
+        self.assertEqual(r.in_subject(), (0, 2)) # KL
         self.assertEqual(r.in_query(), (3, 5)) # DE
 
         r = AlignedRegion.from_subject(a, 0, 0)
-        self.assertEqual(r.in_subject(), (0, 0)) # empty sequence
         self.assertEqual(r.in_alignment(), (3, 3)) # --- | KLMN
+        self.assertEqual(r.in_subject(), (0, 0)) # empty sequence
         self.assertEqual(r.in_query(), (3, 3)) # ABC | DEFG
 
 
@@ -214,8 +219,7 @@ class AlignedRegionTests(unittest.TestCase):
             #       ||||          (1, 5)
             ("b", "--HI-JK-LMN"))
         r = AlignedRegion.from_query(a, 0, 3)
-        self.assertEqual(r.start_idx, 1)
-        self.assertEqual(r.end_idx, 5)
+        self.assertEqual(r.in_alignment(), (1, 5))
         self.assertEqual(r.in_query(), (0, 3))
         self.assertEqual(r.in_subject(), (0, 2))
         self.assertEqual(r.query_offset(), 0)
@@ -245,14 +249,14 @@ class AlignedRegionTests(unittest.TestCase):
 
     def test_aligned_start_idx(self):
         seq = "---AB-C-DEF--"
-        self.assertEqual(AlignedRegion.aligned_start_idx(seq, 0), 3)
-        self.assertEqual(AlignedRegion.aligned_start_idx(seq, 1), 4)
-        self.assertEqual(AlignedRegion.aligned_start_idx(seq, 2), 6)
-        self.assertEqual(AlignedRegion.aligned_start_idx(seq, 6), 11)
+        self.assertEqual(aligned_start_idx(seq, 0), 3)
+        self.assertEqual(aligned_start_idx(seq, 1), 4)
+        self.assertEqual(aligned_start_idx(seq, 2), 6)
+        self.assertEqual(aligned_start_idx(seq, 6), 11)
 
     def test_aligned_end_idx(self):
         seq = "---AB-C-DEF--"
-        self.assertEqual(AlignedRegion.aligned_end_idx(seq, 0), 3)
-        self.assertEqual(AlignedRegion.aligned_end_idx(seq, 1), 4)
-        self.assertEqual(AlignedRegion.aligned_end_idx(seq, 2), 5)
-        self.assertEqual(AlignedRegion.aligned_start_idx(seq, 6), 11)
+        self.assertEqual(aligned_end_idx(seq, 0), 3)
+        self.assertEqual(aligned_end_idx(seq, 1), 4)
+        self.assertEqual(aligned_end_idx(seq, 2), 5)
+        self.assertEqual(aligned_start_idx(seq, 6), 11)
