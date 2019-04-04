@@ -185,6 +185,3 @@ def count_while_equal(xs, y):
             break
     return n
 
-def exact_match(a, b):
-    return a == b
-
