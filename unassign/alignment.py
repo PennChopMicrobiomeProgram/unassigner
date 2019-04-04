@@ -1,4 +1,5 @@
 import itertools
+import operator
 
 class AlignedPair(object):
     def __init__(self, qseq, sseq):
@@ -18,6 +19,26 @@ class AlignedPair(object):
     def subject_len(self):
         return len(self.subject_seq) - self.subject_seq.count("-")
 
+    @property
+    def unaligned_query_seq(self):
+        return self.query_seq.replace("-", "")
+
+    @property
+    def unaligned_subject_seq(self):
+        return self.subject_seq.replace("-", "")
+
+    def count_matches(self, match_fcn=operator.eq):
+        match = 0
+        total_a = 0
+        total_b = 0
+        for a, b in zip(self.query_seq, self.subject_seq):
+            if match_fcn(a, b):
+                match += 1
+            if a != "-":
+                total_a += 1
+            if b != "-":
+                total_b += 1
+        return match, total_a, total_b
 
 class AlignedRegion:
     def __init__(self, alignment, start_idx, end_idx):
@@ -30,11 +51,34 @@ class AlignedRegion:
         self.start_idx = start_idx
         self.end_idx = end_idx
 
-    def pairs(self):
-        query_region = self.alignment.query_seq[self.start_idx:self.end_idx]
-        subject_region = self.alignment.subject_seq[self.start_idx:self.end_idx]
-        for q, s in zip(query_region, subject_region):
-            yield q, s
+    def trim_region(self):
+        qseq = self.alignment.query_seq[self.start_idx:self.end_idx]
+        sseq = self.alignment.subject_seq[self.start_idx:self.end_idx]
+        return AlignedPair(
+            (self.alignment.query_id, qseq),
+            (self.alignment.subject_id, sseq))
+
+    def trim_left(self, include_region=False):
+        if include_region:
+            idx = self.start_idx
+        else:
+            idx = self.end_idx
+        qseq = self.alignment.query_seq[idx:]
+        sseq = self.alignment.subject_seq[idx:]
+        return AlignedPair(
+            (self.alignment.query_id, qseq),
+            (self.alignment.subject_id, sseq))
+
+    def trim_right(self, include_region=False):
+        if include_region:
+            idx = self.end_idx
+        else:
+            idx = self.start_idx
+        qseq = self.alignment.query_seq[:idx]
+        sseq = self.alignment.subject_seq[:idx]
+        return AlignedPair(
+            (self.alignment.query_id, qseq),
+            (self.alignment.subject_id, sseq))
 
     def in_alignment(self):
         return (self.start_idx, self.end_idx)
@@ -144,15 +188,3 @@ def count_while_equal(xs, y):
 def exact_match(a, b):
     return a == b
 
-def count_matches(sequence_pairs, match_fcn=exact_match):
-    match = 0
-    total_a = 0
-    total_b = 0
-    for a, b in sequence_pairs:
-        if match_fcn(a, b):
-            match += 1
-        if a != "-":
-            total_a += 1
-        if b != "-":
-            total_b += 1
-    return match, total_a, total_b

@@ -1,93 +1,51 @@
 import unittest
 
 from unassign.alignment import (
-    AlignedPair, AlignedRegion, count_matches,
+    AlignedPair, AlignedRegion,
     aligned_start_idx, aligned_end_idx,
 )
 
 class AlignedPairTests(unittest.TestCase):
-    def test_hit_identity_no_endgaps(self):
+    def test_hit_identity(self):
         a = AlignedPair(
             ("a", "CCCGGTCCGGTTATT"),
             #      |||||||||||||xx
             ("b", "CCCGGTCCGGTTAAC"))
-        r = AlignedRegion.from_query(a)
-        self.assertEqual(count_matches(r.pairs()), (13, 15, 15))
+        self.assertEqual(a.count_matches(), (13, 15, 15))
 
-    def test_hit_identity_query_gaps(self):
+    def test_hit_identity_gaps(self):
         a = AlignedPair(
-            ("a", "CCCGGTCCGGTT--TT-----"),
+            ("a", "CCCGGTCCGGTT--TT"),
             #      ||||||||||||  xx
-            ("b", "CCCGGTCCGGTTAACCGGGTT"))
-        r = AlignedRegion.from_query(a)
-        self.assertEqual(count_matches(r.pairs()), (12, 14, 16))
+            ("b", "CCCGGTCCGGTTAACC"))
+        self.assertEqual(a.count_matches(), (12, 14, 16))
 
-    def test_pairs_query_no_endgaps(self):
+    def test_no_gaps(self):
         a = AlignedPair(
             ("a", "ABCDEF"),
             ("b", "HIJKLM"))
-        r = AlignedRegion.from_query(a, 0, 3)
-        self.assertEqual(
-            list(r.pairs()),
-            [("A", "H"), ("B", "I"), ("C", "J")])
-        r = AlignedRegion.from_query(a, 1, 5)
-        self.assertEqual(
-            list(r.pairs()),
-            [("B", "I"), ("C", "J"), ("D", "K"), ("E", "L")])
-        r = AlignedRegion.from_query(a)
-        self.assertEqual(
-            list(r.pairs()),
-            [
-                ("A", "H"), ("B", "I"), ("C", "J"),
-                ("D", "K"), ("E", "L"), ("F", "M"),
-            ])
+        self.assertEqual(a.query_len, a.alignment_len)
+        self.assertEqual(a.subject_len, a.alignment_len)
+        self.assertEqual(a.unaligned_query_seq, a.query_seq)
+        self.assertEqual(a.unaligned_subject_seq, a.subject_seq)
 
-    def test_pairs_query_with_endgaps(self):
+    def test_query_gaps(self):
         a = AlignedPair(
             ("a", "--ABC-EF---"),
             ("b", "HIJKLMNOPQR"))
-        r = AlignedRegion.from_query(a, 0, 3)
-        self.assertEqual(
-            list(r.pairs()),
-            [("A", "J"), ("B", "K"), ("C", "L")])
-        r = AlignedRegion.from_query(a, 1, 4)
-        self.assertEqual(
-            list(r.pairs()),
-            [("B", "K"), ("C", "L"), ("-", "M"), ("E", "N")])
-        r = AlignedRegion.from_query(a)
-        self.assertEqual(
-            list(r.pairs()),
-            [
-                ("A", "J"), ("B", "K"), ("C", "L"),
-                ("-", "M"), ("E", "N"), ("F", "O"),
-            ])
+        self.assertEqual(a.query_len, 5)
+        self.assertEqual(a.subject_len, a.alignment_len)
+        self.assertEqual(a.unaligned_query_seq, "ABCEF")
+        self.assertEqual(a.unaligned_subject_seq, a.subject_seq)
 
-    def test_pairs_query_crazy_alignment(self):
+    def test_crazy_alignment(self):
         a = AlignedPair(
             ("a", "-A-BC-EF---"),
             ("b", "--HI-JK-LMN"))
-        r = AlignedRegion.from_query(a, 0, 3)
-        self.assertEqual(r.in_alignment(), (1, 5))
-        self.assertEqual(r.in_query(), (0, 3))
-        self.assertEqual(
-            list(r.pairs()),
-            [("A", "-"), ("-", "H"), ("B", "I"), ("C", "-")])
-
-        r = AlignedRegion.from_query(a, 1, 4)
-        self.assertEqual(r.in_alignment(), (3, 7))
-        self.assertEqual(r.in_query(), (1, 4))
-        self.assertEqual(
-            list(r.pairs()),
-            [("B", "I"), ("C", "-"), ("-", "J"), ("E", "K")])
-
-        r = AlignedRegion.from_query(a)
-        self.assertEqual(r.in_alignment(), (1, 8))
-        self.assertEqual(
-            list(r.pairs()),
-            [
-                ("A", "-"), ("-", "H"), ("B", "I"), ("C", "-"),
-                ("-", "J"), ("E", "K"), ("F", "-"),
-            ])
+        self.assertEqual(a.query_len, 5)
+        self.assertEqual(a.subject_len, 7)
+        self.assertEqual(a.unaligned_query_seq, "ABCEF")
+        self.assertEqual(a.unaligned_subject_seq, "HIJKLMN")
 
     def test_region_subject_to_query_no_endgaps(self):
         a = AlignedPair(
