@@ -72,13 +72,16 @@ class AlignedPairTests(unittest.TestCase):
         self.assertEqual(
             list(r.pairs()),
             [("A", "-"), ("-", "H"), ("B", "I"), ("C", "-")])
+
         r = AlignedRegion.from_query(a, 1, 4)
         self.assertEqual(r.in_alignment(), (3, 7))
         self.assertEqual(r.in_query(), (1, 4))
         self.assertEqual(
             list(r.pairs()),
             [("B", "I"), ("C", "-"), ("-", "J"), ("E", "K")])
+
         r = AlignedRegion.from_query(a)
+        self.assertEqual(r.in_alignment(), (1, 8))
         self.assertEqual(
             list(r.pairs()),
             [
@@ -95,17 +98,17 @@ class AlignedPairTests(unittest.TestCase):
         r = AlignedRegion.from_subject(a, 0, 3)
         self.assertEqual(r.in_alignment(), (0, 3))
         rq = AlignedRegion.from_query(a, 0, 3)
-        self.assertEqual(r, rq)
+        self.assertEqual(r.in_alignment(), (0, 3))
 
         r = AlignedRegion.from_subject(a, 1, 5)
         self.assertEqual(r.in_alignment(), (1, 5))
         rq = AlignedRegion.from_query(a, 1, 5)
-        self.assertEqual(r, rq)
+        self.assertEqual(r.in_alignment(), (1, 5))
 
         r = AlignedRegion.from_subject(a)
         self.assertEqual(r.in_alignment(), (0, 6))
         rq = AlignedRegion.from_query(a)
-        self.assertEqual(r, rq)
+        self.assertEqual(r.in_alignment(), (0, 6))
 
     def test_region_subject_to_query_with_endgaps(self):
         a = AlignedPair(
