@@ -36,27 +36,16 @@ class AlignedRegion:
         for q, s in zip(query_region, subject_region):
             yield q, s
 
-    def __eq__(self, other):
-        return (self.alignment == other.alignment) and \
-            (self.start_idx == other.start_idx) and \
-            (self.end_idx == other.end_idx)
-
     def in_alignment(self):
         return (self.start_idx, self.end_idx)
 
     def in_subject(self):
-        subject_start_seq = self.alignment.subject_seq[:self.start_idx]
-        subject_start_idx = self.start_idx - subject_start_seq.count("-")
-        subject_end_seq = self.alignment.subject_seq[:self.end_idx]
-        subject_end_idx = self.end_idx - subject_end_seq.count("-")
-        return subject_start_idx, subject_end_idx
+        return in_aligned_seq(
+            self.alignment.subject_seq, self.start_idx, self.end_idx)
 
     def in_query(self):
-        query_start_seq = self.alignment.query_seq[:self.start_idx]
-        query_start_idx = self.start_idx - query_start_seq.count("-")
-        query_end_seq = self.alignment.query_seq[:self.end_idx]
-        query_end_idx = self.end_idx - query_end_seq.count("-")
-        return query_start_idx, query_end_idx
+        return in_aligned_seq(
+            self.alignment.query_seq, self.start_idx, self.end_idx)
 
     def subject_offset(self):
         qstart, qend = self.in_subject()
@@ -109,6 +98,14 @@ class AlignedRegion:
         start_idx = aligned_start_idx(a.query_seq, query_start_idx)
         end_idx = aligned_end_idx(a.query_seq, query_end_idx)
         return cls(a, start_idx, end_idx)
+
+
+def in_aligned_seq(seq, start_idx, end_idx):
+    seq_start = seq[:start_idx]
+    seq_start_idx = start_idx - seq_start.count("-")
+    seq_end = seq[:end_idx]
+    seq_end_idx = end_idx - seq_end.count("-")
+    return seq_start_idx, seq_end_idx
 
 def aligned_end_idx(seq, end_idx):
     # Work in reverse mode, find the complimentary start_idx
