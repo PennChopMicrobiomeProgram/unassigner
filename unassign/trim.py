@@ -292,7 +292,7 @@ def trim_middle(seq, matchobj):
 
 def main(argv=None):
     p = argparse.ArgumentParser()
-    p.add_argument("query")
+    p.add_argument("query", help="Query sequence to search and trim")
     p.add_argument(
         "--input_file", type=argparse.FileType("r"), default=sys.stdin)
     p.add_argument(
