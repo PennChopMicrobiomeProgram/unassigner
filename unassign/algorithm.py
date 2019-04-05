@@ -6,6 +6,8 @@ import scipy
 import scipy.special
 import scipy.misc
 
+from unassign.align import VsearchAligner, HitExtender
+from unassign.parse import parse_fasta
 
 class UnassignerAlgorithm(object):
     def __init__(self, aligner):
@@ -38,9 +40,32 @@ def beta_binomial_cdf(k_max, n, alpha, beta):
     return val
 
 
+class UnassignAligner(object):
+    def __init__(self, species_fp):
+        self.species_fp = species_fp
+        self.species_max_hits = 1
+        self.species_input_fp = None
+        self.species_output_fp = None
+
+    def search_species(self, seqs):
+        vsearch_params = {
+            "min_id": "0.9",
+            "top_hits_only": None}
+        b = VsearchAligner(self.species_fp)
+        hits = b.search(
+            seqs, self.species_input_fp, self.species_output_fp,
+            **vsearch_params)
+
+        with open(self.species_fp) as f:
+            ref_seqs = list(parse_fasta(f))
+        xt = HitExtender(seqs, ref_seqs)
+        for hit in hits:
+            yield xt.extend_hit(hit)
+
+
 class BasicAlgorithm(UnassignerAlgorithm):
     def __init__(self, aligner):
-        super(BasicAlgorithm, self).__init__(aligner)
+        super().__init__(aligner)
         self.prior_alpha = 0.5
         self.prior_beta = 0.5
         self.species_threshold = 0.975
@@ -53,14 +78,14 @@ class BasicAlgorithm(UnassignerAlgorithm):
             yield res
 
     def _get_probability(self, species_hit):
-        region_matches, region_positions = species_hit.count_matches()
-        region_mismatches = region_positions - region_matches
+        region_matches, total_query, total_subject = species_hit.count_matches()
+        region_mismatches = total_query - region_matches
 
         alpha = region_mismatches + self.prior_alpha
         beta = region_matches + self.prior_beta
 
         total_positions = species_hit.subject_len
-        nonregion_positions = total_positions - region_positions
+        nonregion_positions = total_positions - total_query
 
         species_mismatch_threshold = 1 - self.species_threshold
         max_total_mismatches = int(math.floor(
