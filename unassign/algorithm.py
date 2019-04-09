@@ -24,7 +24,10 @@ class UnassignerAlgorithm(object):
 
 
 def beta_binomial_pdf(k, n, alpha, beta):
-    t1 = math.log(scipy.misc.comb(n, k))
+    binom_coeff = scipy.misc.comb(n, k)
+    if binom_coeff == 0:
+        return 0
+    t1 = math.log(binom_coeff)
     t2 = scipy.special.betaln(k + alpha, n - k + beta)
     t3 = scipy.special.betaln(alpha, beta)
     logf = t1 + t2 - t3
