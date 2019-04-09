@@ -41,8 +41,6 @@ def clean(db_dir):
         REFSEQS_FASTA_FP,
         GG_DUPLICATE_FP
         ]
-    fps += blastdb_fps(SPECIES_FASTA_FP)
-    fps += blastdb_fps(REFSEQS_FASTA_FP)
     for fp in fps:
         fp_full = os.path.join(db_dir, fp)
         if os.path.exists(fp_full):
@@ -57,25 +55,11 @@ def gunzip_fp(fp):
     return fp[:-3]
 
 
-def blastdb_fps(fp):
-    return [fp + ".nhr", fp + ".nin", fp + ".nsq",
-            fp + ".nog", fp + ".nsd", fp + ".nsi"]
-
-
 def get_url(url, fp):
     if os.path.exists(fp):
         os.remove(fp)
     subprocess.check_call(["wget", "-O", fp, url])
     return fp
-
-
-def make_blast_db(fasta_fp):
-    return subprocess.check_call([
-        "makeblastdb",
-        "-dbtype", "nucl",
-        "-in", fasta_fp,
-        "-parse_seqids"
-        ])
 
 
 def process_ltp_seqs(input_fp, output_fp=SPECIES_FASTA_FP):
@@ -89,8 +73,6 @@ def process_ltp_seqs(input_fp, output_fp=SPECIES_FASTA_FP):
                 split_desc = desc.split("\t")
                 name = "_".join([split_desc[0], split_desc[1]])
                 f_out.write(">%s\n%s\n" % (name, seq))
-
-    make_blast_db(output_fp)
     return output_fp
 
 
@@ -132,5 +114,4 @@ def process_greengenes_seqs(seqs_fp, accessions_fp, output_fp=REFSEQS_FASTA_FP):
                 acc, src = gg_accessions[ggid]
                 f.write(">%s %s %s\n%s\n" % (acc, src, ggid, seq))
 
-    make_blast_db(output_fp)
     return output_fp
