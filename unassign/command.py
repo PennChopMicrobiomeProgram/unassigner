@@ -1,7 +1,9 @@
 import argparse
 import os
 
-from unassign.algorithm import UnassignAligner, BasicAlgorithm
+from unassign.algorithm import (
+    UnassignAligner, FileAligner, BasicAlgorithm,
+)
 from unassign.parse import parse_fasta
 
 def main(argv=None):
