@@ -69,7 +69,7 @@ class FileAligner:
         self.output_file = output_file
 
     def search_species(self, seqs):
-        hits = VsearchAligner._parse(output_file)
+        hits = VsearchAligner._parse(self.output_file)
         with open(self.species_fp) as f:
             ref_seqs = list(parse_fasta(f))
         xt = HitExtender(seqs, ref_seqs)
