@@ -13,6 +13,8 @@ def main(argv=None):
     p.add_argument("-t", "--type_strain_fp", default="species.fasta", help=(
         "Type strain sequences filepath (FASTA format + BLAST database) "
         "[default: %(default)s]"))
+    p.add_argument("--alignment_fp", type=argparse.FileType("r"),
+        help="Use pre-computed alignment file")
     p.add_argument("--verbose", action="store_true", help=(
         "Activate verbose mode."))
     args = p.parse_args(argv)
@@ -29,10 +31,13 @@ def main(argv=None):
     def mkfp(filename):
         return os.path.join(args.output_dir, filename)
 
-    a = UnassignAligner(args.type_strain_fp)
-    #a.num_cpus = args.num_cpus
-    a.species_input_fp = mkfp("unassigner_query.fasta")
-    a.species_output_fp = mkfp("unassigner_query_blastn.txt")
+    if args.alignment_fp:
+        a = FileAligner(args.type_strain_fp, args.alignment_fp)
+    else:
+        a = UnassignAligner(args.type_strain_fp)
+        #a.num_cpus = args.num_cpus
+        a.species_input_fp = mkfp("unassigner_query.fasta")
+        a.species_output_fp = mkfp("unassigner_query_blastn.txt")
 
     u = BasicAlgorithm(a)
     results = u.unassign(query_seqs)

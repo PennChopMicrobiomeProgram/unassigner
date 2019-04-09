@@ -63,6 +63,19 @@ class UnassignAligner(object):
             yield xt.extend_hit(hit)
 
 
+class FileAligner:
+    def __init__(self, species_fp, output_file):
+        self.species_fp = species_fp
+        self.output_file = output_file
+
+    def search_species(self, seqs):
+        hits = VsearchAligner._parse(output_file)
+        with open(self.species_fp) as f:
+            ref_seqs = list(parse_fasta(f))
+        xt = HitExtender(seqs, ref_seqs)
+        for hit in hits:
+            yield xt.extend_hit(hit)
+
 class BasicAlgorithm(UnassignerAlgorithm):
     def __init__(self, aligner):
         super().__init__(aligner)
