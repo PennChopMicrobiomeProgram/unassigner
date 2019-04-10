@@ -2,7 +2,7 @@ import argparse
 import os
 
 from unassign.algorithm import (
-    UnassignAligner, FileAligner, BasicAlgorithm,
+    UnassignAligner, FileAligner, ThresholdAlgorithm,
 )
 from unassign.parse import parse_fasta
 
@@ -41,7 +41,7 @@ def main(argv=None):
         a.species_input_fp = mkfp("unassigner_query.fasta")
         a.species_output_fp = mkfp("unassigner_query_blastn.txt")
 
-    u = BasicAlgorithm(a)
+    u = ThresholdAlgorithm(a)
     results = u.unassign(query_seqs)
 
     with open(mkfp("unassigner_output.tsv"), "w") as f:

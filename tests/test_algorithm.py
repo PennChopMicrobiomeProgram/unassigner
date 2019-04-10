@@ -2,7 +2,7 @@ import os.path
 import unittest
 
 from unassign.algorithm import (
-    UnassignAligner, BasicAlgorithm,
+    UnassignAligner, ThresholdAlgorithm,
     beta_binomial_pdf, beta_binomial_cdf,
 )
 
@@ -37,11 +37,11 @@ class FunctionTests(unittest.TestCase):
         self.assertEqual(beta_binomial_pdf(-3, 5, 10, 10), 0) # k < 0
 
 
-class BasicAlgorithmTests(unittest.TestCase):
+class ThresholdAlgorithmTests(unittest.TestCase):
     def setUp(self):
         self.ggfp = os.path.join(DATA_DIR, "gg10.fasta")
         a = UnassignAligner(self.ggfp)
-        self.basic = BasicAlgorithm(a)
+        self.basic = ThresholdAlgorithm(a)
 
     def test_basic(self):
         seqs = [

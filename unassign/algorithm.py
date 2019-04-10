@@ -78,7 +78,17 @@ class FileAligner:
         for hit in hits:
             yield xt.extend_hit(hit)
 
-class BasicAlgorithm(UnassignerAlgorithm):
+
+class ThresholdAlgorithm(UnassignerAlgorithm):
+    """Threshold algorithm for species unassignment
+
+    In this algorithm, we set a threshold value for sequence
+    similarity to the type strain sequence.  For a query sequence, we
+    calculate the probability of falling below this similarity
+    threshold over the full length of the 16S gene.  This value is the
+    unassignment probability.
+    """
+
     def __init__(self, aligner):
         super().__init__(aligner)
         self.prior_alpha = 0.5
@@ -122,5 +132,5 @@ class BasicAlgorithm(UnassignerAlgorithm):
             "RegionMismatches\tRegionMatches\t"
             "NonregionPositions\tMaxNonregionMismatches\t"
             "ProbabilityNotThisSpecies\n")
-        for line in super(BasicAlgorithm, self).format(results):
+        for line in super().format(results):
             yield line
