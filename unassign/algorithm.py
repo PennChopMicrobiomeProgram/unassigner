@@ -4,7 +4,6 @@ import math
 
 import scipy
 import scipy.special
-import scipy.misc
 
 from unassign.align import VsearchAligner, HitExtender
 from unassign.parse import parse_fasta
@@ -24,7 +23,7 @@ class UnassignerAlgorithm(object):
 
 
 def beta_binomial_pdf(k, n, alpha, beta):
-    binom_coeff = scipy.misc.comb(n, k)
+    binom_coeff = scipy.special.comb(n, k)
     if binom_coeff == 0:
         return 0
     t1 = math.log(binom_coeff)
