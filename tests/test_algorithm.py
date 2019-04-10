@@ -3,6 +3,7 @@ import unittest
 
 from unassign.algorithm import (
     UnassignAligner, BasicAlgorithm,
+    beta_binomial_pdf, beta_binomial_cdf,
 )
 
 DATA_DIR = os.path.join(
@@ -23,6 +24,18 @@ class UnassignAlignerTests(unittest.TestCase):
         observed = set((hit.query_id, hit.subject_id) for hit in hits)
         expected = set([("a", "8"), ("b", "5")])
         self.assertEqual(observed, expected)
+
+class FunctionTests(unittest.TestCase):
+    def test_beta_binomial(self):
+        # These parameters are plotted on the wikipedia page
+        self.assertAlmostEqual(beta_binomial_pdf(8, 10, 600, 400), 0.12, 2)
+        self.assertAlmostEqual(beta_binomial_cdf(8, 10, 600, 400), 0.95, 2)
+
+    def test_beta_binomial_out_of_bounds(self):
+        self.assertEqual(beta_binomial_pdf(15, 10, 10, 10), 0) # k > n
+        self.assertEqual(beta_binomial_pdf(3, 0, 10, 10), 0) # n == 0
+        self.assertEqual(beta_binomial_pdf(-3, 5, 10, 10), 0) # k < 0
+
 
 class BasicAlgorithmTests(unittest.TestCase):
     def setUp(self):
