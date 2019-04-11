@@ -1,3 +1,4 @@
+import collections
 import itertools
 import logging
 import math
@@ -8,18 +9,22 @@ import scipy.special
 from unassign.align import VsearchAligner, HitExtender
 from unassign.parse import parse_fasta
 
-class UnassignerAlgorithm(object):
+class UnassignerAlgorithm:
     def __init__(self, aligner):
         self.aligner = aligner
 
     def unassign(self, query_seqs):
-        """Execute unassignment algorithm on query seqs."""
-        raise NotImplemented
+        query_seqs = list(query_seqs)
+        query_ids = [seq_id for seq_id, seq in query_seqs]
+        alignments_by_query_id = collections.defaultdict(list)
 
-    def format(self, results):
-        """Format results for output file."""
-        for r in results:
-            yield '\t'.join(map(str, r)) + "\n"
+        for alignment in self.aligner.search_species(query_seqs):
+            alignments_by_query_id[alignment.query_id].append(alignment)
+
+        for query_id in query_ids:
+            alignments = alignments_by_query_id[query_id]
+            results = self._get_probability(alignments)
+            yield query_id, list(results)
 
 
 def beta_binomial_pdf(k, n, alpha, beta):
@@ -45,22 +50,19 @@ def beta_binomial_cdf(k_max, n, alpha, beta):
 class UnassignAligner(object):
     def __init__(self, species_fp):
         self.species_fp = species_fp
-        self.species_max_hits = 1
         self.species_input_fp = None
         self.species_output_fp = None
 
-    def search_species(self, seqs):
-        vsearch_params = {
-            "min_id": "0.9",
-            "top_hits_only": None}
+    def search_species(self, query_seqs):
         b = VsearchAligner(self.species_fp)
         hits = b.search(
-            seqs, self.species_input_fp, self.species_output_fp,
-            **vsearch_params)
+            query_seqs,
+            self.species_input_fp, self.species_output_fp,
+            min_id = 0.9)
 
         with open(self.species_fp) as f:
             ref_seqs = list(parse_fasta(f))
-        xt = HitExtender(seqs, ref_seqs)
+        xt = HitExtender(query_seqs, ref_seqs)
         for hit in hits:
             yield xt.extend_hit(hit)
 
@@ -95,21 +97,18 @@ class ThresholdAlgorithm(UnassignerAlgorithm):
         self.prior_beta = 0.5
         self.species_threshold = 0.975
 
-    def unassign(self, query_seqs):
-        logging.info("Aligning query seqs to type strain seqs")
-        species_hits = self.aligner.search_species(query_seqs)
-        for h in species_hits:
-            res = self._get_probability(h)
-            yield res
+    def _get_probability(self, hits):
+        for hit in hits:
+            yield self._get_indiv_probability(hit)
 
-    def _get_probability(self, species_hit):
-        region_matches, total_query, total_subject = species_hit.count_matches()
+    def _get_indiv_probability(self, alignment):
+        region_matches, total_query, total_subject = alignment.count_matches()
         region_mismatches = total_query - region_matches
 
         alpha = region_mismatches + self.prior_alpha
         beta = region_matches + self.prior_beta
 
-        total_positions = species_hit.subject_len
+        total_positions = alignment.subject_len
         nonregion_positions = total_positions - total_query
 
         species_mismatch_threshold = 1 - self.species_threshold
@@ -119,18 +118,13 @@ class ThresholdAlgorithm(UnassignerAlgorithm):
 
         prob_compatible = beta_binomial_cdf(
             max_nonregion_mismatches, nonregion_positions, alpha, beta)
-        prob_new_species = 1 - prob_compatible
+        prob_incompatible = 1 - prob_compatible
 
-        return (species_hit.query_id, species_hit.subject_id,
-            region_mismatches, region_matches,
-            nonregion_positions, max_nonregion_mismatches,
-            prob_new_species)
-
-    def format(self, results):
-        yield (
-            "QueryID\tTypestrainID\t"
-            "RegionMismatches\tRegionMatches\t"
-            "NonregionPositions\tMaxNonregionMismatches\t"
-            "ProbabilityNotThisSpecies\n")
-        for line in super().format(results):
-            yield line
+        return {
+            "typestrain_id": alignment.subject_id,
+            "probability_incompatible": prob_incompatible,
+            "region_mismatches": region_mismatches,
+            "region_matches": region_matches,
+            "nonregion_positions": nonregion_positions,
+            "max_nonregion_mismatches": max_nonregion_mismatches,
+        }

@@ -27,8 +27,7 @@ def main(argv=None):
     with open(args.query_fp) as f:
         query_seqs = list(parse_fasta(f, trim_desc=True))
 
-    if not os.path.exists(args.output_dir):
-        os.mkdir(args.output_dir)
+    writer = OutputWriter(args.output_dir)
 
     def mkfp(filename):
         return os.path.join(args.output_dir, filename)
@@ -40,10 +39,46 @@ def main(argv=None):
         a.species_input_fp = mkfp("unassigner_query.fasta")
         a.species_output_fp = mkfp("unassigner_query_blastn.txt")
 
-    u = ThresholdAlgorithm(a)
-    results = u.unassign(query_seqs)
+    algorithm = ThresholdAlgorithm(a)
+    for query_id, query_results in algorithm.unassign(query_seqs):
+        writer.write_results(query_id, query_results)
 
-    with open(mkfp("unassigner_output.tsv"), "w") as f:
-        for line in u.format(results):
-            f.write(line)
+class OutputWriter:
+    standard_keys = ["typestrain_id", "probability_incompatible"]
 
+    def __init__(self, output_dir):
+        if not os.path.exists(output_dir):
+            os.mkdir(output_dir)
+        self.output_dir = output_dir
+
+        standard_fp = self.output_fp("unassigner_output.tsv")
+        self.standard_file = open(standard_fp, "w")
+        standard_header = ["query_id"] + self.standard_keys
+        self._write_tsv_line(self.standard_file, standard_header)
+
+        algorithm_fp = self.output_fp("algorithm_output.tsv")
+        self.algorithm_file = open(algorithm_fp, "w")
+        self.algorithm_keys = None
+
+    def output_fp(self, filename):
+        return os.path.join(self.output_dir, filename)
+
+    @staticmethod
+    def _write_tsv_line(fileobj, vals):
+        vals = [str(val) for val in vals]
+        line = "\t".join(vals)
+        fileobj.write(line)
+        fileobj.write("\n")
+
+    def write_results(self, query_id, results):
+        for res in results:
+            # Set custom algorithm keys based on the first result
+            if self.algorithm_keys is None:
+                self.algorithm_keys = [
+                    k for k in res if k not in self.standard_keys]
+                algorithm_header = ["query_id"] + self.algorithm_keys
+                self._write_tsv_line(self.algorithm_file, algorithm_header)
+            standard_vals = [query_id] + [res[k] for k in self.standard_keys]
+            self._write_tsv_line(self.standard_file, standard_vals)
+            algorithm_vals = [query_id] + [res[k] for k in self.algorithm_keys]
+            self._write_tsv_line(self.algorithm_file, algorithm_vals)

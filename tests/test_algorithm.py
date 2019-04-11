@@ -44,16 +44,16 @@ class ThresholdAlgorithmTests(unittest.TestCase):
         self.algo = ThresholdAlgorithm(a)
 
     def test_threshold(self):
+        ref_ids = set(str(x) for x in range(1, 10))
         seqs = [
             ("a", "CTTGCTCTCGGGTGACGAGCGGCGGACGGGTGAGTAAT"),
             ("b", "GCGTGGCGAACGGCTGACGAACACGTGG"),
             ]
-        res = list(self.algo.unassign(seqs))
-        res_query_ids = set(x[0] for x in res)
-        self.assertEqual(res_query_ids, set(("a", "b")))
-        res_species_ids = set(x[1] for x in res)
-        ref_ids = set(str(x) for x in range(1, 10))
-        self.assertLessEqual(res_species_ids, ref_ids)
+        all_results = self.algo.unassign(seqs)
+        first_query_id, first_query_results = next(all_results)
+        self.assertEqual(first_query_id, "a")
+        first_query_match = first_query_results[0]
+        self.assertIn(first_query_match["typestrain_id"], ref_ids)
 
     def test_low_prob(self):
         # Exact match to part of reference sequence 10
@@ -64,8 +64,10 @@ class ThresholdAlgorithmTests(unittest.TestCase):
             "AGGGGATCTTCGGACCTTGCACTATTGGAAGAGCCTGCGTTGGATTAGCTAGTTGGT"
             "AGGGTAAAGGCCTACCAAGGCGACGATCCATA")
         seqs = [("query0", exact_gg10)]
-        res = list(self.algo.unassign(seqs))
-        self.assertEqual(res[0][0], "query0")
-        self.assertEqual(res[0][1], "10")
+        all_results = self.algo.unassign(seqs)
+        query_id, query_results = next(all_results)
+        top_match = query_results[0]
+        self.assertEqual(query_id, "query0")
+        self.assertEqual(top_match["typestrain_id"], "10")
         # Expect very low probability of unassignment
-        self.assertLess(res[0][6], 0.001)
+        self.assertLess(top_match["probability_incompatible"], 0.001)
