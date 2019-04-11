@@ -37,7 +37,6 @@ def main(argv=None):
         a = FileAligner(args.type_strain_fp, args.alignment_fp)
     else:
         a = UnassignAligner(args.type_strain_fp)
-        #a.num_cpus = args.num_cpus
         a.species_input_fp = mkfp("unassigner_query.fasta")
         a.species_output_fp = mkfp("unassigner_query_blastn.txt")
 
