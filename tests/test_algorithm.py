@@ -41,14 +41,14 @@ class ThresholdAlgorithmTests(unittest.TestCase):
     def setUp(self):
         self.ggfp = os.path.join(DATA_DIR, "gg10.fasta")
         a = UnassignAligner(self.ggfp)
-        self.basic = ThresholdAlgorithm(a)
+        self.algo = ThresholdAlgorithm(a)
 
-    def test_basic(self):
+    def test_threshold(self):
         seqs = [
             ("a", "CTTGCTCTCGGGTGACGAGCGGCGGACGGGTGAGTAAT"),
             ("b", "GCGTGGCGAACGGCTGACGAACACGTGG"),
             ]
-        res = list(self.basic.unassign(seqs))
+        res = list(self.algo.unassign(seqs))
         res_query_ids = set(x[0] for x in res)
         self.assertEqual(res_query_ids, set(("a", "b")))
         res_species_ids = set(x[1] for x in res)
@@ -64,7 +64,7 @@ class ThresholdAlgorithmTests(unittest.TestCase):
             "AGGGGATCTTCGGACCTTGCACTATTGGAAGAGCCTGCGTTGGATTAGCTAGTTGGT"
             "AGGGTAAAGGCCTACCAAGGCGACGATCCATA")
         seqs = [("query0", exact_gg10)]
-        res = list(self.basic.unassign(seqs))
+        res = list(self.algo.unassign(seqs))
         self.assertEqual(res[0][0], "query0")
         self.assertEqual(res[0][1], "10")
         # Expect very low probability of unassignment
