@@ -42,7 +42,9 @@ def main(argv=None):
 
 
 class OutputWriter:
-    standard_keys = ["typestrain_id", "probability_incompatible"]
+    standard_keys = [
+        "typestrain_id", "region_mismatches", "region_positions",
+        "probability_incompatible"]
 
     def __init__(self, output_dir, species_names):
         self.species_names = species_names
