@@ -8,14 +8,14 @@ from unassign.parse import parse_fasta
 
 def main(argv=None):
     p = argparse.ArgumentParser()
-    p.add_argument("query_fp", help=(
+    p.add_argument("query_fasta", help=(
         "Query sequences filepath (FASTA format)"))
     p.add_argument("output_dir", help=(
         "Output directory"))
-    p.add_argument("-t", "--type_strain_fp", default="species.fasta", help=(
+    p.add_argument("--type_strain_fasta", default="species.fasta", help=(
         "Type strain sequences filepath (FASTA format + BLAST database) "
         "[default: %(default)s]"))
-    p.add_argument("--alignment_fp", type=argparse.FileType("r"),
+    p.add_argument("--alignment_file", type=argparse.FileType("r"),
         help="Use pre-computed alignment file")
     p.add_argument("--verbose", action="store_true", help=(
         "Activate verbose mode."))
