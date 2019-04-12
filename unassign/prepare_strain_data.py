@@ -25,6 +25,8 @@ def main(argv=None):
     p.add_argument("--ltp_seqs_fp", help=(
         "Filepath for unaligned 16S sequences from LTP (.fasta file) "
         "[default: download from LTP website]"))
+    p.add_argument("--download_greengenes", action="store_true",
+        help="Download GreenGenes reference files [default: False]")
     p.add_argument("--greengenes_accessions_fp", help=(
         "Filepath for table of GreenGenes accession numbers "
         "(.txt or .txt.gz file) "
@@ -56,8 +58,9 @@ def main(argv=None):
         args.ltp_seqs_fp, LTP_SEQS_URL, db_dir)
     process_ltp_seqs(ltp_seqs_fp, db_dir)
 
-    gg_seqs_fp = use_or_download(
-        args.greengenes_seqs_fp, GG_SEQS_URL, db_dir)
-    gg_accessions_fp = use_or_download(
-        args.greengenes_accessions_fp, GG_ACCESSIONS_URL, db_dir)
-    process_greengenes_seqs(gg_seqs_fp, gg_accessions_fp, db_dir)
+    if args.download_greengenes:
+        gg_seqs_fp = use_or_download(
+            args.greengenes_seqs_fp, GG_SEQS_URL, db_dir)
+        gg_accessions_fp = use_or_download(
+            args.greengenes_accessions_fp, GG_ACCESSIONS_URL, db_dir)
+        process_greengenes_seqs(gg_seqs_fp, gg_accessions_fp, db_dir)

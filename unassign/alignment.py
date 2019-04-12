@@ -27,18 +27,8 @@ class AlignedPair(object):
     def unaligned_subject_seq(self):
         return self.subject_seq.replace("-", "")
 
-    def count_matches(self, match_fcn=operator.eq):
-        match = 0
-        total_a = 0
-        total_b = 0
-        for a, b in zip(self.query_seq, self.subject_seq):
-            if match_fcn(a, b):
-                match += 1
-            if a != "-":
-                total_a += 1
-            if b != "-":
-                total_b += 1
-        return match, total_a, total_b
+    def count_matches(self):
+        return sum(q == s for q, s in zip(self.query_seq, self.subject_seq))
 
 class AlignedRegion:
     def __init__(self, alignment, start_idx, end_idx):
@@ -51,7 +41,7 @@ class AlignedRegion:
         self.start_idx = start_idx
         self.end_idx = end_idx
 
-    def trim_region(self):
+    def trim_ends(self):
         qseq = self.alignment.query_seq[self.start_idx:self.end_idx]
         sseq = self.alignment.subject_seq[self.start_idx:self.end_idx]
         return AlignedPair(
@@ -97,11 +87,11 @@ class AlignedRegion:
         if (qstart == 0) and (qend == 0):
             # Subject is off to right side, offset is positive
             subject_right = self.alignment.subject_seq[self.end_idx:]
-            return count_while_equal(subject_right, "-")
+            return count_endgaps(subject_right)
         if (qstart == qlen) and (qend == qlen):
             # Subject is off to left side, offset is negative
             subject_left = self.alignment.subject_seq[:self.start_idx]
-            return -count_while_equal(reversed(subject_left), "-")
+            return -count_endgaps(subject_left, reverse=True)
         return 0
 
     def query_offset(self):
@@ -110,12 +100,24 @@ class AlignedRegion:
         if (qstart == 0) and (qend == 0):
             # Query is off to right side, offset is positive
             query_right = self.alignment.query_seq[self.end_idx:]
-            return count_while_equal(query_right, "-")
+            return count_endgaps(query_right)
         if (qstart == qlen) and (qend == qlen):
             # Query is off to left side, offset is negative
             query_left = self.alignment.query_seq[:self.start_idx]
-            return -count_while_equal(reversed(query_left), "-")
+            return -count_endgaps(query_left, reverse=True)
         return 0
+
+    @classmethod
+    def without_endgaps(cls, a):
+        left_endgaps = max(
+            count_endgaps(a.query_seq),
+            count_endgaps(a.subject_seq))
+        right_endgaps = max(
+            count_endgaps(a.query_seq, reverse=True),
+            count_endgaps(a.subject_seq, reverse=True))
+        start_idx = left_endgaps
+        end_idx = a.alignment_len - right_endgaps
+        return cls(a, start_idx, end_idx)
 
     @classmethod
     def from_subject(cls, a, subject_start_idx=0, subject_end_idx=None):
@@ -176,12 +178,14 @@ def aligned_start_idx(seq, start_idx):
 def cumulative_bases(seq):
     return itertools.accumulate(int(b != "-") for b in seq)
 
-def count_while_equal(xs, y):
+def iter_len(xs):
     n = 0
-    for x in xs:
-        if x == y:
-            n += 1
-        else:
-            break
+    for _ in xs:
+        n += 1
     return n
+
+def count_endgaps(seq, reverse = False):
+    if reverse:
+        seq = reversed(seq)
+    return iter_len(itertools.takewhile(lambda x: x == "-", seq))
 

@@ -1,5 +1,15 @@
 from io import StringIO
 
+def parse_species_names(f):
+    for desc, seq in parse_fasta(f):
+        vals = desc.split("\t", maxsplit=1)
+        accession = vals[0]
+        if len(vals) == 2:
+            species_name = vals[1]
+        else:
+            species_name = accession
+        yield accession, species_name
+
 def parse_fasta(f, trim_desc=False):
     """Parse a FASTA format file.
 

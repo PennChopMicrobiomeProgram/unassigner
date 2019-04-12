@@ -16,18 +16,18 @@ class CommandTests(unittest.TestCase):
         query_fp = os.path.join(self.dir, "query.fa")
         with open(query_fp, "w") as f:
             f.write(query_fasta)
-        main([query_fp, self.dir, "-t", REF_FP])
+        main([
+            query_fp, self.dir, "--type_strain_fasta", REF_FP])
 
         with(open(os.path.join(self.dir, "unassigner_output.tsv"))) as f:
             header_line = next(f)
-            self.assertTrue(header_line.startswith("QueryID"))
+            self.assertTrue(header_line.startswith("query_id"))
             results_line = next(f)
             vals = results_line.rstrip("\n").split("\t")
-            match_vals = vals[0:2]
-            self.assertEqual(match_vals, ["query0", "2"])
-            count_vals = [int(x) for x in vals[2:6]]
-            self.assertEqual(count_vals, [0, 265, 1265, 38])
-            unassignment_prob = float(vals[6])
+            self.assertEqual(vals[0], "query0")
+            self.assertEqual(vals[1], "Aname for2")
+            self.assertEqual(vals[2], "2")
+            unassignment_prob = float(vals[3])
             self.assertLess(unassignment_prob, 0.001)
 
 # Exact match to referece sequence 2
