@@ -7,41 +7,37 @@ from unassign.algorithm import (
 from unassign.parse import parse_fasta
 
 def main(argv=None):
-    p = argparse.ArgumentParser()
-    p.add_argument("query_fasta", help=(
-        "Query sequences filepath (FASTA format)"))
-    p.add_argument("output_dir", help=(
-        "Output directory"))
-    p.add_argument("--type_strain_fasta", default="species.fasta", help=(
-        "Type strain sequences filepath (FASTA format + BLAST database) "
-        "[default: %(default)s]"))
+    p = argparse.ArgumentParser(
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    p.add_argument("query_fasta", type=argparse.FileType("r"),
+        help="Query sequences filepath (FASTA format)")
+    p.add_argument("output_dir", help="Output directory")
+    p.add_argument("--type_strain_fasta", default="species.fasta",
+        help="Type strain sequences filepath (FASTA format)")
     p.add_argument("--alignment_file", type=argparse.FileType("r"),
         help="Use pre-computed alignment file")
-    p.add_argument("--verbose", action="store_true", help=(
-        "Activate verbose mode."))
+    p.add_argument("--verbose", action="store_true",
+        help= "Activate verbose mode.")
     args = p.parse_args(argv)
 
     if args.verbose is True:
         logging.basicConfig(level=logging.INFO)
 
-    with open(args.query_fp) as f:
-        query_seqs = list(parse_fasta(f, trim_desc=True))
+    query_seqs = list(parse_fasta(args.query_fasta, trim_desc=True))
 
     writer = OutputWriter(args.output_dir)
 
-    def mkfp(filename):
-        return os.path.join(args.output_dir, filename)
-
-    if args.alignment_fp:
-        a = FileAligner(args.type_strain_fp, args.alignment_fp)
+    if args.alignment_file:
+        a = FileAligner(args.type_strain_fasta, args.alignment_file)
     else:
-        a = UnassignAligner(args.type_strain_fp)
-        a.species_input_fp = mkfp("unassigner_query.fasta")
-        a.species_output_fp = mkfp("unassigner_query_blastn.txt")
+        a = UnassignAligner(args.type_strain_fasta)
+        a.species_input_fp = writer.output_fp("unassigner_query.fasta")
+        a.species_output_fp = writer.output_fp("unassigner_query_blastn.txt")
 
     algorithm = ThresholdAlgorithm(a)
     for query_id, query_results in algorithm.unassign(query_seqs):
         writer.write_results(query_id, query_results)
+
 
 class OutputWriter:
     standard_keys = ["typestrain_id", "probability_incompatible"]
