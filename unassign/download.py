@@ -70,9 +70,11 @@ def process_ltp_seqs(input_fp, output_fp=SPECIES_FASTA_FP):
         seqs = parse_fasta(f_in)
         with open(output_fp, "w") as f_out:
             for desc, seq in seqs:
-                split_desc = desc.split("\t")
-                name = "_".join([split_desc[0], split_desc[1]])
-                f_out.write(">%s\n%s\n" % (name, seq))
+                vals = desc.split("\t")
+                accession = vals[0]
+                species_name = vals[5]
+                f_out.write(
+                    ">{0}\t{1}\n{2}\n"format(accession, species_name, seq))
     return output_fp
 
 

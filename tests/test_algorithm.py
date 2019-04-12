@@ -20,7 +20,6 @@ class UnassignAlignerTests(unittest.TestCase):
             ("b", "GCGTGGCGAACGGCTGACGAACACGTGG"),
             ]
         hits = self.a.search_species(seqs)
-        print(hits)
         observed = set((hit.query_id, hit.subject_id) for hit in hits)
         expected = set([("a", "8"), ("b", "5")])
         self.assertEqual(observed, expected)

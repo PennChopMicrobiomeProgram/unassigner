@@ -25,8 +25,9 @@ class CommandTests(unittest.TestCase):
             results_line = next(f)
             vals = results_line.rstrip("\n").split("\t")
             self.assertEqual(vals[0], "query0")
-            self.assertEqual(vals[1], "2")
-            unassignment_prob = float(vals[2])
+            self.assertEqual(vals[1], "Aname for2")
+            self.assertEqual(vals[2], "2")
+            unassignment_prob = float(vals[3])
             self.assertLess(unassignment_prob, 0.001)
 
 # Exact match to referece sequence 2

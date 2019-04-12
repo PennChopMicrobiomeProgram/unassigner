@@ -4,7 +4,7 @@ import os
 from unassign.algorithm import (
     UnassignAligner, FileAligner, ThresholdAlgorithm,
 )
-from unassign.parse import parse_fasta
+from unassign.parse import parse_fasta, parse_species_names
 
 def main(argv=None):
     p = argparse.ArgumentParser(
@@ -25,7 +25,9 @@ def main(argv=None):
 
     query_seqs = list(parse_fasta(args.query_fasta, trim_desc=True))
 
-    writer = OutputWriter(args.output_dir)
+    with open(args.type_strain_fasta) as f:
+        species_names = dict(parse_species_names(f))
+    writer = OutputWriter(args.output_dir, species_names)
 
     if args.alignment_file:
         a = FileAligner(args.type_strain_fasta, args.alignment_file)
@@ -42,14 +44,16 @@ def main(argv=None):
 class OutputWriter:
     standard_keys = ["typestrain_id", "probability_incompatible"]
 
-    def __init__(self, output_dir):
+    def __init__(self, output_dir, species_names):
+        self.species_names = species_names
+
         if not os.path.exists(output_dir):
             os.mkdir(output_dir)
         self.output_dir = output_dir
 
         standard_fp = self.output_fp("unassigner_output.tsv")
         self.standard_file = open(standard_fp, "w")
-        standard_header = ["query_id"] + self.standard_keys
+        standard_header = ["query_id", "species"] + self.standard_keys
         self._write_tsv_line(self.standard_file, standard_header)
 
         algorithm_fp = self.output_fp("algorithm_output.tsv")
@@ -74,7 +78,10 @@ class OutputWriter:
                     k for k in res if k not in self.standard_keys]
                 algorithm_header = ["query_id"] + self.algorithm_keys
                 self._write_tsv_line(self.algorithm_file, algorithm_header)
-            standard_vals = [query_id] + [res[k] for k in self.standard_keys]
+            species_name = self.species_names.get(res["typestrain_id"])
+
+            standard_vals = [query_id, species_name] + \
+                [res[k] for k in self.standard_keys]
             self._write_tsv_line(self.standard_file, standard_vals)
             algorithm_vals = [query_id] + [res[k] for k in self.algorithm_keys]
             self._write_tsv_line(self.algorithm_file, algorithm_vals)

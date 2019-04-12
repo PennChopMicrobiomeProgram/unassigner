@@ -61,7 +61,7 @@ class UnassignAligner(object):
             min_id = 0.9)
 
         with open(self.species_fp) as f:
-            ref_seqs = list(parse_fasta(f))
+            ref_seqs = list(parse_fasta(f, trim_desc=True))
         xt = HitExtender(query_seqs, ref_seqs)
         for hit in hits:
             yield xt.extend_hit(hit)
