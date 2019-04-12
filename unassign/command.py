@@ -7,16 +7,17 @@ from unassign.algorithm import (
 from unassign.parse import parse_fasta, parse_species_names
 
 def main(argv=None):
-    p = argparse.ArgumentParser(
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    p = argparse.ArgumentParser()
     p.add_argument("query_fasta", type=argparse.FileType("r"),
-        help="Query sequences filepath (FASTA format)")
+        help="Query sequences FASTA file")
     p.add_argument("--output_dir",
         help="Output directory (default: derived from QUERY_FASTA)")
     p.add_argument("--type_strain_fasta", default="species.fasta",
-        help="Type strain sequences filepath (FASTA format)")
+        help="Type strain sequences FASTA file (default: %(default)s)")
     p.add_argument("--alignment_file", type=argparse.FileType("r"),
-        help="Use pre-computed alignment file")
+        help="Use pre-computed alignment file (default: run new alignments)")
+    p.add_argument("--num_cpus", type=int,
+        help="Number of CPUs to use in aligment (default: use all the CPUs)")
     p.add_argument("--verbose", action="store_true",
         help= "Activate verbose mode.")
     args = p.parse_args(argv)
@@ -41,7 +42,8 @@ def main(argv=None):
     else:
         a = UnassignAligner(args.type_strain_fasta)
         a.species_input_fp = writer.output_fp("unassigner_query.fasta")
-        a.species_output_fp = writer.output_fp("unassigner_query_blastn.txt")
+        a.species_output_fp = writer.output_fp("unassigner_query_hits.txt")
+        a.num_cpus = args.num_cpus
 
     algorithm = ThresholdAlgorithm(a)
     for query_id, query_results in algorithm.unassign(query_seqs):
