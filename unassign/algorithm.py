@@ -109,7 +109,7 @@ class ThresholdAlgorithm(UnassignerAlgorithm):
         res = [self._get_indiv_probability(hit) for hit in hits]
         # Return something even if no hits were obtained
         if not res:
-            return [null_result]
+            return [self.null_result]
         res = list(
             sorted(res, key=operator.itemgetter('probability_incompatible')))
         res_filtered = [
