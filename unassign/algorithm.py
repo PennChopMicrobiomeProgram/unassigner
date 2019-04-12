@@ -58,7 +58,7 @@ class UnassignAligner(object):
         hits = b.search(
             query_seqs,
             self.species_input_fp, self.species_output_fp,
-            min_id = 0.9)
+            min_id = 0.9, maxaccepts = 5)
 
         with open(self.species_fp) as f:
             ref_seqs = list(parse_fasta(f, trim_desc=True))

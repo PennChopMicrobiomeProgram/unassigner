@@ -70,3 +70,21 @@ class ThresholdAlgorithmTests(unittest.TestCase):
         self.assertEqual(top_match["typestrain_id"], "10")
         # Expect very low probability of unassignment
         self.assertLess(top_match["probability_incompatible"], 0.001)
+
+    def test_multiple_species_hit(self):
+        exact_gg10 = (
+            "GGCTCAGATTGAACGCTGGCGGCAGGCCTAACACATGCAAGTCGAGCGGCAGCGCGG"
+            "GGCAACCTGGCGGCGAGCGGCGAACGGGTGAGTAACGCGTAGGAATCTACCCAGTAG"
+            "CGGGGGATAGCCCGGGGAAACTCGGATTAATACCGCATACGCCCTAAGGGGGAAAGC"
+            "AGGGGATCTTCGGACCTTGCACTATTGGAAGAGCCTGCGTTGGATTAGCTAGTTGGT"
+            "AGGGTAAAGGCCTACCAAGGCGACGATCCATA")
+        seqs = [("query10", exact_gg10)]
+        all_results = self.algo.unassign(seqs)
+        query_id, query_results = next(all_results)
+        self.assertEqual(query_id, "query10")
+        print(query_results)
+        self.assertEqual(len(query_results), 2)
+        top_match = query_results[0]
+        self.assertEqual(top_match["typestrain_id"], "10")
+        # Expect very low probability of unassignment
+        self.assertLess(top_match["probability_incompatible"], 0.001)

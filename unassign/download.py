@@ -74,7 +74,7 @@ def process_ltp_seqs(input_fp, output_fp=SPECIES_FASTA_FP):
                 accession = vals[0]
                 species_name = vals[5]
                 f_out.write(
-                    ">{0}\t{1}\n{2}\n"format(accession, species_name, seq))
+                    ">{0}\t{1}\n{2}\n".format(accession, species_name, seq))
     return output_fp
 
 
