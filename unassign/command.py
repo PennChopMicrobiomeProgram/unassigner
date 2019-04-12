@@ -82,17 +82,19 @@ class OutputWriter:
         fileobj.write("\n")
 
     def write_results(self, query_id, results):
-        for res in results:
+        for result in results:
+            species_name = self.species_names.get(result["typestrain_id"], "NA")
+
             # Set custom algorithm keys based on the first result
             if self.algorithm_keys is None:
-                self.algorithm_keys = [
-                    k for k in res if k not in self.standard_keys]
-                algorithm_header = ["query_id"] + self.algorithm_keys
+                self.algorithm_keys = list(result.keys())
+                algorithm_header = ["query_id", "species_name"] + self.algorithm_keys
                 self._write_tsv_line(self.algorithm_file, algorithm_header)
-            species_name = self.species_names.get(res["typestrain_id"], "NA")
 
             standard_vals = [query_id, species_name] + \
-                [res[k] for k in self.standard_keys]
+                [result[k] for k in self.standard_keys]
             self._write_tsv_line(self.standard_file, standard_vals)
-            algorithm_vals = [query_id] + [res[k] for k in self.algorithm_keys]
+
+            algorithm_vals = [query_id, species_name] + \
+                [result[k] for k in self.algorithm_keys]
             self._write_tsv_line(self.algorithm_file, algorithm_vals)
