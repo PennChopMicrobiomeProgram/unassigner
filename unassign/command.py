@@ -11,7 +11,8 @@ def main(argv=None):
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     p.add_argument("query_fasta", type=argparse.FileType("r"),
         help="Query sequences filepath (FASTA format)")
-    p.add_argument("output_dir", help="Output directory")
+    p.add_argument("--output_dir",
+        help="Output directory (default: derived from QUERY_FASTA)")
     p.add_argument("--type_strain_fasta", default="species.fasta",
         help="Type strain sequences filepath (FASTA format)")
     p.add_argument("--alignment_file", type=argparse.FileType("r"),
@@ -25,9 +26,15 @@ def main(argv=None):
 
     query_seqs = list(parse_fasta(args.query_fasta, trim_desc=True))
 
+    if args.output_dir is None:
+        output_dir = os.path.splitext(args.query_fasta.name)[0] + "_unassigned"
+    else:
+        output_dir = args.output_dir
+
     with open(args.type_strain_fasta) as f:
         species_names = dict(parse_species_names(f))
-    writer = OutputWriter(args.output_dir, species_names)
+
+    writer = OutputWriter(output_dir, species_names)
 
     if args.alignment_file:
         a = FileAligner(args.type_strain_fasta, args.alignment_file)
@@ -80,7 +87,7 @@ class OutputWriter:
                     k for k in res if k not in self.standard_keys]
                 algorithm_header = ["query_id"] + self.algorithm_keys
                 self._write_tsv_line(self.algorithm_file, algorithm_header)
-            species_name = self.species_names.get(res["typestrain_id"])
+            species_name = self.species_names.get(res["typestrain_id"], "NA")
 
             standard_vals = [query_id, species_name] + \
                 [res[k] for k in self.standard_keys]
