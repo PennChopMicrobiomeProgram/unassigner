@@ -11,14 +11,14 @@ class AlignedPairTests(unittest.TestCase):
             ("a", "CCCGGTCCGGTTATT"),
             #      |||||||||||||xx
             ("b", "CCCGGTCCGGTTAAC"))
-        self.assertEqual(a.count_matches(), (13, 15, 15))
+        self.assertEqual(a.count_matches(), 13)
 
     def test_hit_identity_gaps(self):
         a = AlignedPair(
             ("a", "CCCGGTCCGGTT--TT"),
             #      ||||||||||||  xx
             ("b", "CCCGGTCCGGTTAACC"))
-        self.assertEqual(a.count_matches(), (12, 14, 16))
+        self.assertEqual(a.count_matches(), 12)
 
     def test_no_gaps(self):
         a = AlignedPair(

@@ -82,7 +82,6 @@ class ThresholdAlgorithmTests(unittest.TestCase):
         all_results = self.algo.unassign(seqs)
         query_id, query_results = next(all_results)
         self.assertEqual(query_id, "query10")
-        print(query_results)
         self.assertEqual(len(query_results), 2)
         top_match = query_results[0]
         self.assertEqual(top_match["typestrain_id"], "10")

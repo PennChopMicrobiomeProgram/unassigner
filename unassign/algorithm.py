@@ -6,6 +6,7 @@ import math
 import scipy
 import scipy.special
 
+from unassign.alignment import AlignedRegion
 from unassign.align import VsearchAligner, HitExtender
 from unassign.parse import parse_fasta
 
@@ -89,6 +90,10 @@ class ThresholdAlgorithm(UnassignerAlgorithm):
     calculate the probability of falling below this similarity
     threshold over the full length of the 16S gene.  This value is the
     unassignment probability.
+
+    NEXT: Set cutoff for multiple results where similarity in
+    alignment region is below the species similarity threshold.
+
     """
 
     def __init__(self, aligner):
@@ -102,14 +107,18 @@ class ThresholdAlgorithm(UnassignerAlgorithm):
             yield self._get_indiv_probability(hit)
 
     def _get_indiv_probability(self, alignment):
-        region_matches, total_query, total_subject = alignment.count_matches()
-        region_mismatches = total_query - region_matches
+        region = AlignedRegion.without_endgaps(alignment).trim_ends()
+        region_positions = region.alignment_len
+        region_matches = region.count_matches()
+        region_mismatches = region_positions - region_matches
 
         alpha = region_mismatches + self.prior_alpha
         beta = region_matches + self.prior_beta
 
-        total_positions = alignment.subject_len
-        nonregion_positions = total_positions - total_query
+        nonregion_subject_positions = (
+            alignment.subject_len - region.subject_len)
+        total_positions = (
+            region_positions + nonregion_subject_positions)
 
         species_mismatch_threshold = 1 - self.species_threshold
         max_total_mismatches = int(math.floor(
@@ -117,14 +126,15 @@ class ThresholdAlgorithm(UnassignerAlgorithm):
         max_nonregion_mismatches = max_total_mismatches - region_mismatches
 
         prob_compatible = beta_binomial_cdf(
-            max_nonregion_mismatches, nonregion_positions, alpha, beta)
+            max_nonregion_mismatches, nonregion_subject_positions, alpha, beta)
         prob_incompatible = 1 - prob_compatible
 
         return {
             "typestrain_id": alignment.subject_id,
             "probability_incompatible": prob_incompatible,
             "region_mismatches": region_mismatches,
+            "region_positions": region_positions,
             "region_matches": region_matches,
-            "nonregion_positions": nonregion_positions,
+            "nonregion_positions_in_subject": nonregion_subject_positions,
             "max_nonregion_mismatches": max_nonregion_mismatches,
         }
