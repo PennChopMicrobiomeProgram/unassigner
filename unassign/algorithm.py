@@ -2,6 +2,7 @@ import collections
 import itertools
 import logging
 import math
+import operator
 
 import scipy
 import scipy.special
@@ -90,11 +91,13 @@ class ThresholdAlgorithm(UnassignerAlgorithm):
     calculate the probability of falling below this similarity
     threshold over the full length of the 16S gene.  This value is the
     unassignment probability.
-
-    NEXT: Set cutoff for multiple results where similarity in
-    alignment region is below the species similarity threshold.
-
     """
+    result_keys = [
+        "typestrain_id", "probability_incompatible", "region_mismatches",
+        "region_positions", "region_matches", "nonregion_positions_in_subject",
+        "max_nonregion_mismatches",
+    ]
+    null_result = dict((key, "NA") for key in result_keys)
 
     def __init__(self, aligner):
         super().__init__(aligner)
@@ -103,8 +106,23 @@ class ThresholdAlgorithm(UnassignerAlgorithm):
         self.species_threshold = 0.975
 
     def _get_probability(self, hits):
-        for hit in hits:
-            yield self._get_indiv_probability(hit)
+        res = [self._get_indiv_probability(hit) for hit in hits]
+        # Return something even if no hits were obtained
+        if not res:
+            return [null_result]
+        res = list(
+            sorted(res, key=operator.itemgetter('probability_incompatible')))
+        res_filtered = [
+            r for r in res if self.sequence_id(r) > self.species_threshold]
+        # Return one low-identity result if we have nothing better
+        if not res_filtered:
+            return res[:1]
+        # Otherwise return hits exceeding the identity threshold
+        return res_filtered
+
+    @staticmethod
+    def sequence_id(result):
+        return result["region_matches"] / result["region_positions"]
 
     def _get_indiv_probability(self, alignment):
         region = AlignedRegion.without_endgaps(alignment).trim_ends()
