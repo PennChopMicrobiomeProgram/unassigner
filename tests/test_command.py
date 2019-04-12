@@ -17,7 +17,9 @@ class CommandTests(unittest.TestCase):
         with open(query_fp, "w") as f:
             f.write(query_fasta)
         main([
-            query_fp, self.dir, "--type_strain_fasta", REF_FP])
+            query_fp,
+            "--output_dir", self.dir,
+            "--type_strain_fasta", REF_FP])
 
         with(open(os.path.join(self.dir, "unassigner_output.tsv"))) as f:
             header_line = next(f)
