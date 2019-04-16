@@ -7,6 +7,10 @@ setup(name='unassign',
       author_email='kylebittinger@gmail.com',
       url='https://github.com/kylebittinger/unassigner',
       packages=['unassign'],
+      install_requires=[
+          'biopython',
+          'scipy',
+      ],
       entry_points = {
           'console_scripts': [
               'unassignseqs=unassign.command:main',
