@@ -1,8 +1,16 @@
+import os
 from setuptools import setup
+
+PACKAGE_DIR = os.path.abspath(os.path.dirname(__file__))
+README_FP = os.path.join(PACKAGE_DIR, 'README.md')
+with open(README_FP, encoding='utf-8') as f:
+    long_description = f.read()
 
 setup(name='unassigner',
       version='0.0.3',
       description='Bacterial species unassigner',
+      long_description=long_description,
+      long_description_content_type='text/markdown',
       author='Kyle Bittinger',
       author_email='kylebittinger@gmail.com',
       url='https://github.com/kylebittinger/unassigner',
