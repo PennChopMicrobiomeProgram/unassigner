@@ -3,8 +3,8 @@ import subprocess
 import tempfile
 from Bio import pairwise2
 
-from unassign.parse import write_fasta, load_fasta, parse_fasta
-from unassign.alignment import AlignedPair
+from unassigner.parse import write_fasta, load_fasta, parse_fasta
+from unassigner.alignment import AlignedPair
 
 BLAST_FMT = (
     "qseqid sseqid pident length mismatch gapopen "

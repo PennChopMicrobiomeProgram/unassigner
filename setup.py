@@ -1,18 +1,29 @@
 from setuptools import setup
 
-setup(name='unassign',
-      version='0.0.2',
+setup(name='unassigner',
+      version='0.0.3',
       description='Bacterial species unassigner',
       author='Kyle Bittinger',
       author_email='kylebittinger@gmail.com',
       url='https://github.com/kylebittinger/unassigner',
-      packages=['unassign'],
-      entry_points = {
+      packages=['unassigner'],
+      install_requires=[
+          'biopython',
+          'scipy',
+      ],
+      entry_points={
           'console_scripts': [
-              'unassignseqs=unassign.command:main',
-              'prepare_strain_data=unassign.prepare_strain_data:main',
-              'trimragged=unassign.trim:main',
-              'fastagrep=unassign.find:main',
+              'unassign=unassigner.command:main',
+              'trimragged=unassigner.trim:main',
           ],
-      }
+      },
+      classifiers=[
+          'Intended Audience :: Science/Research',
+          'License :: OSI Approved :: GNU General Public License v2 or later (GPLv2+)',
+          'Operating System :: POSIX :: Linux',
+          'Operating System :: MacOS :: MacOS X',
+          'Programming Language :: Python :: 3',
+          'Topic :: Scientific/Engineering :: Bio-Informatics',
+      ],
+      license='GPLv2+',
 )

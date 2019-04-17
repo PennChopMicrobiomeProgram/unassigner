@@ -2,7 +2,7 @@ import argparse
 import sys
 import os
 
-from unassign.download import (
+from unassigner.download import (
     get_url, clean,
     LTP_METADATA_URL, LTP_SEQS_URL,
     GG_SEQS_URL, GG_ACCESSIONS_URL,
@@ -64,3 +64,10 @@ def main(argv=None):
         gg_accessions_fp = use_or_download(
             args.greengenes_accessions_fp, GG_ACCESSIONS_URL, db_dir)
         process_greengenes_seqs(gg_seqs_fp, gg_accessions_fp, db_dir)
+
+def download_type_strain_data(output_dir=None, metadata_fp=None, seqs_fp=None):
+    if output_dir is None:
+        output_dir = os.getcwd()
+    metadata_fp = use_or_download(metadata_fp, LTP_METADATA_URL, output_dir)
+    seqs_fp = use_or_download(seqs_fp, LTP_SEQS_URL, output_dir)
+    return process_ltp_seqs(seqs_fp, output_dir)

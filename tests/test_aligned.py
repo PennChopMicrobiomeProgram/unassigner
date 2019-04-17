@@ -1,6 +1,6 @@
 import unittest
 
-from unassign.alignment import (
+from unassigner.alignment import (
     AlignedPair, AlignedRegion,
     aligned_start_idx, aligned_end_idx,
 )

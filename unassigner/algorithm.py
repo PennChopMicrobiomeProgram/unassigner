@@ -7,9 +7,9 @@ import operator
 import scipy
 import scipy.special
 
-from unassign.alignment import AlignedRegion
-from unassign.align import VsearchAligner, HitExtender
-from unassign.parse import parse_fasta
+from unassigner.alignment import AlignedRegion
+from unassigner.align import VsearchAligner, HitExtender
+from unassigner.parse import parse_fasta
 
 class UnassignerAlgorithm:
     def __init__(self, aligner):
@@ -76,17 +76,18 @@ class UnassignAligner(object):
 
 
 class FileAligner:
-    def __init__(self, species_fp, output_file):
+    def __init__(self, species_fp, output_fp):
         self.species_fp = species_fp
-        self.output_file = output_file
+        self.output_fp = output_fp
 
     def search_species(self, seqs):
-        hits = VsearchAligner._parse(self.output_file)
         with open(self.species_fp) as f:
-            ref_seqs = list(parse_fasta(f))
+            ref_seqs = list(parse_fasta(f, trim_desc=True))
         xt = HitExtender(seqs, ref_seqs)
-        for hit in hits:
-            yield xt.extend_hit(hit)
+        with open(self.output_fp) as of:
+            hits = VsearchAligner._parse(of)
+            for hit in hits:
+                yield xt.extend_hit(hit)
 
 
 class ThresholdAlgorithm(UnassignerAlgorithm):
