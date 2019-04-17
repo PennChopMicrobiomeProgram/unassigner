@@ -14,9 +14,7 @@ setup(name='unassigner',
       entry_points = {
           'console_scripts': [
               'unassign=unassigner.command:main',
-              'prepare_strain_data=unassigner.prepare_strain_data:main',
               'trimragged=unassigner.trim:main',
-              'fastagrep=unassigner.find:main',
           ],
       }
 )
