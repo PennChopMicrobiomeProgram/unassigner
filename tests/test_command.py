@@ -2,7 +2,7 @@ import os
 import unittest
 import tempfile
 
-from unassign.command import main
+from unassigner.command import main
 
 DATA_DIR = os.path.join(
     os.path.dirname(os.path.realpath(__file__)), "data")

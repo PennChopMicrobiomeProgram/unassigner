@@ -3,7 +3,7 @@ import os
 import subprocess
 import tarfile
 
-from unassign.parse import parse_fasta, parse_greengenes_accessions
+from unassigner.parse import parse_fasta, parse_greengenes_accessions
 
 LTP_METADATA_COLS = [
     "accession",

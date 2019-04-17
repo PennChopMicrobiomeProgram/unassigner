@@ -1,10 +1,10 @@
 import argparse
 import os
 
-from unassign.algorithm import (
+from unassigner.algorithm import (
     UnassignAligner, FileAligner, ThresholdAlgorithm,
 )
-from unassign.parse import parse_fasta, parse_species_names
+from unassigner.parse import parse_fasta, parse_species_names
 
 def main(argv=None):
     p = argparse.ArgumentParser()

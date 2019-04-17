@@ -7,9 +7,9 @@ import shutil
 import sys
 import tempfile
 
-from unassign.parse import parse_fasta, write_fasta
-from unassign.align import VsearchAligner, HitExtender
-from unassign.alignment import AlignedRegion
+from unassigner.parse import parse_fasta, write_fasta
+from unassigner.align import VsearchAligner, HitExtender
+from unassigner.alignment import AlignedRegion
 
 class TrimmableSeqs:
     def __init__(self, recs):

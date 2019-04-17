@@ -1,4 +1,3 @@
-
 def species_probability(self, species_alignment, refseq_alignments):
     """Compute probability of species attribution.
     """

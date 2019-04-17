@@ -1,7 +1,7 @@
 import tempfile
 import unittest
 
-from unassign.parse import parse_fasta, load_fasta, write_fasta
+from unassigner.parse import parse_fasta, load_fasta, write_fasta
 
 class FastaTests(unittest.TestCase):
     def test_parse_fasta(self):

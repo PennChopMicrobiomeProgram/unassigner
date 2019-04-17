@@ -7,9 +7,9 @@ import operator
 import scipy
 import scipy.special
 
-from unassign.alignment import AlignedRegion
-from unassign.align import VsearchAligner, HitExtender
-from unassign.parse import parse_fasta
+from unassigner.alignment import AlignedRegion
+from unassigner.align import VsearchAligner, HitExtender
+from unassigner.parse import parse_fasta
 
 class UnassignerAlgorithm:
     def __init__(self, aligner):

@@ -1,7 +1,7 @@
 import os.path
 import unittest
 
-from unassign.algorithm import (
+from unassigner.algorithm import (
     UnassignAligner, ThresholdAlgorithm,
     beta_binomial_pdf, beta_binomial_cdf,
 )

@@ -1,8 +1,8 @@
 import argparse
 import sys
 
-from unassign.parse import parse_fasta, write_fasta
-from unassign.trim import (
+from unassigner.parse import parse_fasta, write_fasta
+from unassigner.trim import (
     CompleteMatcher, PartialMatcher,
     deambiguate, reverse_complement,
     )

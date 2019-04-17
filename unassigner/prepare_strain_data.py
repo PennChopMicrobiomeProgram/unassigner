@@ -2,7 +2,7 @@ import argparse
 import sys
 import os
 
-from unassign.download import (
+from unassigner.download import (
     get_url, clean,
     LTP_METADATA_URL, LTP_SEQS_URL,
     GG_SEQS_URL, GG_ACCESSIONS_URL,

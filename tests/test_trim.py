@@ -1,11 +1,9 @@
-## Next:
-## - write primer region to stats file
 import pathlib
 import shutil
 import tempfile
 import unittest
 
-from unassign.trim import (
+from unassigner.trim import (
     deambiguate, partial_seqs,
     trim_left, trim_right, main,
     TrimmableSeqs, PrimerMatch,
