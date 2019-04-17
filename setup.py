@@ -1,7 +1,7 @@
 from setuptools import setup
 
 setup(name='unassigner',
-      version='0.0.2',
+      version='0.0.3',
       description='Bacterial species unassigner',
       author='Kyle Bittinger',
       author_email='kylebittinger@gmail.com',
