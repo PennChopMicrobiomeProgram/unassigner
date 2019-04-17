@@ -11,10 +11,19 @@ setup(name='unassigner',
           'biopython',
           'scipy',
       ],
-      entry_points = {
+      entry_points={
           'console_scripts': [
               'unassign=unassigner.command:main',
               'trimragged=unassigner.trim:main',
           ],
-      }
+      },
+      classifiers=[
+          'Intended Audience :: Science/Research',
+          'License :: OSI Approved :: GNU General Public License v2 or later (GPLv2+)',
+          'Operating System :: POSIX :: Linux',
+          'Operating System :: MacOS :: MacOS X',
+          'Programming Language :: Python :: 3',
+          'Topic :: Scientific/Engineering :: Bio-Informatics',
+      ],
+      license='GPLv2+',
 )
