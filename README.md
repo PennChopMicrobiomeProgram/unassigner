@@ -16,8 +16,9 @@ amplification and sequencing.
 
 The resultant sequences, spanning part of the 16S gene, can be used to
 identify the types of bacteria present in a specimen. For example, one
-sequence might be assigned to the *Streptococcus* genus. Many programs
-are available to carry out such taxonomic assignment.
+sequence might be assigned to the *Streptococcus* genus based on
+sequence similarity. Many programs are available to carry out such
+taxonomic assignment.
 
 It is generally thought that the 16S rRNA gene is not suitable for
 assignment of bacterial species. We agree, but with a catch: the gene
