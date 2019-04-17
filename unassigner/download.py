@@ -27,7 +27,7 @@ GG_SEQS_URL = \
     "ftp://greengenes.microbio.me/greengenes_release/gg_13_5/gg_13_5.fasta.gz"
 GG_ACCESSIONS_URL = \
     "ftp://greengenes.microbio.me/greengenes_release/gg_13_5/gg_13_5_accessions.txt.gz"
-SPECIES_FASTA_FP = "species.fasta"
+SPECIES_FASTA_FP = "unassigner_species.fasta"
 REFSEQS_FASTA_FP = "refseqs.fasta"
 GG_DUPLICATE_FP = "gg_duplicate_ids.txt"
 

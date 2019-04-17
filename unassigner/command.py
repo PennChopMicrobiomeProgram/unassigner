@@ -5,19 +5,25 @@ from unassigner.algorithm import (
     UnassignAligner, FileAligner, ThresholdAlgorithm,
 )
 from unassigner.parse import parse_fasta, parse_species_names
+from unassigner.prepare_strain_data import download_type_strain_data
 
 def main(argv=None):
     p = argparse.ArgumentParser()
     p.add_argument("query_fasta", type=argparse.FileType("r"),
         help="Query sequences FASTA file")
     p.add_argument("--output_dir",
-        help="Output directory (default: derived from QUERY_FASTA)")
-    p.add_argument("--type_strain_fasta", default="species.fasta",
-        help="Type strain sequences FASTA file (default: %(default)s)")
-    p.add_argument("--alignment_file", type=argparse.FileType("r"),
-        help="Use pre-computed alignment file (default: run new alignments)")
+        help=(
+            "Output directory (default: basename of query sequences FASTA "
+            "file, plus '_unassigned')"))
+    p.add_argument("--type_strain_fasta", default="unassigner_species.fasta",
+        help=(
+            "Type strain sequences FASTA file (default: %(default)s). "
+            "If the default file is not found, sequences are downloaded "
+            "and re-formatted automatically."))
     p.add_argument("--num_cpus", type=int,
-        help="Number of CPUs to use in aligment (default: use all the CPUs)")
+        help=(
+            "Number of CPUs to use during sequence aligment (default: "
+            "use all the CPUs)"))
     p.add_argument("--verbose", action="store_true",
         help= "Activate verbose mode.")
     args = p.parse_args(argv)
@@ -32,17 +38,26 @@ def main(argv=None):
     else:
         output_dir = args.output_dir
 
+    # Download type strain files if needed
+    type_strain_fp_is_default = (
+        args.type_strain_fasta == p.get_default("type_strain_fasta"))
+    type_strain_fp_is_missing = not os.path.exists(args.type_strain_fasta)
+    if type_strain_fp_is_default and type_strain_fp_is_missing:
+        download_type_strain_data()
+
     with open(args.type_strain_fasta) as f:
         species_names = dict(parse_species_names(f))
 
     writer = OutputWriter(output_dir, species_names)
 
-    if args.alignment_file:
-        a = FileAligner(args.type_strain_fasta, args.alignment_file)
+    alignment_query_fp = writer.output_fp("unassigner_query.fasta")
+    alignment_output_fp = writer.output_fp("unassigner_query_hits.txt")
+    if os.path.exists(alignment_output_fp):
+        a = FileAligner(args.type_strain_fasta, alignment_output_fp)
     else:
         a = UnassignAligner(args.type_strain_fasta)
-        a.species_input_fp = writer.output_fp("unassigner_query.fasta")
-        a.species_output_fp = writer.output_fp("unassigner_query_hits.txt")
+        a.species_input_fp = alignment_query_fp
+        a.species_output_fp = alignment_output_fp
         a.num_cpus = args.num_cpus
 
     algorithm = ThresholdAlgorithm(a)
