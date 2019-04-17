@@ -7,7 +7,7 @@ with open(README_FP, encoding='utf-8') as f:
     long_description = f.read()
 
 setup(name='unassigner',
-      version='0.0.3',
+      version='0.0.4',
       description='Bacterial species unassigner',
       long_description=long_description,
       long_description_content_type='text/markdown',
