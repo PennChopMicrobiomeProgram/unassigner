@@ -1,4 +1,5 @@
 import argparse
+import logging
 import os
 
 from unassigner.algorithm import (
@@ -29,7 +30,7 @@ def main(argv=None):
     args = p.parse_args(argv)
 
     if args.verbose is True:
-        logging.basicConfig(level=logging.INFO)
+        logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
 
     query_seqs = list(parse_fasta(args.query_fasta, trim_desc=True))
 
