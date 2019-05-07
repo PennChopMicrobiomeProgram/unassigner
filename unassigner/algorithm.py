@@ -1,6 +1,5 @@
 import collections
 import itertools
-import logging
 import math
 import operator
 

@@ -1,7 +1,10 @@
 import collections
+import logging
 import os
+import shutil
 import subprocess
 import tarfile
+import urllib.request
 
 from unassigner.parse import parse_fasta, parse_greengenes_accessions
 
@@ -54,11 +57,10 @@ def url_fp(url):
 def gunzip_fp(fp):
     return fp[:-3]
 
-
 def get_url(url, fp):
-    if os.path.exists(fp):
-        os.remove(fp)
-    subprocess.check_call(["wget", "-O", fp, url])
+    logging.info("Downloading {0}".format(url))
+    with urllib.request.urlopen(url) as resp, open(fp, 'wb') as f:
+        shutil.copyfileobj(resp, f)
     return fp
 
 

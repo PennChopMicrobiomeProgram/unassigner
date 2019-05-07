@@ -48,10 +48,11 @@ pip install unassigner
 ```
 
 Besides the python libraries listed in the setup file, this program
-requires `wget` and `vsearch` to be installed. The `wget` program is
-used to download data on bacterial species, the first time `unassign`
-is run. The program `vsearch` is used to search for the closest
-matching bacterial species and return pairwise sequence alignments.
+requires `vsearch` to be installed.  This program `vsearch` is used to
+search for the closest matching bacterial species and return pairwise
+sequence alignments.  It's available through
+[conda](https://anaconda.org/bioconda/vsearch), and this is our
+recommended method for installation.
 
 ## Usage
 
