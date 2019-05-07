@@ -48,8 +48,8 @@ pip install unassigner
 ```
 
 Besides the python libraries listed in the setup file, this program
-requires `vsearch` to be installed.  This program `vsearch` is used to
-search for the closest matching bacterial species and return pairwise
+requires `vsearch` to be installed.  This program is used to search
+for the closest matching bacterial species and return pairwise
 sequence alignments.  It's available through
 [conda](https://anaconda.org/bioconda/vsearch), and this is our
 recommended method for installation.
