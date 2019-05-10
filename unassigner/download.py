@@ -67,13 +67,20 @@ def get_url(url, fp):
 def process_ltp_seqs(input_fp, output_fp=SPECIES_FASTA_FP):
     if os.path.isdir(output_fp):
         output_fp = os.path.join(output_fp, SPECIES_FASTA_FP)
+    acession_cts = collections.defaultdict(int)
     # Re-format FASTA file
     with open(input_fp) as f_in:
         seqs = parse_fasta(f_in)
         with open(output_fp, "w") as f_out:
             for desc, seq in seqs:
                 vals = desc.split("\t")
+                # Some accessions refer to genomes with more than one 16S gene
+                # So accessions can be legitiamtely repeated with distinct gene sequences
                 accession = vals[0]
+                accession_times_previously_seen = accession_cts[accession]
+                accession_cts[accession] += 1
+                if accession_times_previously_seen > 0:
+                    accession = "{0}_repeat{1}".format(accession, accession_times_previously_seen)
                 species_name = vals[5]
                 f_out.write(
                     ">{0}\t{1}\n{2}\n".format(accession, species_name, seq))
