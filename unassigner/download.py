@@ -67,7 +67,7 @@ def get_url(url, fp):
 def process_ltp_seqs(input_fp, output_fp=SPECIES_FASTA_FP):
     if os.path.isdir(output_fp):
         output_fp = os.path.join(output_fp, SPECIES_FASTA_FP)
-    acession_cts = collections.defaultdict(int)
+    accession_cts = collections.defaultdict(int)
     # Re-format FASTA file
     with open(input_fp) as f_in:
         seqs = parse_fasta(f_in)
