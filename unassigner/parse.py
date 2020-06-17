@@ -30,9 +30,12 @@ def parse_fasta(f, trim_desc=False):
     SILVA and the Living Tree Project.
     """
     f = iter(f)
-    desc = next(f).strip()[1:]
-    if trim_desc:
-        desc = desc.split()[0]
+    try:
+        desc = next(f).strip()[1:]
+        if trim_desc:
+            desc = desc.split()[0]
+    except StopIteration:
+        return
     seq = StringIO()
     for line in f:
         line = line.strip()
