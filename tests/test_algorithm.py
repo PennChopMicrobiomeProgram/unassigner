@@ -3,6 +3,7 @@ import unittest
 
 from unassigner.algorithm import (
     UnassignAligner, UnassignerApp,
+    VariableMismatchRate,
     beta_binomial_pdf, beta_binomial_cdf,
 )
 
@@ -35,6 +36,31 @@ class FunctionTests(unittest.TestCase):
         self.assertEqual(beta_binomial_pdf(3, 0, 10, 10), 0) # n == 0
         self.assertEqual(beta_binomial_pdf(-3, 5, 10, 10), 0) # k < 0
 
+class VariableMismatchRateTests(unittest.TestCase):
+    def setUp(self):
+        self.mismatch_fp = os.path.join(DATA_DIR, "mismatch_db.txt")
+
+    def test_load_database(self):
+        with open(self.mismatch_fp) as f:
+            VariableMismatchRate.load_database(f)
+
+        aab_mismatches = VariableMismatchRate.db["AABF01000111"]
+        self.assertEqual(len(aab_mismatches), 3)
+        self.assertEqual(aab_mismatches[0], [])
+        self.assertEqual(aab_mismatches[1], [173, 234])
+        self.assertEqual(aab_mismatches[2], [173, 234, 876, 1268])
+
+        ab0_mismatches = VariableMismatchRate.db["AB004719"]
+        self.assertEqual(len(ab0_mismatches), 4)
+        self.assertEqual(ab0_mismatches[0], [])
+        self.assertEqual(ab0_mismatches[1], [])
+        self.assertEqual(ab0_mismatches[2], [
+            43, 86, 138,           410, 481, 520, 550, 1388])
+        self.assertEqual(ab0_mismatches[3], [
+            43,     138, 168, 295, 410, 481, 520, 550, 1388])
+
+        notindb_mismatches = VariableMismatchRate.db["notindb"]
+        self.assertEqual(notindb_mismatches, [])
 
 class UnassignerAppTests(unittest.TestCase):
     def setUp(self):

@@ -70,6 +70,25 @@ class FileAligner:
             for hit in hits:
                 yield xt.extend_hit(hit)
 
+class VariableMismatchRate:
+    """Predict unobserved mismatches by estimating a mismatch rate
+    """
+    db = collections.defaultdict(list)
+
+    @classmethod
+    def load_database(cls, f):
+        for line in f:
+            line = line.rstrip()
+            toks = line.split("\t")
+            typestrain_id = toks[0]
+            ref_seq_id = toks[1]
+            mismatch_positions = [int(x) for x in toks[2:]]
+            typestrain_mm = cls.db.get(typestrain_id, list)
+            cls.db[typestrain_id].append(mismatch_positions)
+
+    def __init__(self, alignment, db):
+        self.alignment = alignment
+
 
 class ConstantMismatchRate:
     """Predict unobserved mismatches assuming a constant mismatch rate
