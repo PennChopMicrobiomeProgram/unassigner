@@ -87,7 +87,7 @@ class ConstantMismatchRate:
     def __init__(self, alignment):
         self.alignment = alignment
         self.query_id = alignment.query_id
-        self.region = AlignedRegion.without_endgaps(alignment).trim_ends()
+        self.region = alignment.trim_endgaps()
         self.region_positions = self.region.alignment_len
         self.region_matches = self.region.count_matches()
         self.region_mismatches = self.region_positions - self.region_matches

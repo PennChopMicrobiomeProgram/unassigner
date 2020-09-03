@@ -43,6 +43,10 @@ class AlignedPair(object):
     def percent_id(self):
         return self.count_matches() / self.query_len
 
+    def trim_endgaps(self):
+        return AlignedRegion.without_endgaps(self).trim_ends()
+
+
 class AlignedRegion:
     """Specify and extract regions of a pairwise sequence alignment
     """
