@@ -98,8 +98,10 @@ class UnassignerAlgorithm:
             alignments_by_query[a.query_id].append(a)
         for query_id in query_ids:
             query_alignments = alignments_by_query[query_id]
-            results = self._get_probability(query_alignments)
-            yield query_id, list(results)
+            results = [self._get_indiv_probability(a) for a in query_alignments]
+            if not results:
+                results = [self.null_result]
+            yield query_id, results
 
     def _align_query_to_type_strain(self, query_seqs):
         # We expect query_seqs to be a list
@@ -158,25 +160,6 @@ class ThresholdAlgorithm(UnassignerAlgorithm):
         self.prior_alpha = 0.5
         self.prior_beta = 0.5
         self.species_threshold = 0.975
-
-    def _get_probability(self, hits):
-        res = [self._get_indiv_probability(hit) for hit in hits]
-        # Return something even if no hits were obtained
-        if not res:
-            return [self.null_result]
-        res = list(
-            sorted(res, key=operator.itemgetter('probability_incompatible')))
-        res_filtered = [
-            r for r in res if self.sequence_id(r) > self.species_threshold]
-        # Return one low-identity result if we have nothing better
-        if not res_filtered:
-            return res[:1]
-        # Otherwise return hits exceeding the identity threshold
-        return res_filtered
-
-    @staticmethod
-    def sequence_id(result):
-        return result["region_matches"] / result["region_positions"]
 
     def _get_indiv_probability(self, alignment):
         region = AlignedRegion.without_endgaps(alignment).trim_ends()
