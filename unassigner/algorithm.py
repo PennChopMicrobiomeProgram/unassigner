@@ -168,41 +168,47 @@ class ThresholdAlgorithm(UnassignerAlgorithm):
     ]
     null_result = dict((key, "NA") for key in result_keys)
 
-    def __init__(self, aligner):
-        super().__init__(aligner)
-        self.prior_alpha = 0.5
-        self.prior_beta = 0.5
-        self.species_threshold = 0.975
-
     def _get_indiv_probability(self, alignment):
-        region = AlignedRegion.without_endgaps(alignment).trim_ends()
-        region_positions = region.alignment_len
-        region_matches = region.count_matches()
-        region_mismatches = region_positions - region_matches
+        mm = ConstantMismatchDistribution(alignment)
+        return mm.unassign_threshold()
 
-        alpha = region_mismatches + self.prior_alpha
-        beta = region_matches + self.prior_beta
 
+class ConstantMismatchDistribution:
+    prior_alpha = 0.5
+    prior_beta = 0.5
+
+    def __init__(self, alignment):
+        self.alignment = alignment
+        self.region = AlignedRegion.without_endgaps(alignment).trim_ends()
+        self.region_positions = self.region.alignment_len
+        self.region_matches = self.region.count_matches()
+        self.region_mismatches = self.region_positions - self.region_matches
+
+        self.alpha = self.region_mismatches + self.prior_alpha
+        self.beta = self.region_matches + self.prior_beta
+
+    def unassign_threshold(self, min_id=0.975):
         nonregion_subject_positions = (
-            alignment.subject_len - region.subject_len)
+            self.alignment.subject_len - self.region.subject_len)
         total_positions = (
-            region_positions + nonregion_subject_positions)
+            self.region_positions + nonregion_subject_positions)
 
-        species_mismatch_threshold = 1 - self.species_threshold
+        species_mismatch_threshold = 1 - min_id
         max_total_mismatches = int(math.floor(
             species_mismatch_threshold * total_positions))
-        max_nonregion_mismatches = max_total_mismatches - region_mismatches
+        max_nonregion_mismatches = max_total_mismatches - self.region_mismatches
 
         prob_compatible = beta_binomial_cdf(
-            max_nonregion_mismatches, nonregion_subject_positions, alpha, beta)
+            max_nonregion_mismatches, nonregion_subject_positions,
+            self.alpha, self.beta)
         prob_incompatible = 1 - prob_compatible
 
         return {
-            "typestrain_id": alignment.subject_id,
+            "typestrain_id": self.alignment.subject_id,
             "probability_incompatible": prob_incompatible,
-            "region_mismatches": region_mismatches,
-            "region_positions": region_positions,
-            "region_matches": region_matches,
+            "region_mismatches": self.region_mismatches,
+            "region_positions": self.region_positions,
+            "region_matches": self.region_matches,
             "nonregion_positions_in_subject": nonregion_subject_positions,
             "max_nonregion_mismatches": max_nonregion_mismatches,
         }
