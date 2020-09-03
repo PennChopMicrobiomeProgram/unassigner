@@ -126,6 +126,32 @@ class AlignedPairTests(unittest.TestCase):
 
 
 class AlignedRegionTests(unittest.TestCase):
+    def test_without_endgaps_basic(self):
+        a = AlignedPair(
+            ("q", "--ABCDE---"),
+            ("s", "FGHIJKLMNO"))
+        r = AlignedRegion.without_endgaps(a)
+        self.assertEqual(r.start_idx, 2)
+        self.assertEqual(r.end_idx, 7)
+
+    def test_without_endgaps_hard(self):
+        a = AlignedPair(
+            ("q", "--A-CDEFGH"),
+            #        |||||
+            ("s", "FG-IJ-L---"))
+        r = AlignedRegion.without_endgaps(a)
+        self.assertEqual(r.start_idx, 2)
+        self.assertEqual(r.end_idx, 7)
+
+    def test_trim_ends(self):
+        a = AlignedPair(
+            ("q", "ABCDEFGHIJ"),
+            ("s", "KLMNOPQRST"))
+        r = AlignedRegion(a, 2, 5)
+        self.assertEqual(
+            r.trim_ends(),
+            AlignedPair(("q", "CDE"), ("s", "MNO")))
+
     def test_from_subject_no_endgaps(self):
         a = AlignedPair(
             ("a", "ABCDEF"),
