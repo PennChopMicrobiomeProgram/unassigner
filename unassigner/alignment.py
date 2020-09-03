@@ -35,6 +35,9 @@ class AlignedPair(object):
         return self.count_matches() / self.query_len
 
 class AlignedRegion:
+    """Specify and extract regions of a pairwise sequence alignment
+    """
+
     def __init__(self, alignment, start_idx, end_idx):
         assert(start_idx >= 0)
         assert(start_idx <= alignment.alignment_len)
@@ -113,6 +116,8 @@ class AlignedRegion:
 
     @classmethod
     def without_endgaps(cls, a):
+        """Create a new region with no endgaps
+        """
         left_endgaps = max(
             count_endgaps(a.query_seq),
             count_endgaps(a.subject_seq))
@@ -125,6 +130,8 @@ class AlignedRegion:
 
     @classmethod
     def from_subject(cls, a, subject_start_idx=0, subject_end_idx=None):
+        """Create a new region using coordinates in subject sequence
+        """
         if subject_end_idx is None:
             subject_end_idx = a.subject_len
         assert(subject_start_idx >= 0)
@@ -138,6 +145,8 @@ class AlignedRegion:
 
     @classmethod
     def from_query(cls, a, query_start_idx=0, query_end_idx=None):
+        """Create a new region using coordinates in query sequence
+        """
         if query_end_idx is None:
             query_end_idx = a.query_len
         assert(query_start_idx >= 0)
