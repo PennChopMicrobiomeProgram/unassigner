@@ -86,9 +86,11 @@ class VariableMismatchRate:
             typestrain_mm = cls.db.get(typestrain_id, list)
             cls.db[typestrain_id].append(mismatch_positions)
 
-    def __init__(self, alignment, db):
+    def __init__(self, alignment):
         self.alignment = alignment
 
+    def unassign_threshold(self, min_id=0.975):
+        pass
 
 class ConstantMismatchRate:
     """Predict unobserved mismatches assuming a constant mismatch rate
