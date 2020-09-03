@@ -72,6 +72,15 @@ class FileAligner:
 
 
 class ConstantMismatchDistribution:
+    """Mismatch predictor for constant mismatch rate
+    """
+
+    result_keys = [
+        "typestrain_id", "probability_incompatible", "region_mismatches",
+        "region_positions", "region_matches", "nonregion_positions_in_subject",
+        "max_nonregion_mismatches",
+    ]
+    null_result = dict((key, "NA") for key in result_keys)
     prior_alpha = 0.5
     prior_beta = 0.5
 
@@ -87,6 +96,14 @@ class ConstantMismatchDistribution:
         self.beta = self.region_matches + self.prior_beta
 
     def unassign_threshold(self, min_id=0.975):
+        """Unassign with a hard threshold
+
+        Here, we set a threshold value for sequence similarity to the
+        type strain sequence.  For a query sequence, we calculate the
+        probability of falling below this similarity threshold over
+        the full length of the 16S gene.  This value is the
+        unassignment probability.
+        """
         nonregion_subject_positions = (
             self.alignment.subject_len - self.region.subject_len)
         total_positions = (
@@ -114,13 +131,6 @@ class ConstantMismatchDistribution:
 
 
 class UnassignerAlgorithm:
-    null_result = {
-        "typestrain_id": "NA",
-        "region_mismatches": "NA",
-        "region_positions": "NA",
-        "probability_incompatible": "NA",
-    }
-
     def __init__(self, aligner, mismatcher = ConstantMismatchDistribution):
         self.aligner = aligner
         self.mismatcher = mismatcher
@@ -155,7 +165,7 @@ class UnassignerAlgorithm:
         for query_id in query_ids:
             query_results = results_by_query[query_id]
             if not query_results:
-                query_results = [self.null_result]
+                query_results = [self.mismatcher.null_result]
             yield query_id, query_results
 
     def _align_query_to_type_strain(self, query_seqs):
@@ -187,18 +197,5 @@ class UnassignerAlgorithm:
 
 
 class ThresholdAlgorithm(UnassignerAlgorithm):
-    """Threshold algorithm for species unassignment
-
-    In this algorithm, we set a threshold value for sequence
-    similarity to the type strain sequence.  For a query sequence, we
-    calculate the probability of falling below this similarity
-    threshold over the full length of the 16S gene.  This value is the
-    unassignment probability.
-    """
-    result_keys = [
-        "typestrain_id", "probability_incompatible", "region_mismatches",
-        "region_positions", "region_matches", "nonregion_positions_in_subject",
-        "max_nonregion_mismatches",
-    ]
-    null_result = dict((key, "NA") for key in result_keys)
+    pass
 
