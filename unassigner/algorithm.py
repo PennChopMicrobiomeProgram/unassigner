@@ -71,8 +71,8 @@ class FileAligner:
                 yield xt.extend_hit(hit)
 
 
-class ConstantMismatchDistribution:
-    """Mismatch predictor for constant mismatch rate
+class ConstantMismatchRate:
+    """Predict unobserved mismatches assuming a constant mismatch rate
     """
 
     result_keys = [
@@ -131,9 +131,9 @@ class ConstantMismatchDistribution:
 
 
 class UnassignerApp:
-    def __init__(self, aligner, mismatcher = ConstantMismatchDistribution):
+    def __init__(self, aligner, mm_rate = ConstantMismatchRate):
         self.aligner = aligner
-        self.mismatcher = mismatcher
+        self.mm_rate = mm_rate
         self.alignment_min_percent_id = 0.975
 
     def unassign(self, query_seqs):
@@ -149,13 +149,12 @@ class UnassignerApp:
         # For each query-type strain alignment, estimate distribution of
         # mismatches outside fragment. Different for constant vs. variable
         # mismatch algorithms.
-        mm_distributions = [self.mismatcher(a) for a in alignments]
+        mm_rates = [self.mm_rate(a) for a in alignments]
 
         # Step 3.
         # For each query-type strain alignment, estimate unassignment
         # probability. Different for hard vs. soft threshold algorithms.
-        results = [
-            (mm.query_id, mm.unassign_threshold()) for mm in mm_distributions]
+        results = [(r.query_id, r.unassign_threshold()) for r in mm_rates]
 
         # Step 4.
         # Group by query and yield results to caller. Same for all algorithms.
@@ -165,7 +164,7 @@ class UnassignerApp:
         for query_id in query_ids:
             query_results = results_by_query[query_id]
             if not query_results:
-                query_results = [self.mismatcher.null_result]
+                query_results = [self.mm_rate.null_result]
             yield query_id, query_results
 
     def _align_query_to_type_strain(self, query_seqs):
