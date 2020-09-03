@@ -2,7 +2,7 @@ import os.path
 import unittest
 
 from unassigner.algorithm import (
-    UnassignAligner, ThresholdAlgorithm,
+    UnassignAligner, UnassignerApp,
     beta_binomial_pdf, beta_binomial_cdf,
 )
 
@@ -36,11 +36,11 @@ class FunctionTests(unittest.TestCase):
         self.assertEqual(beta_binomial_pdf(-3, 5, 10, 10), 0) # k < 0
 
 
-class ThresholdAlgorithmTests(unittest.TestCase):
+class UnassignerAppTests(unittest.TestCase):
     def setUp(self):
         self.ggfp = os.path.join(DATA_DIR, "gg10.fasta")
         a = UnassignAligner(self.ggfp)
-        self.algo = ThresholdAlgorithm(a)
+        self.app = UnassignerApp(a)
 
     def test_threshold(self):
         ref_ids = set(str(x) for x in range(1, 10))
@@ -48,7 +48,7 @@ class ThresholdAlgorithmTests(unittest.TestCase):
             ("a", "CTTGCTCTCGGGTGACGAGCGGCGGACGGGTGAGTAAT"),
             ("b", "GCGTGGCGAACGGCTGACGAACACGTGG"),
             ]
-        all_results = self.algo.unassign(seqs)
+        all_results = self.app.unassign(seqs)
         first_query_id, first_query_results = next(all_results)
         self.assertEqual(first_query_id, "a")
         first_query_match = first_query_results[0]
@@ -63,7 +63,7 @@ class ThresholdAlgorithmTests(unittest.TestCase):
             "AGGGGATCTTCGGACCTTGCACTATTGGAAGAGCCTGCGTTGGATTAGCTAGTTGGT"
             "AGGGTAAAGGCCTACCAAGGCGACGATCCATA")
         seqs = [("query0", exact_gg10)]
-        all_results = self.algo.unassign(seqs)
+        all_results = self.app.unassign(seqs)
         query_id, query_results = next(all_results)
         top_match = query_results[0]
         self.assertEqual(query_id, "query0")
@@ -79,7 +79,7 @@ class ThresholdAlgorithmTests(unittest.TestCase):
             "AGGGGATCTTCGGACCTTGCACTATTGGAAGAGCCTGCGTTGGATTAGCTAGTTGGT"
             "AGGGTAAAGGCCTACCAAGGCGACGATCCATA")
         seqs = [("query10", exact_gg10)]
-        all_results = self.algo.unassign(seqs)
+        all_results = self.app.unassign(seqs)
         query_id, query_results = next(all_results)
         self.assertEqual(query_id, "query10")
         self.assertEqual(len(query_results), 2)

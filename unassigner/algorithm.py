@@ -130,7 +130,7 @@ class ConstantMismatchDistribution:
         }
 
 
-class UnassignerAlgorithm:
+class UnassignerApp:
     def __init__(self, aligner, mismatcher = ConstantMismatchDistribution):
         self.aligner = aligner
         self.mismatcher = mismatcher
@@ -194,8 +194,4 @@ class UnassignerAlgorithm:
         if sorted_alignments and not filtered_alignments:
             return sorted_alignments[:1]
         return filtered_alignments
-
-
-class ThresholdAlgorithm(UnassignerAlgorithm):
-    pass
 

@@ -3,7 +3,7 @@ import logging
 import os
 
 from unassigner.algorithm import (
-    UnassignAligner, FileAligner, ThresholdAlgorithm,
+    UnassignAligner, FileAligner, UnassignerApp,
 )
 from unassigner.parse import parse_fasta, parse_species_names
 from unassigner.prepare_strain_data import download_type_strain_data
@@ -61,8 +61,8 @@ def main(argv=None):
         a.species_output_fp = alignment_output_fp
         a.num_cpus = args.num_cpus
 
-    algorithm = ThresholdAlgorithm(a)
-    for query_id, query_results in algorithm.unassign(query_seqs):
+    app = UnassignerApp(a)
+    for query_id, query_results in app.unassign(query_seqs):
         writer.write_results(query_id, query_results)
 
 
