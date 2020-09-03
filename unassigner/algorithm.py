@@ -71,6 +71,48 @@ class FileAligner:
                 yield xt.extend_hit(hit)
 
 
+class ConstantMismatchDistribution:
+    prior_alpha = 0.5
+    prior_beta = 0.5
+
+    def __init__(self, alignment):
+        self.alignment = alignment
+        self.query_id = alignment.query_id
+        self.region = AlignedRegion.without_endgaps(alignment).trim_ends()
+        self.region_positions = self.region.alignment_len
+        self.region_matches = self.region.count_matches()
+        self.region_mismatches = self.region_positions - self.region_matches
+
+        self.alpha = self.region_mismatches + self.prior_alpha
+        self.beta = self.region_matches + self.prior_beta
+
+    def unassign_threshold(self, min_id=0.975):
+        nonregion_subject_positions = (
+            self.alignment.subject_len - self.region.subject_len)
+        total_positions = (
+            self.region_positions + nonregion_subject_positions)
+
+        species_mismatch_threshold = 1 - min_id
+        max_total_mismatches = int(math.floor(
+            species_mismatch_threshold * total_positions))
+        max_nonregion_mismatches = max_total_mismatches - self.region_mismatches
+
+        prob_compatible = beta_binomial_cdf(
+            max_nonregion_mismatches, nonregion_subject_positions,
+            self.alpha, self.beta)
+        prob_incompatible = 1 - prob_compatible
+
+        return {
+            "typestrain_id": self.alignment.subject_id,
+            "probability_incompatible": prob_incompatible,
+            "region_mismatches": self.region_mismatches,
+            "region_positions": self.region_positions,
+            "region_matches": self.region_matches,
+            "nonregion_positions_in_subject": nonregion_subject_positions,
+            "max_nonregion_mismatches": max_nonregion_mismatches,
+        }
+
+
 class UnassignerAlgorithm:
     null_result = {
         "typestrain_id": "NA",
@@ -79,8 +121,9 @@ class UnassignerAlgorithm:
         "probability_incompatible": "NA",
     }
 
-    def __init__(self, aligner):
+    def __init__(self, aligner, mismatcher = ConstantMismatchDistribution):
         self.aligner = aligner
+        self.mismatcher = mismatcher
         self.alignment_min_percent_id = 0.975
 
     def unassign(self, query_seqs):
@@ -96,14 +139,13 @@ class UnassignerAlgorithm:
         # For each query-type strain alignment, estimate distribution of
         # mismatches outside fragment. Different for constant vs. variable
         # mismatch algorithms.
-        mm_distributions = self._estimate_mismatch_distributions(alignments)
+        mm_distributions = [self.mismatcher(a) for a in alignments]
 
         # Step 3.
         # For each query-type strain alignment, estimate unassignment
         # probability. Different for hard vs. soft threshold algorithms.
-        results = self._estimate_unassignment_probabilities(mm_distributions)
         results = [
-            (a.query_id, self._get_indiv_probability(a)) for a in alignments]
+            (mm.query_id, mm.unassign_threshold()) for mm in mm_distributions]
 
         # Step 4.
         # Group by query and yield results to caller. Same for all algorithms.
@@ -143,14 +185,6 @@ class UnassignerAlgorithm:
             return sorted_alignments[:1]
         return filtered_alignments
 
-    def _estimate_mismatch_distributions(self, alignments):
-        # constant vs. variable mismatch rate
-        pass
-
-    def _estimate_unassignment_probabilities(self, mm_distributions):
-        # hard vs. soft unassignment threshold
-        pass
-
 
 class ThresholdAlgorithm(UnassignerAlgorithm):
     """Threshold algorithm for species unassignment
@@ -168,47 +202,3 @@ class ThresholdAlgorithm(UnassignerAlgorithm):
     ]
     null_result = dict((key, "NA") for key in result_keys)
 
-    def _get_indiv_probability(self, alignment):
-        mm = ConstantMismatchDistribution(alignment)
-        return mm.unassign_threshold()
-
-
-class ConstantMismatchDistribution:
-    prior_alpha = 0.5
-    prior_beta = 0.5
-
-    def __init__(self, alignment):
-        self.alignment = alignment
-        self.region = AlignedRegion.without_endgaps(alignment).trim_ends()
-        self.region_positions = self.region.alignment_len
-        self.region_matches = self.region.count_matches()
-        self.region_mismatches = self.region_positions - self.region_matches
-
-        self.alpha = self.region_mismatches + self.prior_alpha
-        self.beta = self.region_matches + self.prior_beta
-
-    def unassign_threshold(self, min_id=0.975):
-        nonregion_subject_positions = (
-            self.alignment.subject_len - self.region.subject_len)
-        total_positions = (
-            self.region_positions + nonregion_subject_positions)
-
-        species_mismatch_threshold = 1 - min_id
-        max_total_mismatches = int(math.floor(
-            species_mismatch_threshold * total_positions))
-        max_nonregion_mismatches = max_total_mismatches - self.region_mismatches
-
-        prob_compatible = beta_binomial_cdf(
-            max_nonregion_mismatches, nonregion_subject_positions,
-            self.alpha, self.beta)
-        prob_incompatible = 1 - prob_compatible
-
-        return {
-            "typestrain_id": self.alignment.subject_id,
-            "probability_incompatible": prob_incompatible,
-            "region_mismatches": self.region_mismatches,
-            "region_positions": self.region_positions,
-            "region_matches": self.region_matches,
-            "nonregion_positions_in_subject": nonregion_subject_positions,
-            "max_nonregion_mismatches": max_nonregion_mismatches,
-        }
