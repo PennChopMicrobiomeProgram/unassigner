@@ -72,6 +72,13 @@ class FileAligner:
 
 
 class UnassignerAlgorithm:
+    null_result = {
+        "typestrain_id": "NA",
+        "region_mismatches": "NA",
+        "region_positions": "NA",
+        "probability_incompatible": "NA",
+    }
+
     def __init__(self, aligner):
         self.aligner = aligner
         self.alignment_min_percent_id = 0.975
@@ -80,28 +87,34 @@ class UnassignerAlgorithm:
         query_seqs = list(query_seqs)
         query_ids = [seq_id for seq_id, seq in query_seqs]
 
-        # Steps in algorithm:
-        # 1. Align query sequences to type strain sequences
+        # Step 1.
+        # Align query sequences to type strain sequences. Same for all
+        # algorithms.
         alignments = self._align_query_to_type_strain(query_seqs)
 
-        # 3. For each query-type strain alignment,
-        #    estimate distribution of mismatches outside fragment
+        # Step 2.
+        # For each query-type strain alignment, estimate distribution of
+        # mismatches outside fragment. Different for constant vs. variable
+        # mismatch algorithms.
         mm_distributions = self._estimate_mismatch_distributions(alignments)
 
-        # 4. For each query-type strain alignment,
-        #    estimate unassignment probability
-        unassignments = self._estimate_unassignment_probabilities(mm_distributions)
+        # Step 3.
+        # For each query-type strain alignment, estimate unassignment
+        # probability. Different for hard vs. soft threshold algorithms.
+        results = self._estimate_unassignment_probabilities(mm_distributions)
+        results = [
+            (a.query_id, self._get_indiv_probability(a)) for a in alignments]
 
-        # 5. Group by query and yield results to caller
-        alignments_by_query = collections.defaultdict(list)
-        for a in alignments:
-            alignments_by_query[a.query_id].append(a)
+        # Step 4.
+        # Group by query and yield results to caller. Same for all algorithms.
+        results_by_query = collections.defaultdict(list)
+        for query_id, res in results:
+            results_by_query[query_id].append(res)
         for query_id in query_ids:
-            query_alignments = alignments_by_query[query_id]
-            results = [self._get_indiv_probability(a) for a in query_alignments]
-            if not results:
-                results = [self.null_result]
-            yield query_id, results
+            query_results = results_by_query[query_id]
+            if not query_results:
+                query_results = [self.null_result]
+            yield query_id, query_results
 
     def _align_query_to_type_strain(self, query_seqs):
         # We expect query_seqs to be a list
