@@ -30,6 +30,10 @@ class AlignedPair(object):
     def count_matches(self):
         return sum(q == s for q, s in zip(self.query_seq, self.subject_seq))
 
+    @property
+    def percent_id(self):
+        return self.count_matches() / self.query_len
+
 class AlignedRegion:
     def __init__(self, alignment, start_idx, end_idx):
         assert(start_idx >= 0)

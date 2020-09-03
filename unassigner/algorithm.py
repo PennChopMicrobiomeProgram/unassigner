@@ -10,24 +10,6 @@ from unassigner.alignment import AlignedRegion
 from unassigner.align import VsearchAligner, HitExtender
 from unassigner.parse import parse_fasta
 
-class UnassignerAlgorithm:
-    def __init__(self, aligner):
-        self.aligner = aligner
-
-    def unassign(self, query_seqs):
-        query_seqs = list(query_seqs)
-        query_ids = [seq_id for seq_id, seq in query_seqs]
-        alignments_by_query_id = collections.defaultdict(list)
-
-        for alignment in self.aligner.search_species(query_seqs):
-            alignments_by_query_id[alignment.query_id].append(alignment)
-
-        for query_id in query_ids:
-            alignments = alignments_by_query_id[query_id]
-            results = self._get_probability(alignments)
-            yield query_id, list(results)
-
-
 def beta_binomial_pdf(k, n, alpha, beta):
     binom_coeff = scipy.special.comb(n, k)
     if binom_coeff == 0:
@@ -87,6 +69,72 @@ class FileAligner:
             hits = VsearchAligner._parse(of)
             for hit in hits:
                 yield xt.extend_hit(hit)
+
+
+class UnassignerAlgorithm:
+    def __init__(self, aligner):
+        self.aligner = aligner
+        self.alignment_min_percent_id = 0.975
+
+    def unassign(self, query_seqs):
+        query_seqs = list(query_seqs)
+        query_ids = [seq_id for seq_id, seq in query_seqs]
+
+        # Steps in algorithm:
+        # 1. Align query sequences to type strain sequences
+        alignments = self._align_query_to_type_strain(query_seqs)
+
+        # 3. For each query-type strain alignment,
+        #    estimate distribution of mismatches outside fragment
+        mm_distributions = self._estimate_mismatch_distributions(alignments)
+
+        # 4. For each query-type strain alignment,
+        #    estimate unassignment probability
+        unassignments = self._estimate_unassignment_probabilities(mm_distributions)
+
+        # 5. Group by query and yield results to caller
+        alignments_by_query = collections.defaultdict(list)
+        for a in alignments:
+            alignments_by_query[a.query_id].append(a)
+        for query_id in query_ids:
+            query_alignments = alignments_by_query[query_id]
+            results = self._get_probability(query_alignments)
+            yield query_id, list(results)
+
+    def _align_query_to_type_strain(self, query_seqs):
+        # We expect query_seqs to be a list
+        query_ids = [seq_id for seq_id, seq in query_seqs]
+        unsorted_alignments = self.aligner.search_species(query_seqs)
+
+        alignments_by_query = collections.defaultdict(list)
+        for a in unsorted_alignments:
+            alignments_by_query[a.query_id].append(a)
+
+        for query_id in query_ids:
+            query_alignments = alignments_by_query[query_id]
+            query_alignments = self._filter_alignments(query_alignments)
+            for a in query_alignments:
+                yield a
+
+    def _filter_alignments(self, query_alignments):
+        sorted_alignments = list(sorted(
+            query_alignments, key=operator.attrgetter('percent_id'),
+            reverse=True))
+        filtered_alignments = [
+            a for a in sorted_alignments
+            if a.percent_id > self.alignment_min_percent_id]
+        # Return one low-identity result if we have nothing better
+        if sorted_alignments and not filtered_alignments:
+            return sorted_alignments[:1]
+        return filtered_alignments
+
+    def _estimate_mismatch_distributions(self, alignments):
+        # constant vs. variable mismatch rate
+        pass
+
+    def _estimate_unassignment_probabilities(self, mm_distributions):
+        # hard vs. soft unassignment threshold
+        pass
 
 
 class ThresholdAlgorithm(UnassignerAlgorithm):
