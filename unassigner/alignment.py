@@ -7,6 +7,15 @@ class AlignedPair(object):
         self.subject_id, self.subject_seq = sseq
         assert(len(self.query_seq) == len(self.subject_seq))
 
+    def __eq__(self, other):
+        self_vals = (
+            self.query_id, self.query_seq,
+            self.subject_id, self.subject_seq)
+        other_vals = (
+            other.query_id, other.query_seq,
+            other.subject_id, other.subject_seq)
+        return self_vals == other_vals
+
     @property
     def alignment_len(self):
         return len(self.query_seq)
