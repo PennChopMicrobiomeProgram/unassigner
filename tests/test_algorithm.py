@@ -40,6 +40,9 @@ class VariableMismatchRateTests(unittest.TestCase):
     def setUp(self):
         self.mismatch_fp = os.path.join(DATA_DIR, "mismatch_db.txt")
 
+    def tearDown(self):
+        VariableMismatchRate.clear_database()
+
     def test_load_database(self):
         with open(self.mismatch_fp) as f:
             VariableMismatchRate.load_database(f)
@@ -61,6 +64,15 @@ class VariableMismatchRateTests(unittest.TestCase):
 
         notindb_mismatches = VariableMismatchRate.db["notindb"]
         self.assertEqual(notindb_mismatches, [])
+
+    def test_get_mismatches(self):
+        VariableMismatchRate.db["abc"] = [
+            [1, 3, 9, 12, 15, 16],
+            [2, 8, 10, 11],
+            [20],
+        ]
+        mms = VariableMismatchRate._get_mismatches("abc", 3, 10)
+        self.assertEqual(list(mms), [(2, 4), (2, 2), (0, 1)])
 
 class UnassignerAppTests(unittest.TestCase):
     def setUp(self):

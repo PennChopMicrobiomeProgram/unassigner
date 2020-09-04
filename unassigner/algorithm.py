@@ -76,6 +76,10 @@ class VariableMismatchRate:
     db = collections.defaultdict(list)
 
     @classmethod
+    def clear_database(cls):
+        cls.db.clear()
+
+    @classmethod
     def load_database(cls, f):
         for line in f:
             line = line.rstrip()
@@ -83,11 +87,21 @@ class VariableMismatchRate:
             typestrain_id = toks[0]
             ref_seq_id = toks[1]
             mismatch_positions = [int(x) for x in toks[2:]]
-            typestrain_mm = cls.db.get(typestrain_id, list)
             cls.db[typestrain_id].append(mismatch_positions)
 
     def __init__(self, alignment):
         self.alignment = alignment
+
+    @classmethod
+    def _get_mismatches(self, typestrain_id, start_idx, end_idx):
+        refs = self.db[typestrain_id]
+        for ref_positions in refs:
+            mismatch_is_in_region = [
+                (pos >= start_idx) & (pos <= end_idx)
+                for pos in ref_positions]
+            region_mms = mismatch_is_in_region.count(True)
+            nonregion_mms = mismatch_is_in_region.count(False)
+            yield (region_mms, nonregion_mms)
 
     def unassign_threshold(self, min_id=0.975):
         pass
