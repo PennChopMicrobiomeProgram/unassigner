@@ -3,6 +3,7 @@ import itertools
 import math
 import operator
 
+import numpy
 import scipy
 import scipy.special
 
@@ -89,9 +90,6 @@ class VariableMismatchRate:
             mismatch_positions = [int(x) for x in toks[2:]]
             cls.db[typestrain_id].append(mismatch_positions)
 
-    def __init__(self, alignment):
-        self.alignment = alignment
-
     @classmethod
     def _get_mismatches(self, typestrain_id, start_idx, end_idx):
         refs = self.db[typestrain_id]
@@ -103,8 +101,105 @@ class VariableMismatchRate:
             nonregion_mms = mismatch_is_in_region.count(False)
             yield (region_mms, nonregion_mms)
 
+    def __init__(self, alignment):
+        self.alignment = alignment
+
     def unassign_threshold(self, min_id=0.975):
-        pass
+        # Use all the beta-binomial logic from ConstantMismatchRate,
+        # just adjust alpha and beta based on reference
+        # sequences. Here's how. Reparameterize beta as mu and v,
+        # following wikipedia. Hold v constant. We are going to update
+        # mu. In the constant rate algorithm, mu2 = mu1. In the
+        # variable rate algorithm, we determine log(mu2 / mu1) by
+        # averaging the observed values from the reference
+        # sequences. To stabilize things, start with a list of
+        # [0,0,0,0,0]. Then, for each reference sequence, compute mu2
+        # and mu1, take the log, and append to the list. Average the
+        # values in the list. Now use this as the new value of mu2 for
+        # the query sequence.
+
+        # Clip out the aligned region
+        region = self.alignment.trim_endgaps()
+        region_positions = self.region.alignment_len
+        region_matches = self.region.count_matches()
+        region_mismatches = self.region_positions - self.region_matches
+        region_subject_positions = region.subject_len
+
+        # Calcuate alpha, beta, mu, and v in aligned region
+        alpha1 = region_mismatches + 0.5
+        beta1 = region_matches + 0.5
+        v1 = alpha1 + beta1
+        mu1 = alpha1 / v1
+
+        # Compute number of positions outside aligned region
+        nonregion_subject_positions = (
+            self.alignment.subject_len - region_subject_positions)
+        total_positions = (
+            region_positions + nonregion_subject_positions)
+
+        # Get mismatches from database
+        typestrain_id = self.alignment.subject_id
+        typestrain_start_idx, typestrain_end_idx = region.in_subject()
+        reference_mismatches = self._get_mismatches(
+            typestrain_id, typestrain_start_idx, typestrain_end_idx)
+
+        # Get estimate for gamma = log(mu2 / mu1)
+        # From reference alignments
+        reference_logvals = [0, 0, 0, 0, 0]
+        for region_mms, nonregion_mms in reference_mismatches:
+            # mu = alpha / (alpha + beta)
+            # alpha = mismatches + 0.5
+            # beta = matches + 0.5
+            # matches = len - mismatches
+            # beta = len - mismatches + 0.5
+            # mu = (mismatches + 0.5) / (len + 1)
+            ref_mu1 = (region_mms + 0.5) / (region_subject_positions + 1)
+            ref_mu2 = (nonregion_mms + 0.5) / (nonregion_subject_positions + 1)
+            log_mu2_mu1 = math.log(ref_mu2 / ref_mu1)
+            reference_logvals.append(log_mu2_mu1)
+        # TODO: add weighting
+        gamma = numpy.mean(reference_logvals)
+        print("Reference log-ratios:", reference_logvals)
+        print("Gamma:", gamma)
+
+        # Calculate mu2, get alpha2 and beta2
+        # log(mu2 / mu1) = gamma
+        # log(mu2) - log(mu1) = gamma
+        # log(mu2) = log(mu1) + gamma
+        # mu2 = exp(log(mu1) + gamma)
+        mu2 = exp(math.log(mu1) + gamma)
+        v2 = v1
+        # alpha2, beta2
+        # mu2 = alpha2 / v2
+        # alpha2 = mu2 * v2
+        alpha2 = mu2 * v2
+        # v2 = alpha2 + beta2
+        beta2 = v2 - alpha2
+
+        # Maximum number of mismatches outside observed region
+        species_mismatch_threshold = 1 - min_id
+        max_total_mismatches = int(math.floor(
+            species_mismatch_threshold * total_positions))
+        max_nonregion_mismatches = max_total_mismatches - region_mismatches
+
+        # Compute probability
+        prob_compatible = beta_binomial_cdf(
+            max_nonregion_mismatches, nonregion_subject_positions,
+            alpha2, beta2)
+        prob_incompatible = 1 - prob_compatible
+
+        return {
+            "typestrain_id": self.alignment.subject_id,
+            "region_mismatches": self.region_mismatches,
+            "region_positions": self.region_positions,
+            "probability_incompatible": prob_incompatible,
+            "mu1": mu1,
+            "num_references": len(reference_logvals),
+            "mu2": mu2,
+            "nonregion_positions_in_subject": nonregion_subject_positions,
+            "max_nonregion_mismatches": max_nonregion_mismatches,
+        }
+
 
 class ConstantMismatchRate:
     """Predict unobserved mismatches assuming a constant mismatch rate
