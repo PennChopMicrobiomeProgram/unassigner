@@ -3,9 +3,11 @@ import unittest
 
 from unassigner.algorithm import (
     UnassignAligner, UnassignerApp,
-    VariableMismatchRate,
+    ConstantMismatchRate, VariableMismatchRate,
     beta_binomial_pdf, beta_binomial_cdf,
 )
+
+from unassigner.alignment import AlignedPair
 
 DATA_DIR = os.path.join(
     os.path.dirname(os.path.realpath(__file__)), "data")
@@ -73,6 +75,47 @@ class VariableMismatchRateTests(unittest.TestCase):
         ]
         mms = VariableMismatchRate._get_mismatches("abc", 3, 10)
         self.assertEqual(list(mms), [(2, 4), (2, 2), (0, 1)])
+
+    def test_unassign_threshold(self):
+        a = AlignedPair(
+            (
+                "a",
+                "-----CGTGCGTCGTCACGCGTAGGTCGTTCGAAT--------------"),
+            #         ||||||||||||||||||||||||||||||
+            (
+                "s",
+                #     ||||||||||||||||||||||||||||||
+                "GCTAACGTGCGTCGTCACGCGTAGGTCGTTCGAATGCGTCGTAGTCGAC"),
+            #    < 5 >< 30                         >< 15          >
+        )
+        variable_rate = VariableMismatchRate(a)
+        variable_rate_result = variable_rate.unassign_threshold()
+
+        # With no reference sequences, the result from the variable
+        # rate algorithm should match that of the constant rate
+        # algorithm.
+        constant_rate = ConstantMismatchRate(a)
+        constant_rate_result = constant_rate.unassign_threshold()
+        self.assertEqual(
+            constant_rate_result["probability_incompatible"],
+            variable_rate_result["probability_incompatible"],
+        )
+
+        self.assertAlmostEqual(
+            variable_rate_result["probability_incompatible"],
+            0.06276080134, places=7,
+        )
+
+        # Add a few reference seqs
+        VariableMismatchRate.db["s"].append([10])
+        VariableMismatchRate.db["s"].append([10, 11, 45])
+
+        variable_rate_result = variable_rate.unassign_threshold()
+        self.assertAlmostEqual(
+            variable_rate_result["probability_incompatible"],
+            0.05542295999, places=7,
+        )
+
 
 class UnassignerAppTests(unittest.TestCase):
     def setUp(self):

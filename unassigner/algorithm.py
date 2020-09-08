@@ -119,11 +119,12 @@ class VariableMismatchRate:
         # the query sequence.
 
         # Clip out the aligned region
-        region = self.alignment.trim_endgaps()
-        region_positions = self.region.alignment_len
-        region_matches = self.region.count_matches()
-        region_mismatches = self.region_positions - self.region_matches
-        region_subject_positions = region.subject_len
+        region = AlignedRegion.without_endgaps(self.alignment)
+        region_alignment = region.trim_ends()
+        region_positions = region_alignment.alignment_len
+        region_matches = region_alignment.count_matches()
+        region_mismatches = region_positions - region_matches
+        region_subject_positions = region_alignment.subject_len
 
         # Calcuate alpha, beta, mu, and v in aligned region
         alpha1 = region_mismatches + 0.5
@@ -167,7 +168,7 @@ class VariableMismatchRate:
         # log(mu2) - log(mu1) = gamma
         # log(mu2) = log(mu1) + gamma
         # mu2 = exp(log(mu1) + gamma)
-        mu2 = exp(math.log(mu1) + gamma)
+        mu2 = math.exp(math.log(mu1) + gamma)
         v2 = v1
         # alpha2, beta2
         # mu2 = alpha2 / v2
@@ -190,8 +191,8 @@ class VariableMismatchRate:
 
         return {
             "typestrain_id": self.alignment.subject_id,
-            "region_mismatches": self.region_mismatches,
-            "region_positions": self.region_positions,
+            "region_mismatches": region_mismatches,
+            "region_positions": region_positions,
             "probability_incompatible": prob_incompatible,
             "mu1": mu1,
             "num_references": len(reference_logvals),
