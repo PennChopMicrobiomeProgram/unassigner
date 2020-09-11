@@ -103,6 +103,7 @@ class VariableMismatchRate:
 
     def __init__(self, alignment):
         self.alignment = alignment
+        self.query_id = alignment.query_id
 
     def unassign_threshold(self, min_id=0.975):
         # Use all the beta-binomial logic from ConstantMismatchRate,
@@ -160,8 +161,6 @@ class VariableMismatchRate:
             reference_logvals.append(log_mu2_mu1)
         # TODO: add weighting
         gamma = numpy.mean(reference_logvals)
-        print("Reference log-ratios:", reference_logvals)
-        print("Gamma:", gamma)
 
         # Calculate mu2, get alpha2 and beta2
         # log(mu2 / mu1) = gamma

@@ -1,9 +1,10 @@
 import argparse
+import gzip
 import logging
 import os
 
 from unassigner.algorithm import (
-    UnassignAligner, FileAligner, UnassignerApp,
+    UnassignAligner, FileAligner, UnassignerApp, VariableMismatchRate,
 )
 from unassigner.parse import parse_fasta, parse_species_names
 from unassigner.prepare_strain_data import download_type_strain_data
@@ -21,6 +22,10 @@ def main(argv=None):
             "Type strain sequences FASTA file (default: %(default)s). "
             "If the default file is not found, sequences are downloaded "
             "and re-formatted automatically."))
+    p.add_argument("--ref_mismatch_positions",
+        help=(
+            "File of mismatch positions in reference database. The file may "
+            "be compressed in gzip format."))
     p.add_argument("--num_cpus", type=int,
         help=(
             "Number of CPUs to use during sequence aligment (default: "
@@ -61,7 +66,14 @@ def main(argv=None):
         a.species_output_fp = alignment_output_fp
         a.num_cpus = args.num_cpus
 
-    app = UnassignerApp(a)
+    if args.ref_mismatch_positions:
+        if args.ref_mismatch_positions.endswith(".gz"):
+            mm_db_file = gzip.open(args.ref_mismatch_positions, "rt")
+        else:
+            mm_db_file = open(args.ref_mismatch_positions)
+        VariableMismatchRate.load_database(mm_db_file)
+
+    app = UnassignerApp(a, VariableMismatchRate)
     for query_id, query_results in app.unassign(query_seqs):
         writer.write_results(query_id, query_results)
 
