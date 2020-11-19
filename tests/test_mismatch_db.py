@@ -4,7 +4,7 @@ import tempfile
 import unittest
 
 from unassigner.mismatch_db import (
-    MismatchLocationApp, main,
+    MismatchLocationApp, main, group_by_n
 )
 
 DATA_DIR = os.path.join(
@@ -41,7 +41,24 @@ class MismatchLocationAppTests(unittest.TestCase):
             output_txt = f.read()
         self.assertEqual(output_txt, oral_mismatches)
 
+    def test_mismatch_location_app_batch_size(self):
+        output_file = io.StringIO()
         
+        with open(self.oral_species_fp) as species_file:
+            app = MismatchLocationApp(
+                species_file, self.oral_reference_fp, output_file,
+                batch_size=2)
+            app.run()
+
+        self.assertEqual(output_file.getvalue(), oral_mismatches)
+
+class MismatchDbFunctionTests(unittest.TestCase):
+    def test_group_by_n(self):
+        self.assertEqual(
+            list(group_by_n([1, 2, 3, 4, 5, 6, 7, 8], 3)),
+            [[1, 2, 3], [4, 5, 6], [7, 8]])
+
+
 oral_mismatches = """\
 AF003928	4446824	628	956	1033
 AF003928	4439903	135	357	1076

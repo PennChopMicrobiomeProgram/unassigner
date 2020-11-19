@@ -13,13 +13,16 @@ from unassigner.parse import parse_fasta, write_fasta
 from unassigner.align import VsearchAligner
 
 class MismatchLocationApp:
-    def __init__(self, species_file, ref_fp, mismatch_file):
+    def __init__(
+            self, species_file, ref_fp, mismatch_file,
+            batch_size=10, num_cpus=None):
         self.typestrain_seqs = list(parse_fasta(species_file, trim_desc=True))
         self.reference_fasta_fp = ref_fp
         self.mismatch_db_file = mismatch_file
 
-        self.num_threads = "8"
-        self.min_id = "0.97"
+        self.min_pct_id = 97.0
+        self.num_threads = num_cpus
+        self.batch_size = batch_size
         self.max_hits = "10000"
 
     @property
@@ -37,22 +40,26 @@ class MismatchLocationApp:
         ]
         return subprocess.check_call(args)
 
-    def search_reference_seqs(self):
+    def search_reference_seqs(self, query_seqs):
         query_file = tempfile.NamedTemporaryFile(suffix=".fasta", mode="wt")
-        write_fasta(query_file, self.typestrain_seqs)
+        write_fasta(query_file, query_seqs)
         query_file.seek(0)
 
         reference_hits_file = tempfile.NamedTemporaryFile(suffix=".txt", mode="wt")
 
+        # 97.0 --> 0.97
+        vsearch_min_id = "{:.2f}".format(self.min_pct_id / 100)
         vsearch_args =[
             "vsearch", "--usearch_global", query_file.name,
             "--db", self.reference_udb_fp,
             "--userout", reference_hits_file.name,
-            "--iddef", "2", "--id", self.min_id,
+            "--iddef", "2", "--id", vsearch_min_id,
             "--maxaccepts", self.max_hits,
-            "--threads", self.num_threads,
-            "--userfields", "query+target+id2+alnlen+mism+gaps+qilo+qihi+tilo+tihi+qs+ts+qrow+trow",
+            "--userfields",
+            "query+target+id2+alnlen+mism+gaps+qilo+qihi+tilo+tihi+qs+ts+qrow+trow",
         ]
+        if self.num_threads:
+            vsearch_args.extend(["--threads", str(self.num_threads)])
 
         subprocess.check_call(vsearch_args)
         reference_hits_file.seek(0)
@@ -70,10 +77,15 @@ class MismatchLocationApp:
 
     def run(self):
         self.make_reference_udb()
-        reference_hits_file = self.search_reference_seqs()
-        ref_mismatches = self.find_mismathes(reference_hits_file)
-        write_mismatches(self.mismatch_db_file, ref_mismatches)
+        for query_seqs in group_by_n(self.typestrain_seqs, self.batch_size):
+            reference_hits_file = self.search_reference_seqs(query_seqs)
+            ref_mismatches = self.find_mismathes(reference_hits_file)
+            write_mismatches(self.mismatch_db_file, ref_mismatches)
 
+def group_by_n(xs, n):
+    args = [iter(xs)] * n
+    for xgroup in itertools.zip_longest(*args, fillvalue=None):
+        yield [x for x in xgroup if x is not None]
 
 def write_mismatches(f, ref_mismatches):
     for query_id, subject_id, mismatch_pos in ref_mismatches:
@@ -138,16 +150,32 @@ def mismatch_query_pos(hit):
 
 def main(argv=None):
     p = argparse.ArgumentParser()
-    p.add_argument("type_strain_fasta", type=argparse.FileType("r"),
-        help="Type strain sequences FASTA file.")
-    p.add_argument("reference_fasta",
-        help="Full-length reference sequences FASTA file.")
-    p.add_argument("output_file", type=argparse.FileType("w"),
-        help="Otuput file path.")
+    p.add_argument(
+        "type_strain_fasta", metavar="type-strain-fasta",
+        type=argparse.FileType("r"),
+        help="Type strain sequences FASTA file")
+    p.add_argument(
+        "reference_fasta", metavar="reference-fasta",
+        help="Full-length reference sequences FASTA file")
+    p.add_argument(
+        "output_file", metavar="output-file", type=argparse.FileType("w"),
+        help="Otuput file path")
+
+    p.add_argument(
+        "--batch-size",
+        type=int, default=10,
+        help=(
+            "Number of query sequences to search simultaneously "
+            "(default: %(default)s)"))
+    p.add_argument(
+        "--num-cpus", type=int,
+        help="Number of CPUs to use in search (default: all the CPUs)")
     args = p.parse_args(argv)
 
 
     app = MismatchLocationApp(
-        args.type_strain_fasta, args.reference_fasta, args.output_file)
+        args.type_strain_fasta, args.reference_fasta, args.output_file,
+        batch_size=args.batch_size, num_cpus=args.num_cpus,
+    )
     app.run()
 
