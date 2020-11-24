@@ -14,11 +14,11 @@ from unassigner.align import VsearchAligner
 
 class MismatchLocationApp:
     def __init__(
-            self, species_file, ref_fp, mismatch_file,
+            self, species_file, ref_fp, mismatch_db,
             batch_size=10, num_cpus=None):
         self.typestrain_seqs = list(parse_fasta(species_file, trim_desc=True))
         self.reference_fasta_fp = ref_fp
-        self.mismatch_db_file = mismatch_file
+        self.mismatch_db = mismatch_db
 
         self.min_pct_id = 97.0
         self.num_threads = num_cpus
@@ -72,29 +72,80 @@ class MismatchLocationApp:
             if hit["pident"] > 97.0:
                 query_id = hit["qseqid"]
                 subject_id = hit["sseqid"]
-                mismatch_pos = mismatch_query_pos(hit)
-                yield (query_id, subject_id, mismatch_pos)
+                mismatch_positions = mismatch_query_pos(hit)
+                yield (query_id, subject_id, mismatch_positions)
 
     def run(self):
         self.make_reference_udb()
         for query_seqs in group_by_n(self.typestrain_seqs, self.batch_size):
             reference_hits_file = self.search_reference_seqs(query_seqs)
             ref_mismatches = self.find_mismathes(reference_hits_file)
-            write_mismatches(self.mismatch_db_file, ref_mismatches)
+            for query_id, subject_id, mismatch_positions in ref_mismatches:
+                self.mismatch_db[query_id].append(
+                    (subject_id, list(mismatch_positions)))
+
 
 def group_by_n(xs, n):
     args = [iter(xs)] * n
     for xgroup in itertools.zip_longest(*args, fillvalue=None):
         yield [x for x in xgroup if x is not None]
 
-def write_mismatches(f, ref_mismatches):
-    for query_id, subject_id, mismatch_pos in ref_mismatches:
-        f.write(query_id)
-        f.write("\t")
-        f.write(subject_id)
-        f.write("\t")
-        f.write("\t".join(map(str, mismatch_pos)))
-        f.write("\n")
+
+class MismatchDb(collections.abc.Mapping):
+    def __init__(self, data=None):
+        if data is None:
+            self.data = {}
+        else:
+            self.data = data
+
+    def __getitem__(self, key):
+        if not key in self.data:
+            self.data[key] = []
+        return self.data[key]
+
+    def __iter__(self):
+        return iter(self.data)
+
+    def __len__(self):
+        return len(self.data)
+
+    @classmethod
+    def load(cls, f):
+        db = cls()
+        for line in f:
+            line = line.strip()
+            if line.startswith("#"):
+                continue
+            if not line:
+                continue
+            vals = line.split("\t")
+            query_id = vals[0]
+            subject_id = vals[1]
+            mismatch_positions = map(int, vals[2:])
+            val = (subject_id, mismatch_positions)
+            if query_id not in db.data:
+                db.data[query_id] = [val]
+            else:
+                db.data[query_id].append(val)
+        return db
+
+
+class MutableMismatchDb(MismatchDb):
+    def write(self, f):
+        for query_id, mismatches in self.data.items():
+            for subject_id, mismatch_positions in mismatches:
+                f.write(query_id)
+                f.write("\t")
+                f.write(subject_id)
+                f.write("\t")
+                f.write("\t".join(map(str, mismatch_positions)))
+                f.write("\n")
+
+    def __setitem__(self, key, val):
+        self.data[key] = val
+
+    def __delitem__(self, key):
+        del self.data[key]
 
 
 AMBIGUOUS_BASES = {
@@ -172,10 +223,11 @@ def main(argv=None):
         help="Number of CPUs to use in search (default: all the CPUs)")
     args = p.parse_args(argv)
 
-
+    mismatch_db = MutableMismatchDb()
     app = MismatchLocationApp(
-        args.type_strain_fasta, args.reference_fasta, args.output_file,
+        args.type_strain_fasta, args.reference_fasta, mismatch_db,
         batch_size=args.batch_size, num_cpus=args.num_cpus,
     )
     app.run()
-
+    mismatch_db.write(args.output_file)
+    args.output_file.close()

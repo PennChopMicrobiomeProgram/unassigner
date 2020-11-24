@@ -1,10 +1,11 @@
+import collections
 import os
 import io
 import tempfile
 import unittest
 
 from unassigner.mismatch_db import (
-    MismatchLocationApp, main, group_by_n
+    MismatchLocationApp, main, group_by_n, MutableMismatchDb,
 )
 
 DATA_DIR = os.path.join(
@@ -23,14 +24,12 @@ class MismatchLocationAppTests(unittest.TestCase):
             os.remove(udb_fp)
 
     def test_mismatch_location_app(self):
-        output_file = io.StringIO()
-        
+        db = MutableMismatchDb()
         with open(self.oral_species_fp) as species_file:
             app = MismatchLocationApp(
-                species_file, self.oral_reference_fp, output_file)
+                species_file, self.oral_reference_fp, db)
             app.run()
-
-        self.assertEqual(output_file.getvalue(), oral_mismatches)
+        self.assertEqual(db.data, oral_mismatch_data)
 
     def test_mismatch_command_line(self):
         output_fp = os.path.join(self.dir, "mismatches.txt")
@@ -42,15 +41,13 @@ class MismatchLocationAppTests(unittest.TestCase):
         self.assertEqual(output_txt, oral_mismatches)
 
     def test_mismatch_location_app_batch_size(self):
-        output_file = io.StringIO()
-        
+        db = MutableMismatchDb()
         with open(self.oral_species_fp) as species_file:
             app = MismatchLocationApp(
-                species_file, self.oral_reference_fp, output_file,
+                species_file, self.oral_reference_fp, db,
                 batch_size=2)
             app.run()
-
-        self.assertEqual(output_file.getvalue(), oral_mismatches)
+        self.assertEqual(db.data, oral_mismatch_data)
 
 class MismatchDbFunctionTests(unittest.TestCase):
     def test_group_by_n(self):
@@ -71,3 +68,18 @@ AF003928	691335	305	369	821
 AF003928	1103279	206	211	689
 AF003928	1101991	206	221	1130
 """
+
+oral_mismatch_data = {
+    "AF003928": [
+        ("4446824", [628, 956, 1033]),
+        ("4439903", [135, 357, 1076]),
+        ("4367196", [763, 1130, 1386]),
+        ("1057832", [305, 369, 821]),
+        ("983604", [655, 703, 1130]),
+        ("894424", [147, 206, 601]),
+        ("735302", [147, 206, 601]),
+        ("691335", [305, 369, 821]),
+        ("1103279", [206, 211, 689]),
+        ("1101991", [206, 221, 1130]),
+    ]
+}
