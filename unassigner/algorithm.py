@@ -75,6 +75,14 @@ class VariableMismatchRate:
     """Predict unobserved mismatches by estimating a mismatch rate
     """
     db = collections.defaultdict(list)
+    result_keys = [
+        "typestrain_id", "region_mismatches",
+        "region_positions", "probability_incompatible",
+        "mu1", "num_references", "mu2",
+        "nonregion_positions_in_subject",
+        "max_nonregion_mismatches",
+    ]
+    null_result = dict((key, "NA") for key in result_keys)
 
     @classmethod
     def clear_database(cls):
