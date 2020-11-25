@@ -14,11 +14,11 @@ from unassigner.align import VsearchAligner
 
 class MismatchLocationApp:
     def __init__(
-            self, species_file, ref_fp, mismatch_db,
+            self, species_file, ref_fp, mismatch_file,
             batch_size=10, num_cpus=None):
         self.typestrain_seqs = list(parse_fasta(species_file, trim_desc=True))
         self.reference_fasta_fp = ref_fp
-        self.mismatch_db = mismatch_db
+        self.mismatch_file = mismatch_file
 
         self.min_pct_id = 97.0
         self.num_threads = num_cpus
@@ -81,8 +81,10 @@ class MismatchLocationApp:
             reference_hits_file = self.search_reference_seqs(query_seqs)
             ref_mismatches = self.find_mismathes(reference_hits_file)
             for query_id, subject_id, mismatch_positions in ref_mismatches:
-                self.mismatch_db[query_id].append(
-                    (subject_id, list(mismatch_positions)))
+                mismatch_positions = list(mismatch_positions)
+                write_mismatches(
+                    self.mismatch_file, query_id, subject_id,
+                    mismatch_positions)
 
 
 def group_by_n(xs, n):
@@ -129,6 +131,13 @@ class MismatchDb(collections.abc.Mapping):
                 db.data[query_id].append(val)
         return db
 
+def write_mismatches(f, query_id, subject_id, mismatch_positions):
+    f.write(query_id)
+    f.write("\t")
+    f.write(subject_id)
+    f.write("\t")
+    f.write("\t".join(map(str, mismatch_positions)))
+    f.write("\n")
 
 class MutableMismatchDb(MismatchDb):
     def write(self, f):
@@ -223,11 +232,9 @@ def main(argv=None):
         help="Number of CPUs to use in search (default: all the CPUs)")
     args = p.parse_args(argv)
 
-    mismatch_db = MutableMismatchDb()
     app = MismatchLocationApp(
-        args.type_strain_fasta, args.reference_fasta, mismatch_db,
+        args.type_strain_fasta, args.reference_fasta, args.output_file,
         batch_size=args.batch_size, num_cpus=args.num_cpus,
     )
     app.run()
-    mismatch_db.write(args.output_file)
     args.output_file.close()

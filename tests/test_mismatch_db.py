@@ -24,12 +24,12 @@ class MismatchLocationAppTests(unittest.TestCase):
             os.remove(udb_fp)
 
     def test_mismatch_location_app(self):
-        db = MutableMismatchDb()
+        output_file = io.StringIO()
         with open(self.oral_species_fp) as species_file:
             app = MismatchLocationApp(
-                species_file, self.oral_reference_fp, db)
+                species_file, self.oral_reference_fp, output_file)
             app.run()
-        self.assertEqual(db.data, oral_mismatch_data)
+        self.assertEqual(output_file.getvalue(), oral_mismatches)
 
     def test_mismatch_command_line(self):
         output_fp = os.path.join(self.dir, "mismatches.txt")
@@ -41,13 +41,13 @@ class MismatchLocationAppTests(unittest.TestCase):
         self.assertEqual(output_txt, oral_mismatches)
 
     def test_mismatch_location_app_batch_size(self):
-        db = MutableMismatchDb()
+        output_file = io.StringIO()
         with open(self.oral_species_fp) as species_file:
             app = MismatchLocationApp(
-                species_file, self.oral_reference_fp, db,
+                species_file, self.oral_reference_fp, output_file,
                 batch_size=2)
             app.run()
-        self.assertEqual(db.data, oral_mismatch_data)
+        self.assertEqual(output_file.getvalue(), oral_mismatches)
 
 class MismatchDbFunctionTests(unittest.TestCase):
     def test_group_by_n(self):
