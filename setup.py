@@ -23,6 +23,8 @@ setup(name='unassigner',
           'console_scripts': [
               'unassign=unassigner.command:main',
               'trimragged=unassigner.trim:main',
+              'count_mismatches=unassigner.mismatch_db:main',
+              'pctid_ani=unassigner.ani:main',
           ],
       },
       classifiers=[

@@ -17,6 +17,11 @@ class FastaTests(unittest.TestCase):
         self.assertEqual(next(res), ("Seq2", "ACGCTAGCTGCAAAA"))
         self.assertRaises(StopIteration, next, res)
 
+    def test_parse_empty_fasta(self):
+        res = parse_fasta([])
+        list_res = list(res)
+        self.assertEqual(list_res, [])
+
     def test_load_fasta(self):
         f = tempfile.NamedTemporaryFile(mode="wt", encoding="utf-8")
         f.write(

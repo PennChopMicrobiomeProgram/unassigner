@@ -7,6 +7,15 @@ class AlignedPair(object):
         self.subject_id, self.subject_seq = sseq
         assert(len(self.query_seq) == len(self.subject_seq))
 
+    def __eq__(self, other):
+        self_vals = (
+            self.query_id, self.query_seq,
+            self.subject_id, self.subject_seq)
+        other_vals = (
+            other.query_id, other.query_seq,
+            other.subject_id, other.subject_seq)
+        return self_vals == other_vals
+
     @property
     def alignment_len(self):
         return len(self.query_seq)
@@ -30,7 +39,18 @@ class AlignedPair(object):
     def count_matches(self):
         return sum(q == s for q, s in zip(self.query_seq, self.subject_seq))
 
+    @property
+    def percent_id(self):
+        return self.count_matches() / self.query_len
+
+    def trim_endgaps(self):
+        return AlignedRegion.without_endgaps(self).trim_ends()
+
+
 class AlignedRegion:
+    """Specify and extract regions of a pairwise sequence alignment
+    """
+
     def __init__(self, alignment, start_idx, end_idx):
         assert(start_idx >= 0)
         assert(start_idx <= alignment.alignment_len)
@@ -109,6 +129,8 @@ class AlignedRegion:
 
     @classmethod
     def without_endgaps(cls, a):
+        """Create a new region with no endgaps
+        """
         left_endgaps = max(
             count_endgaps(a.query_seq),
             count_endgaps(a.subject_seq))
@@ -121,6 +143,8 @@ class AlignedRegion:
 
     @classmethod
     def from_subject(cls, a, subject_start_idx=0, subject_end_idx=None):
+        """Create a new region using coordinates in subject sequence
+        """
         if subject_end_idx is None:
             subject_end_idx = a.subject_len
         assert(subject_start_idx >= 0)
@@ -134,6 +158,8 @@ class AlignedRegion:
 
     @classmethod
     def from_query(cls, a, query_start_idx=0, query_end_idx=None):
+        """Create a new region using coordinates in query sequence
+        """
         if query_end_idx is None:
             query_end_idx = a.query_len
         assert(query_start_idx >= 0)

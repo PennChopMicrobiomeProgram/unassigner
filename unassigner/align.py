@@ -41,14 +41,15 @@ class Aligner(abc.ABC):
                 yield hit
 
     @classmethod
-    def _parse(self, f):
+    def _parse(self, f, convert_types=True):
         """Parse a BLAST output file."""
         for line in f:
             line = line.strip()
             if line.startswith("#"):
                 continue
             vals = line.split("\t")
-            vals = [fn(v) for fn, v in zip(BLAST_FIELD_TYPES, vals)]
+            if convert_types:
+                vals = [fn(v) for fn, v in zip(BLAST_FIELD_TYPES, vals)]
             yield dict(zip(BLAST_FIELDS, vals))
 
 
