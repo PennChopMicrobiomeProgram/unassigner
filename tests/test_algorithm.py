@@ -3,7 +3,7 @@ import unittest
 
 from unassigner.algorithm import (
     UnassignAligner, UnassignerApp,
-    ConstantMismatchRate, VariableMismatchRate,
+    VariableMismatchRate,
     beta_binomial_pdf, beta_binomial_cdf,
 )
 
@@ -94,13 +94,6 @@ class VariableMismatchRateTests(unittest.TestCase):
         # With no reference sequences, the result from the variable
         # rate algorithm should match that of the constant rate
         # algorithm.
-        constant_rate = ConstantMismatchRate(a)
-        constant_rate_result = constant_rate.unassign_threshold()
-        self.assertEqual(
-            constant_rate_result["probability_incompatible"],
-            variable_rate_result["probability_incompatible"],
-        )
-
         self.assertAlmostEqual(
             variable_rate_result["probability_incompatible"],
             0.06276080134, places=7,
@@ -121,7 +114,7 @@ class UnassignerAppTests(unittest.TestCase):
     def setUp(self):
         self.ggfp = os.path.join(DATA_DIR, "gg10.fasta")
         a = UnassignAligner(self.ggfp)
-        self.app = UnassignerApp(a)
+        self.app = UnassignerApp(a, VariableMismatchRate)
 
     def test_threshold(self):
         ref_ids = set(str(x) for x in range(1, 10))

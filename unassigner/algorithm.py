@@ -71,6 +71,7 @@ class FileAligner:
             for hit in hits:
                 yield xt.extend_hit(hit)
 
+
 class VariableMismatchRate:
     """Predict unobserved mismatches by estimating a mismatch rate
     """
@@ -209,67 +210,8 @@ class VariableMismatchRate:
         }
 
 
-class ConstantMismatchRate:
-    """Predict unobserved mismatches assuming a constant mismatch rate
-    """
-
-    result_keys = [
-        "typestrain_id", "probability_incompatible", "region_mismatches",
-        "region_positions", "region_matches", "nonregion_positions_in_subject",
-        "max_nonregion_mismatches",
-    ]
-    null_result = dict((key, "NA") for key in result_keys)
-    prior_alpha = 0.5
-    prior_beta = 0.5
-
-    def __init__(self, alignment):
-        self.alignment = alignment
-        self.query_id = alignment.query_id
-        self.region = alignment.trim_endgaps()
-        self.region_positions = self.region.alignment_len
-        self.region_matches = self.region.count_matches()
-        self.region_mismatches = self.region_positions - self.region_matches
-
-        self.alpha = self.region_mismatches + self.prior_alpha
-        self.beta = self.region_matches + self.prior_beta
-
-    def unassign_threshold(self, min_id=0.975):
-        """Unassign with a hard threshold
-
-        Here, we set a threshold value for sequence similarity to the
-        type strain sequence.  For a query sequence, we calculate the
-        probability of falling below this similarity threshold over
-        the full length of the 16S gene.  This value is the
-        unassignment probability.
-        """
-        nonregion_subject_positions = (
-            self.alignment.subject_len - self.region.subject_len)
-        total_positions = (
-            self.region_positions + nonregion_subject_positions)
-
-        species_mismatch_threshold = 1 - min_id
-        max_total_mismatches = int(math.floor(
-            species_mismatch_threshold * total_positions))
-        max_nonregion_mismatches = max_total_mismatches - self.region_mismatches
-
-        prob_compatible = beta_binomial_cdf(
-            max_nonregion_mismatches, nonregion_subject_positions,
-            self.alpha, self.beta)
-        prob_incompatible = 1 - prob_compatible
-
-        return {
-            "typestrain_id": self.alignment.subject_id,
-            "probability_incompatible": prob_incompatible,
-            "region_mismatches": self.region_mismatches,
-            "region_positions": self.region_positions,
-            "region_matches": self.region_matches,
-            "nonregion_positions_in_subject": nonregion_subject_positions,
-            "max_nonregion_mismatches": max_nonregion_mismatches,
-        }
-
-
 class UnassignerApp:
-    def __init__(self, aligner, mm_rate = ConstantMismatchRate):
+    def __init__(self, aligner, mm_rate):
         self.aligner = aligner
         self.mm_rate = mm_rate
         self.alignment_min_percent_id = 0.975
