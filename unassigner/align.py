@@ -1,4 +1,5 @@
 import abc
+import os.path
 import subprocess
 import tempfile
 from Bio import pairwise2
@@ -14,7 +15,6 @@ BLAST_FIELD_TYPES = [
     str, str, float, int, int, int,
     int, int, int, int, int, int, str, str]
 
-# TODO: Need a BlastFilter to collect multiple hits and get the best one
 
 class Aligner(abc.ABC):
     def __init__(self, ref_seqs_fp):
@@ -54,6 +54,22 @@ class Aligner(abc.ABC):
 
 
 class VsearchAligner(Aligner):
+
+    @property
+    def ref_seqs_udb_fp(self):
+        base_fp, _ = os.path.splitext(self.ref_seqs_fp)
+        return base_fp + ".udb"
+
+    def make_reference_udb(self):
+        if os.path.exists(self.ref_seqs_udb_fp):
+            return
+        args = [
+            "vsearch",
+            "--makeudb_usearch", self.ref_seqs_fp,
+            "--output", self.ref_seqs_udb_fp,
+        ]
+        return subprocess.check_call(args)
+
     @staticmethod
     def _index(fasta_fp):
         pass
@@ -66,7 +82,7 @@ class VsearchAligner(Aligner):
         """
         args = [
             "vsearch", "--usearch_global", query_fp,
-            "--db", database_fp,
+            "--db", self.ref_seqs_udb_fp,
             "--iddef", "2",
             "--id", str(min_id),
             "--userout", output_fp,
