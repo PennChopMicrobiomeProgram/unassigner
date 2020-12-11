@@ -26,6 +26,7 @@ setup(name='unassigner',
               'count_mismatches=unassigner.mismatch_db:main',
               'pctid_ani=unassigner.ani:main',
               'pctid_ani_sample=unassigner.ani:main_sampling',
+              'pctid_ani_typestrains=unassigner.ani:main_typestrains',
           ],
       },
       classifiers=[
