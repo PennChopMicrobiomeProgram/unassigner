@@ -12,6 +12,9 @@ from unassigner.align import VsearchAligner, HitExtender
 from unassigner.parse import parse_fasta
 
 def beta_binomial_pdf(k, n, alpha, beta):
+    # k is the number of successes
+    # n is the number of trials
+    # alpha, beta are the parameters of the beta distribution
     binom_coeff = scipy.special.comb(n, k)
     if binom_coeff == 0:
         return 0
@@ -195,6 +198,11 @@ class VariableMismatchRate:
         prob_compatible = beta_binomial_cdf(
             max_nonregion_mismatches, nonregion_subject_positions,
             alpha2, beta2)
+        prob_compatible = threshold_assignment_probability(
+            region_mismatches, region_positions, nonregion_subject_positions,
+            alpha2, beta2, 100 * species_mismatch_threshold,
+            threshold_fcn=hard_species_probability,
+        )
         prob_incompatible = 1 - prob_compatible
 
         return {
@@ -209,6 +217,43 @@ class VariableMismatchRate:
             "max_nonregion_mismatches": max_nonregion_mismatches,
         }
 
+def nonregion_mismatch_probabilities(num_positions, alpha, beta):
+    for mm in range(num_positions + 1):
+        p = beta_binomial_pdf(mm, num_positions, alpha, beta)
+        yield (mm, p)
+
+def pctdiff(obs_mismatches, obs_positions, unobs_mismatches, unobs_positions):
+    total_mismatches = obs_mismatches + unobs_mismatches
+    total_positions = obs_positions + unobs_positions
+    return 100 * (total_mismatches / total_positions)
+
+def soft_species_probability(d, d_half):
+    return math.pow(2, -d / d_half)
+
+def hard_species_probability(d, d_half):
+    return float(d <= d_half)
+
+def iter_threshold(
+        obs_mismatches, obs_positions, unobs_positions,
+        alpha, beta, d_half,
+        threshold_fcn=soft_species_probability):
+    for mm in range(unobs_positions + 1):
+        p_mm = beta_binomial_pdf(mm, unobs_positions, alpha, beta)
+        d = pctdiff(obs_mismatches, obs_positions, mm, unobs_positions)
+        p_species = threshold_fcn(d, d_half)
+        if p_species < 1e-10:
+            break
+        yield (mm, p_mm, d, p_species)
+
+def threshold_assignment_probability(
+        obs_mismatches, obs_positions, unobs_positions,
+        alpha, beta, d_half,
+        threshold_fcn=soft_species_probability):
+    return sum(
+        p_mm * p_species for _, p_mm, _, p_species
+        in iter_threshold(
+            obs_mismatches, obs_positions, unobs_positions,
+            alpha, beta, d_half, threshold_fcn))
 
 class UnassignerApp:
     def __init__(self, aligner, mm_rate):
