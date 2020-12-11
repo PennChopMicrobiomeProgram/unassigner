@@ -80,6 +80,8 @@ class VsearchAligner(Aligner):
         --id is a required argument to run the program. We expose the
         argument here as min_id.
         """
+        if not os.path.exists(self.ref_seqs_udb_fp):
+            self.make_reference_udb()
         args = [
             "vsearch", "--usearch_global", query_fp,
             "--db", self.ref_seqs_udb_fp,

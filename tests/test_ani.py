@@ -29,12 +29,12 @@ class RefseqAssemblyTests(unittest.TestCase):
         self.assertEqual(self.a.base_url, "https://ncbi.gov/abcd")
 
     def test_rna_url(self):
-        self.assertEqual(self.a.rna_url, (
-            "https://ncbi.gov/abcd/"
-            "GCF_000010525.1_ASM1052v1_rna_from_genomic.fna.gz"))
+        self.assertEqual(
+            self.a.rna_url,
+            "https://ncbi.gov/abcd/abcd_rna_from_genomic.fna.gz")
 
-    def test_genome_fna_url(self):
-        self.assertEqual(self.a.genome_fna_url, (
-            "https://ncbi.gov/abcd/"
-            "GCF_000010525.1_ASM1052v1_genomic.fna.gz"))
+    def test_genome_url(self):
+        self.assertEqual(
+            self.a.genome_url,
+            "https://ncbi.gov/abcd/abcd_genomic.fna.gz")
 
