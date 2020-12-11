@@ -117,7 +117,7 @@ class VariableMismatchRate:
         self.alignment = alignment
         self.query_id = alignment.query_id
 
-    def unassign_threshold(self, min_id=0.975):
+    def unassign_threshold(self, min_id=0.975, soft_threshold=False):
         # Use all the beta-binomial logic from ConstantMismatchRate,
         # just adjust alpha and beta based on reference
         # sequences. Here's how. Reparameterize beta as mu and v,
@@ -198,10 +198,14 @@ class VariableMismatchRate:
         prob_compatible = beta_binomial_cdf(
             max_nonregion_mismatches, nonregion_subject_positions,
             alpha2, beta2)
+        if soft_threshold:
+            threshold_fcn = soft_species_probability
+        else:
+            threshold_fcn = hard_species_probability
         prob_compatible = threshold_assignment_probability(
             region_mismatches, region_positions, nonregion_subject_positions,
             alpha2, beta2, 100 * species_mismatch_threshold,
-            threshold_fcn=hard_species_probability,
+            threshold_fcn,
         )
         prob_incompatible = 1 - prob_compatible
 
@@ -256,10 +260,11 @@ def threshold_assignment_probability(
             alpha, beta, d_half, threshold_fcn))
 
 class UnassignerApp:
-    def __init__(self, aligner, mm_rate):
+    def __init__(self, aligner, mm_rate, soft_threshold=False):
         self.aligner = aligner
         self.mm_rate = mm_rate
         self.alignment_min_percent_id = 0.975
+        self.soft_threshold = soft_threshold
 
     def unassign(self, query_seqs):
         query_seqs = list(query_seqs)
@@ -279,7 +284,13 @@ class UnassignerApp:
         # Step 3.
         # For each query-type strain alignment, estimate unassignment
         # probability. Different for hard vs. soft threshold algorithms.
-        results = [(r.query_id, r.unassign_threshold()) for r in mm_rates]
+        results = []
+        for r in mm_rates:
+            res = r.unassign_threshold(
+                min_id=self.alignment_min_percent_id,
+                soft_threshold=self.soft_threshold,
+            )
+            results.append((r.query_id, res))
 
         # Step 4.
         # Group by query and yield results to caller. Same for all algorithms.

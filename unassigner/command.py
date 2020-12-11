@@ -30,6 +30,8 @@ def main(argv=None):
         help=(
             "Number of CPUs to use during sequence aligment (default: "
             "use all the CPUs)"))
+    p.add_argument("--soft_threshold", action="store_true",
+        help="Use soft threshold algorithm.")
     p.add_argument("--verbose", action="store_true",
         help= "Activate verbose mode.")
     args = p.parse_args(argv)
@@ -73,7 +75,9 @@ def main(argv=None):
             mm_db_file = open(args.ref_mismatch_positions)
         VariableMismatchRate.load_database(mm_db_file)
 
-    app = UnassignerApp(a, VariableMismatchRate)
+    app = UnassignerApp(
+        a, VariableMismatchRate,
+        args.soft_threshold)
     for query_id, query_results in app.unassign(query_seqs):
         writer.write_results(query_id, query_results)
 
