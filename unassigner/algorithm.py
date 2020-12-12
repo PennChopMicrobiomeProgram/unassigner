@@ -260,10 +260,10 @@ def threshold_assignment_probability(
             alpha, beta, d_half, threshold_fcn))
 
 class UnassignerApp:
-    def __init__(self, aligner, mm_rate, soft_threshold=False):
+    def __init__(self, aligner, mm_rate, min_id=0.975, soft_threshold=False):
         self.aligner = aligner
         self.mm_rate = mm_rate
-        self.alignment_min_percent_id = 0.975
+        self.alignment_min_percent_id = min_id
         self.soft_threshold = soft_threshold
 
     def unassign(self, query_seqs):
