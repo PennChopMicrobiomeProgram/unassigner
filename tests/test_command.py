@@ -69,6 +69,56 @@ class CommandTests(unittest.TestCase):
             unassignment_prob = float(vals[5])
             self.assertAlmostEqual(unassignment_prob, 0.085, 3)
 
+    def test_threshold(self):
+        query_fp = os.path.join(self.dir, "query.fa")
+        with open(query_fp, "w") as f:
+            f.write(closeto_r_gnavus_fasta)
+
+        main([
+            query_fp,
+            "--output_dir", self.dir,
+            "--threshold", "0.988",
+            "--type_strain_fasta", SPECIES_FP,
+        ])
+
+        with(open(os.path.join(self.dir, "unassigner_output.tsv"))) as f:
+            header_line = next(f)
+            self.assertTrue(header_line.startswith("query_id"))
+            results_line = next(f)
+            vals = results_line.rstrip("\n").split("\t")
+            self.assertEqual(vals[0], "closeto_r_gnavus")
+            self.assertEqual(vals[1], "Ruminococcus gnavus")
+            self.assertEqual(vals[2], "X94967")
+            self.assertEqual(vals[3], "2")
+            self.assertEqual(vals[4], "320")
+            unassignment_prob = float(vals[5])
+            self.assertAlmostEqual(unassignment_prob, 0.147, 3)
+
+    def test_soft_threshold(self):
+        query_fp = os.path.join(self.dir, "query.fa")
+        with open(query_fp, "w") as f:
+            f.write(closeto_r_gnavus_fasta)
+
+        main([
+            query_fp,
+            "--output_dir", self.dir,
+            "--soft_threshold",
+            "--type_strain_fasta", SPECIES_FP,
+        ])
+
+        with(open(os.path.join(self.dir, "unassigner_output.tsv"))) as f:
+            header_line = next(f)
+            self.assertTrue(header_line.startswith("query_id"))
+            results_line = next(f)
+            vals = results_line.rstrip("\n").split("\t")
+            self.assertEqual(vals[0], "closeto_r_gnavus")
+            self.assertEqual(vals[1], "Ruminococcus gnavus")
+            self.assertEqual(vals[2], "X94967")
+            self.assertEqual(vals[3], "2")
+            self.assertEqual(vals[4], "320")
+            unassignment_prob = float(vals[5])
+            self.assertAlmostEqual(unassignment_prob, 0.4085, 3)
+
 
 # Reference mismatches only occur outside the aligned region
 fake_mismatch_positions = """\
