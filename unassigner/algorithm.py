@@ -6,6 +6,7 @@ import operator
 import numpy
 import scipy
 import scipy.special
+from scipy.stats import betabinom
 
 from unassigner.alignment import AlignedRegion
 from unassigner.align import VsearchAligner, HitExtender
@@ -241,8 +242,9 @@ def iter_threshold(
         obs_mismatches, obs_positions, unobs_positions,
         alpha, beta, d_half,
         threshold_fcn=soft_species_probability):
+    print(obs_mismatches, obs_positions, unobs_positions, alpha, beta, d_half)
     for mm in range(unobs_positions + 1):
-        p_mm = beta_binomial_pdf(mm, unobs_positions, alpha, beta)
+        p_mm = betabinom.pmf(mm, unobs_positions, alpha, beta)
         d = pctdiff(obs_mismatches, obs_positions, mm, unobs_positions)
         p_species = threshold_fcn(d, d_half)
         if p_species < 1e-10:
