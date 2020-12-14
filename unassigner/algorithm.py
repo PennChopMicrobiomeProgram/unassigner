@@ -242,7 +242,6 @@ def iter_threshold(
         obs_mismatches, obs_positions, unobs_positions,
         alpha, beta, d_half,
         threshold_fcn=soft_species_probability):
-    print(obs_mismatches, obs_positions, unobs_positions, alpha, beta, d_half)
     for mm in range(unobs_positions + 1):
         p_mm = betabinom.pmf(mm, unobs_positions, alpha, beta)
         d = pctdiff(obs_mismatches, obs_positions, mm, unobs_positions)
