@@ -1,38 +1,13 @@
 import collections
-import itertools
 import math
 import operator
 
 import numpy
-import scipy
-import scipy.special
 from scipy.stats import betabinom
 
 from unassigner.alignment import AlignedRegion
 from unassigner.align import VsearchAligner, HitExtender
 from unassigner.parse import parse_fasta
-
-def beta_binomial_pdf(k, n, alpha, beta):
-    # k is the number of successes
-    # n is the number of trials
-    # alpha, beta are the parameters of the beta distribution
-    binom_coeff = scipy.special.comb(n, k)
-    if binom_coeff == 0:
-        return 0
-    t1 = math.log(binom_coeff)
-    t2 = scipy.special.betaln(k + alpha, n - k + beta)
-    t3 = scipy.special.betaln(alpha, beta)
-    logf = t1 + t2 - t3
-    return math.exp(logf)
-
-
-def beta_binomial_cdf(k_max, n, alpha, beta):
-    k = 0
-    val = 0
-    while k <= k_max:
-        val += beta_binomial_pdf(k, n, alpha, beta)
-        k += 1
-    return val
 
 
 class UnassignAligner(object):
@@ -196,9 +171,6 @@ class VariableMismatchRate:
         max_nonregion_mismatches = max_total_mismatches - region_mismatches
 
         # Compute probability
-        prob_compatible = beta_binomial_cdf(
-            max_nonregion_mismatches, nonregion_subject_positions,
-            alpha2, beta2)
         if soft_threshold:
             threshold_fcn = soft_species_probability
         else:

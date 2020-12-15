@@ -4,8 +4,7 @@ import unittest
 from unassigner.algorithm import (
     UnassignAligner, UnassignerApp,
     VariableMismatchRate,
-    beta_binomial_pdf, beta_binomial_cdf,
-    nonregion_mismatch_probabilities, pctdiff,
+    pctdiff,
     soft_species_probability, hard_species_probability,
     threshold_assignment_probability,
     iter_threshold
@@ -32,26 +31,6 @@ class UnassignAlignerTests(unittest.TestCase):
         self.assertEqual(observed, expected)
 
 class FunctionTests(unittest.TestCase):
-    def test_beta_binomial(self):
-        # These parameters are plotted on the wikipedia page
-        self.assertAlmostEqual(beta_binomial_pdf(8, 10, 600, 400), 0.12, 2)
-        self.assertAlmostEqual(beta_binomial_cdf(8, 10, 600, 400), 0.95, 2)
-
-    def test_beta_binomial_out_of_bounds(self):
-        self.assertEqual(beta_binomial_pdf(15, 10, 10, 10), 0) # k > n
-        self.assertEqual(beta_binomial_pdf(3, 0, 10, 10), 0) # n == 0
-        self.assertEqual(beta_binomial_pdf(-3, 5, 10, 10), 0) # k < 0
-
-    def test_nonregion_mismatch_probabilities(self):
-        ps = list(nonregion_mismatch_probabilities(5, 4, 4))
-        self.assertEqual([mm for mm, _ in ps], [0, 1, 2, 3, 4, 5])
-        self.assertAlmostEqual(ps[0][1], 0.070707070707, 10)
-        self.assertAlmostEqual(ps[1][1], 0.176767676767, 10)
-        self.assertAlmostEqual(ps[2][1], 0.252525252525, 10)
-        self.assertEqual(ps[3][1], ps[2][1])
-        self.assertEqual(ps[4][1], ps[1][1])
-        self.assertEqual(ps[5][1], ps[0][1])
-
     def test_pctdiff(self):
         self.assertEqual(pctdiff(2, 10, 1.0, 90), 3.0)
 
@@ -61,11 +40,10 @@ class FunctionTests(unittest.TestCase):
         self.assertEqual(soft_species_probability(2 * 5.3, 5.3), 0.5 * 0.5)
 
     def test_threshold_assignment_probability(self):
-        vals = list(iter_threshold(0, 90, 10, 1.0, 50.0, 1.0))
-        #print(vals)
         sp = threshold_assignment_probability(
             0, 90, 10, 1.0, 50.0, 1.0, soft_species_probability)
         self.assertAlmostEqual(sp, 0.9098439687407773, 10)
+
         hp = threshold_assignment_probability(
             0, 90, 10, 1.0, 50.0, 1.0, hard_species_probability)
         self.assertAlmostEqual(hp, 0.9745762711864412, 10)
