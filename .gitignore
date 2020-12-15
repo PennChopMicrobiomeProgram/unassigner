@@ -1,3 +1,6 @@
+# Vsearch databases
+*.udb
+
 # Temporary files
 *~
 \#*#
