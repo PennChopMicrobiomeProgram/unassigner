@@ -1,18 +1,14 @@
 import argparse
 import collections
-import itertools
-import operator
 import os
 import os.path
 import random
 import re
 import shutil
 import subprocess
-import tempfile
 import urllib.error
 
 from unassigner.download import get_url
-from unassigner.align import VsearchAligner
 from unassigner.parse import parse_fasta, write_fasta
 
 class Refseq16SDatabase:
@@ -326,6 +322,7 @@ def group_by(xs, fcn):
         groups[group].append(x)
     return groups.values()
 
+
 def remove_files(target_dir):
     if os.path.exists(target_dir):
         for filename in os.listdir(target_dir):
@@ -414,60 +411,12 @@ def parse_pairwise_ani(f):
     toks = second_line.strip().split()
     return toks[2]
 
-def main(argv=None):
-    p = argparse.ArgumentParser()
-    p.add_argument(
-        "--output-file", type=argparse.FileType("w", bufsize=1),
-        default="refseq_pctid_ani.tsv",
-        help="Output file",
-    )
-    p.add_argument(
-        "--min_pctid", type=float, default=97.0,
-        help="Minimum 16S percent ID",
-    )
-    p.add_argument(
-        "--num-threads", type=int,
-        help="Number of threads for 16S percent ID (default: use all CPUs)",
-    )
-    p.add_argument(
-        "--num-ani", type=int, default=100,
-        help="Number of genome pairs on which to evaluate ANI",
-    )
-    p.add_argument(
-        "--seed", type=int, default=42,
-        help="Random number seed",
-    )
-    args = p.parse_args()
-
-    assemblies = RefseqAssembly.load()
-
-    db = Refseq16SDatabase()
-    if os.path.exists(db.accession_fp):
-        db.load(assemblies)
-    else:
-        for assembly in assemblies.values():
-            db.add_assembly(assembly)
-        db.save()
-
-    all_pairs = db.compute_pctids(args.min_pctid, args.num_threads)
-    random.seed(args.seed)
-    selected_pairs = subsample_by(
-        all_pairs, operator.attrgetter("pctid"), args.num_ani)
-
-    for pair in selected_pairs:
-        pair.compute_ani()
-        args.output_file.write(pair.format_output())
-
 def pctid_range(min_pctid):
     assert 50.0 < min_pctid <= 100.0
     current_val = 100.0
     while current_val > min_pctid:
         yield current_val
         current_val = current_val - 0.1
-
-def repeat_each_element(xs, n_times):
-    return itertools.chain.from_iterable(
-        itertools.repeat(x, n_times) for x in xs)
 
 def main_sampling(argv=None):
     p = argparse.ArgumentParser()
@@ -546,55 +495,3 @@ def main_sampling(argv=None):
                 else:
                     found = True
 
-def main_typestrains(argv=None):
-    p = argparse.ArgumentParser()
-    p.add_argument(
-        "--output-file", type=argparse.FileType("w"),
-        default="refseq_pctid_ani.tsv",
-        help="Output file",
-    )
-    p.add_argument(
-        "--min-pctid", type=float, default=90.0,
-        help="Minimum 16S percent ID",
-    )
-    p.add_argument(
-        "--num-threads", type=int,
-        help="Number of threads for 16S percent ID (default: use all CPUs)",
-    )
-    args = p.parse_args()
-    args.output_file.write(
-        "query_assembly\tsubject_assembly\t"
-        "query_seqid\tsubject_seqid\t"
-        "pctid\tani\n")
-    
-    # Load all assemblies
-    assemblies = RefseqAssembly.load()
-
-    db = Refseq16SDatabase(
-        "refseq_16S_all.fasta",
-        "refseq_16S_accessions_all.txt")
-    if os.path.exists(db.accession_fp):
-        db.load(assemblies)
-    else:
-        for assembly in assemblies.values():
-            db.add_assembly(assembly)
-        db.save()
-
-    type_material_assemblies = [
-        assembly
-        for assembly in assemblies.values()
-        if assembly.relation_to_type_material
-    ]
-    for seqid, assembly in db.assemblies.items():
-        if assembly.relation_to_type_material:
-            seq = db.seqs[seqid]
-            pairs = db.search_seq(
-                seqid, seq,
-                min_pctid=args.min_pctid,
-                threads=args.num_threads)
-            pairs = list(pairs)
-            for pair in pairs:
-                pair.compute_ani()
-                args.output_file.write(pair.format_output())
-                args.output_file.flush()
-    
