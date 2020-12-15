@@ -5,10 +5,9 @@ import tempfile
 from unassigner.parse import write_fasta, load_fasta, parse_fasta
 from unassigner.alignment import AlignedPair
 
-BLAST_FMT = (
-    "qseqid sseqid pident length mismatch gapopen "
-    "qstart qend sstart send qlen slen qseq sseq")
-BLAST_FIELDS = BLAST_FMT.split()
+BLAST_FIELDS = [
+    "qseqid", "sseqid", "pident", "length", "mismatch", "gapopen",
+    "qstart", "qend", "sstart", "send", "qlen", "slen", "qseq", "sseq"]
 BLAST_FIELD_TYPES = [
     str, str, float, int, int, int,
     int, int, int, int, int, int, str, str]
