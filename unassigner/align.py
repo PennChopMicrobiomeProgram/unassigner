@@ -100,35 +100,6 @@ class VsearchAligner(Aligner):
         subprocess.check_call(args, stderr=subprocess.DEVNULL)
 
 
-class BlastAligner(Aligner):
-    @staticmethod
-    def _index(fasta_fp):
-        return subprocess.check_call([
-            "makeblastdb",
-            "-dbtype", "nucl",
-            "-in", fasta_fp,
-            ], stdout=subprocess.DEVNULL)
-
-    def _call(self, query_fp, database_fp, output_fp, **kwargs):
-        """Call the BLAST program."""
-        args = [
-            "blastn",
-            "-evalue", "1e-5",
-            "-outfmt", "6 " + BLAST_FMT,
-            ]
-        for arg, val in kwargs.items():
-            arg = "-" + arg
-            if val is None:
-                args.append(arg)
-            else:
-                args += [arg, str(val)]
-        args += [
-            "-query", query_fp,
-            "-db", database_fp,
-            "-out", output_fp,
-            ]
-        subprocess.check_call(args)
-
 class HitExtender:
     def __init__(self, query_seqs, ref_seqs):
         self.query_seqs = dict(query_seqs)
