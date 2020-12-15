@@ -1,62 +1,8 @@
 import unittest
 
 from unassigner.align import (
-    HitExtender, align_semiglobal,
+    HitExtender,
     )
-
-class AlignSemiglobalTests(unittest.TestCase):
-    def setUp(self):
-        self.query_id = "a"
-        self.subject_id = "b"
-        self.qseq_orj = "CCCGGTCCGGTTATT"
-        self.sseq_orj = "CCCGGTCCGGTTAAC"
-
-    def test_no_endgaps(self):
-        qseq = "CCCGGTCCGGTTATT"
-        sseq = "CCCGGTCCGGTTAAC"
-        self.assertEqual(align_semiglobal(qseq, sseq), (qseq, sseq))
-
-    def test_endgaps_both_sides_query(self):
-        qseq =      "GATGAACGCTAGCTTCAGGCTTAAC"
-        sseq = "CTCAGGATGAACGCTAGCTACAGGCTTAACACATGCAAGT"
-        aligned_qseq, aligned_sseq = align_semiglobal(qseq, sseq)
-        self.assertEqual(aligned_qseq, "-----" + qseq + "----------")
-        self.assertEqual(aligned_sseq, sseq)
-        
-    def test_endgaps_left_query(self):
-        qseq =      "GATGAACGCTAGCTTCAGGCTTAAC"
-        sseq = "CTCAGGATGAACGCTAGCTACAGGCTTAAC"
-        aligned_qseq, aligned_sseq = align_semiglobal(qseq, sseq)
-        self.assertEqual(aligned_qseq, "-----" + qseq)
-        self.assertEqual(aligned_sseq, sseq)
-
-    def test_endgaps_right_query(self):
-        qseq = "GATGAACGCTAGCTTCAGGCTTAAC"
-        sseq = "GATGAACGCTAGCTACAGGCTTAACACATGCAAGT"
-        aligned_qseq, aligned_sseq = align_semiglobal(qseq, sseq)
-        self.assertEqual(aligned_qseq, qseq + "----------")
-        self.assertEqual(aligned_sseq, sseq)
-
-    def test_ragged_left_subject(self):
-        qseq = "CTCAGGATGAACGCTAGCTACAGGCTTAAC"
-        sseq =      "GATGAACGCTAGCTTCAGGCTTAACACATG"
-        aligned_qseq, aligned_sseq = align_semiglobal(qseq, sseq)
-        self.assertEqual(aligned_qseq, qseq + "-----")
-        self.assertEqual(aligned_sseq, "-----" + sseq)
-        
-    def test_ragged_right_subject(self):
-        qseq =      "GATGAACGCTAGCTACAGGCTTAACACATG"
-        sseq = "CTCAGGATGAACGCTAGCTTCAGGCTTAAC"
-        aligned_qseq, aligned_sseq = align_semiglobal(qseq, sseq)
-        self.assertEqual(aligned_qseq, "-----" + qseq)
-        self.assertEqual(aligned_sseq, sseq + "-----")
-        
-    def test_funky_query_left(self):
-        qseq =  "TTTTGATGAACGCTAGCTACAGGCTTA"
-        sseq = "CTCAGGATGAACGCTAGCTTCAGGCTTAAC"
-        aligned_qseq, aligned_sseq = align_semiglobal(qseq, sseq)
-        self.assertEqual(aligned_qseq, "-" + qseq + "--")
-        self.assertEqual(aligned_sseq, sseq)
 
 
 class HitExtenderTests(unittest.TestCase):

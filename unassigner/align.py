@@ -1,7 +1,6 @@
 import os.path
 import subprocess
 import tempfile
-from Bio import pairwise2
 
 from unassigner.parse import write_fasta, load_fasta, parse_fasta
 from unassigner.alignment import AlignedPair
@@ -195,12 +194,3 @@ class HitExtender:
         subprocess.check_call(args)
         with open(subject_outfile_fp) as f:
             return list(parse_fasta(f, trim_desc=True))[0][1]
-
-def align_semiglobal(qseq, sseq):
-    alignment = pairwise2.align.globalms(
-        sseq, qseq,
-        5, -4, -10, -0.5, #match, mismatch, gapopen, gapextend
-        penalize_end_gaps=False, one_alignment_only=True)
-    subj_seq = alignment[0][0]
-    query_seq = alignment[0][1]
-    return query_seq, subj_seq
