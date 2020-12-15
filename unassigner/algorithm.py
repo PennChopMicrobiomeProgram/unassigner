@@ -194,11 +194,6 @@ class VariableMismatchRate:
             "max_nonregion_mismatches": max_nonregion_mismatches,
         }
 
-def nonregion_mismatch_probabilities(num_positions, alpha, beta):
-    for mm in range(num_positions + 1):
-        p = beta_binomial_pdf(mm, num_positions, alpha, beta)
-        yield (mm, p)
-
 def pctdiff(obs_mismatches, obs_positions, unobs_mismatches, unobs_positions):
     total_mismatches = obs_mismatches + unobs_mismatches
     total_positions = obs_positions + unobs_positions
