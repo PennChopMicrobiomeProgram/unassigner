@@ -67,23 +67,23 @@ class HitExtenderTests(unittest.TestCase):
         }
         self.assertTrue(HitExtender._is_global(hit))
 
-    def test_realign_leftgap(self):
+    def test_detect_leftgap(self):
         hit = {
             "qstart": 5, "qend": 28, "qlen": 28,
             "sstart": 45, "send": 68, "slen": 1336,
         }
-        self.assertTrue(HitExtender._needs_realignment(hit))
+        self.assertFalse(HitExtender._is_semiglobal(hit))
         hit["qstart"] = 1
-        self.assertFalse(HitExtender._needs_realignment(hit))
+        self.assertTrue(HitExtender._is_semiglobal(hit))
 
-    def test_realign_rightgap(self):
+    def test_detect_rightgap(self):
         hit = {
             "qstart": 1, "qend": 24, "qlen": 28,
             "sstart": 41, "send": 64, "slen": 1336,
         }
-        self.assertTrue(HitExtender._needs_realignment(hit))
+        self.assertFalse(HitExtender._is_semiglobal(hit))
         hit["qend"] = 28
-        self.assertFalse(HitExtender._needs_realignment(hit))
+        self.assertTrue(HitExtender._is_semiglobal(hit))
 
     def test_add_endgaps_left(self):
         no_endgaps = {"qstart": 1, "sstart": 1}

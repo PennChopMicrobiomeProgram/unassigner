@@ -115,11 +115,14 @@ class HitExtender:
         sseq = self.ref_seqs[hit['sseqid']]
         assert(len(sseq) == hit['slen'])
 
-        if self._needs_realignment(hit):
-            aligned_qseq, aligned_sseq = align_semiglobal(qseq, sseq)
-            return AlignedPair(
-                (hit['qseqid'], aligned_qseq),
-                (hit['sseqid'], aligned_sseq))
+        # We expect this always to be true for the vsearch aligner.
+        # In the past, we had to re-do the alignment ourselves if it
+        # didn't come back from the external program as a semi-global
+        # alignment. I'm leaving this in place to double-check that we
+        # have a semi-global alignment. If we go around adding endgaps
+        # to an alignment that's not semi-global, we are sure to
+        # generate some difficult-to-diagnose bugs.
+        assert self._is_semiglobal(hit)
 
         qleft, sleft = self._add_endgaps_left(hit, qseq, sseq)
         qright, sright = self._add_endgaps_right(hit, qseq, sseq)
@@ -138,12 +141,12 @@ class HitExtender:
             (hit['send'] == hit['slen']))
 
     @staticmethod
-    def _needs_realignment(hit):
+    def _is_semiglobal(hit):
         more_to_the_left = (hit['qstart'] > 1) and \
                            (hit['sstart'] > 1)
         more_to_the_right = (hit['qend'] < hit['qlen']) and \
                             (hit['send'] < hit['slen'])
-        return (more_to_the_left or more_to_the_right)
+        return not (more_to_the_left or more_to_the_right)
 
     @staticmethod
     def _add_endgaps_left(hit, qseq, sseq):
