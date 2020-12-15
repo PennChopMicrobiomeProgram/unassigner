@@ -77,3 +77,20 @@ def parse_greengenes_accessions(f):
             continue
         line = line.strip()
         yield line.split("\t")
+
+def parse_results(f):
+    float_fields = ["probability_incompatible"]
+    int_fields = ["region_mismatches", "region_positions"]
+    header_line = next(f)
+    header_line = header_line.rstrip()
+    fields = header_line.split("\t")
+    for line in f:
+        line = line.rstrip()
+        vals = line.split("\t")
+        res = dict(zip(fields, vals))
+        for field, val in res.items():
+            if field in float_fields:
+                res[field] = float(val)
+            elif field in int_fields:
+                res[field] = int(val)
+        yield res
