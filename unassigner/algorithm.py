@@ -1,34 +1,13 @@
 import collections
-import itertools
 import math
 import operator
 
 import numpy
-import scipy
-import scipy.special
+from scipy.stats import betabinom
 
 from unassigner.alignment import AlignedRegion
 from unassigner.align import VsearchAligner, HitExtender
 from unassigner.parse import parse_fasta
-
-def beta_binomial_pdf(k, n, alpha, beta):
-    binom_coeff = scipy.special.comb(n, k)
-    if binom_coeff == 0:
-        return 0
-    t1 = math.log(binom_coeff)
-    t2 = scipy.special.betaln(k + alpha, n - k + beta)
-    t3 = scipy.special.betaln(alpha, beta)
-    logf = t1 + t2 - t3
-    return math.exp(logf)
-
-
-def beta_binomial_cdf(k_max, n, alpha, beta):
-    k = 0
-    val = 0
-    while k <= k_max:
-        val += beta_binomial_pdf(k, n, alpha, beta)
-        k += 1
-    return val
 
 
 class UnassignAligner(object):
@@ -114,7 +93,7 @@ class VariableMismatchRate:
         self.alignment = alignment
         self.query_id = alignment.query_id
 
-    def unassign_threshold(self, min_id=0.975):
+    def unassign_threshold(self, min_id=0.975, soft_threshold=False):
         # Use all the beta-binomial logic from ConstantMismatchRate,
         # just adjust alpha and beta based on reference
         # sequences. Here's how. Reparameterize beta as mu and v,
@@ -192,9 +171,15 @@ class VariableMismatchRate:
         max_nonregion_mismatches = max_total_mismatches - region_mismatches
 
         # Compute probability
-        prob_compatible = beta_binomial_cdf(
-            max_nonregion_mismatches, nonregion_subject_positions,
-            alpha2, beta2)
+        if soft_threshold:
+            threshold_fcn = soft_species_probability
+        else:
+            threshold_fcn = hard_species_probability
+        prob_compatible = threshold_assignment_probability(
+            region_mismatches, region_positions, nonregion_subject_positions,
+            alpha2, beta2, 100 * species_mismatch_threshold,
+            threshold_fcn,
+        )
         prob_incompatible = 1 - prob_compatible
 
         return {
@@ -209,12 +194,45 @@ class VariableMismatchRate:
             "max_nonregion_mismatches": max_nonregion_mismatches,
         }
 
+def pctdiff(obs_mismatches, obs_positions, unobs_mismatches, unobs_positions):
+    total_mismatches = obs_mismatches + unobs_mismatches
+    total_positions = obs_positions + unobs_positions
+    return 100 * (total_mismatches / total_positions)
+
+def soft_species_probability(d, d_half):
+    return math.pow(2, -d / d_half)
+
+def hard_species_probability(d, d_half):
+    return float(d <= d_half)
+
+def iter_threshold(
+        obs_mismatches, obs_positions, unobs_positions,
+        alpha, beta, d_half,
+        threshold_fcn=soft_species_probability):
+    for mm in range(unobs_positions + 1):
+        p_mm = betabinom.pmf(mm, unobs_positions, alpha, beta)
+        d = pctdiff(obs_mismatches, obs_positions, mm, unobs_positions)
+        p_species = threshold_fcn(d, d_half)
+        if p_species < 1e-10:
+            break
+        yield (mm, p_mm, d, p_species)
+
+def threshold_assignment_probability(
+        obs_mismatches, obs_positions, unobs_positions,
+        alpha, beta, d_half,
+        threshold_fcn=soft_species_probability):
+    return sum(
+        p_mm * p_species for _, p_mm, _, p_species
+        in iter_threshold(
+            obs_mismatches, obs_positions, unobs_positions,
+            alpha, beta, d_half, threshold_fcn))
 
 class UnassignerApp:
-    def __init__(self, aligner, mm_rate):
+    def __init__(self, aligner, mm_rate, min_id=0.975, soft_threshold=False):
         self.aligner = aligner
         self.mm_rate = mm_rate
-        self.alignment_min_percent_id = 0.975
+        self.alignment_min_percent_id = min_id
+        self.soft_threshold = soft_threshold
 
     def unassign(self, query_seqs):
         query_seqs = list(query_seqs)
@@ -234,7 +252,13 @@ class UnassignerApp:
         # Step 3.
         # For each query-type strain alignment, estimate unassignment
         # probability. Different for hard vs. soft threshold algorithms.
-        results = [(r.query_id, r.unassign_threshold()) for r in mm_rates]
+        results = []
+        for r in mm_rates:
+            res = r.unassign_threshold(
+                min_id=self.alignment_min_percent_id,
+                soft_threshold=self.soft_threshold,
+            )
+            results.append((r.query_id, res))
 
         # Step 4.
         # Group by query and yield results to caller. Same for all algorithms.

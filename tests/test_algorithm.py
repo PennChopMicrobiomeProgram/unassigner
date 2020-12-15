@@ -4,7 +4,10 @@ import unittest
 from unassigner.algorithm import (
     UnassignAligner, UnassignerApp,
     VariableMismatchRate,
-    beta_binomial_pdf, beta_binomial_cdf,
+    pctdiff,
+    soft_species_probability, hard_species_probability,
+    threshold_assignment_probability,
+    iter_threshold
 )
 
 from unassigner.alignment import AlignedPair
@@ -28,15 +31,22 @@ class UnassignAlignerTests(unittest.TestCase):
         self.assertEqual(observed, expected)
 
 class FunctionTests(unittest.TestCase):
-    def test_beta_binomial(self):
-        # These parameters are plotted on the wikipedia page
-        self.assertAlmostEqual(beta_binomial_pdf(8, 10, 600, 400), 0.12, 2)
-        self.assertAlmostEqual(beta_binomial_cdf(8, 10, 600, 400), 0.95, 2)
+    def test_pctdiff(self):
+        self.assertEqual(pctdiff(2, 10, 1.0, 90), 3.0)
 
-    def test_beta_binomial_out_of_bounds(self):
-        self.assertEqual(beta_binomial_pdf(15, 10, 10, 10), 0) # k > n
-        self.assertEqual(beta_binomial_pdf(3, 0, 10, 10), 0) # n == 0
-        self.assertEqual(beta_binomial_pdf(-3, 5, 10, 10), 0) # k < 0
+    def test_soft_species_probability(self):
+        self.assertEqual(soft_species_probability(0, 5.3), 1.0)
+        self.assertEqual(soft_species_probability(5.3, 5.3), 0.5)
+        self.assertEqual(soft_species_probability(2 * 5.3, 5.3), 0.5 * 0.5)
+
+    def test_threshold_assignment_probability(self):
+        sp = threshold_assignment_probability(
+            0, 90, 10, 1.0, 50.0, 1.0, soft_species_probability)
+        self.assertAlmostEqual(sp, 0.9098439687407773, 10)
+
+        hp = threshold_assignment_probability(
+            0, 90, 10, 1.0, 50.0, 1.0, hard_species_probability)
+        self.assertAlmostEqual(hp, 0.9745762711864412, 10)
 
 class VariableMismatchRateTests(unittest.TestCase):
     def setUp(self):

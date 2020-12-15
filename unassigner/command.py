@@ -22,6 +22,11 @@ def main(argv=None):
             "Type strain sequences FASTA file (default: %(default)s). "
             "If the default file is not found, sequences are downloaded "
             "and re-formatted automatically."))
+    p.add_argument("--threshold", type=float,
+        help=(
+            "Sequence identity threshold for ruling out species-level "
+            "compatibility. Default value is 0.975 for the standard "
+            "algorithm and 0.991 for the soft threshold algorithm."))
     p.add_argument("--ref_mismatch_positions",
         help=(
             "File of mismatch positions in reference database. The file may "
@@ -30,9 +35,19 @@ def main(argv=None):
         help=(
             "Number of CPUs to use during sequence aligment (default: "
             "use all the CPUs)"))
+    p.add_argument("--soft_threshold", action="store_true",
+        help="Use soft threshold algorithm.")
     p.add_argument("--verbose", action="store_true",
         help= "Activate verbose mode.")
     args = p.parse_args(argv)
+
+    if args.threshold is None:
+        if args.soft_threshold:
+            min_id = 0.991
+        else:
+            min_id = 0.975
+    else:
+        min_id = args.threshold
 
     if args.verbose is True:
         logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
@@ -73,7 +88,10 @@ def main(argv=None):
             mm_db_file = open(args.ref_mismatch_positions)
         VariableMismatchRate.load_database(mm_db_file)
 
-    app = UnassignerApp(a, VariableMismatchRate)
+    app = UnassignerApp(
+        a, VariableMismatchRate,
+        min_id=min_id,
+        soft_threshold=args.soft_threshold)
     for query_id, query_results in app.unassign(query_seqs):
         writer.write_results(query_id, query_results)
 
