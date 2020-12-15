@@ -1,4 +1,3 @@
-import abc
 import os.path
 import subprocess
 import tempfile
@@ -16,7 +15,7 @@ BLAST_FIELD_TYPES = [
     int, int, int, int, int, int, str, str]
 
 
-class Aligner(abc.ABC):
+class VsearchAligner:
     def __init__(self, ref_seqs_fp):
         self.ref_seqs_fp = ref_seqs_fp
 
@@ -51,9 +50,6 @@ class Aligner(abc.ABC):
             if convert_types:
                 vals = [fn(v) for fn, v in zip(BLAST_FIELD_TYPES, vals)]
             yield dict(zip(BLAST_FIELDS, vals))
-
-
-class VsearchAligner(Aligner):
 
     @property
     def ref_seqs_udb_fp(self):
