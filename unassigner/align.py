@@ -64,10 +64,6 @@ class VsearchAligner:
         ]
         return subprocess.check_call(args)
 
-    @staticmethod
-    def _index(fasta_fp):
-        pass
-
     def _call(self, query_fp, database_fp, output_fp, min_id = 0.5, **kwargs):
         """Call the VSEARCH program.
 
