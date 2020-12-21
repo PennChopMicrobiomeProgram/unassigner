@@ -16,8 +16,7 @@ setup(name='unassigner',
       url='https://github.com/kylebittinger/unassigner',
       packages=['unassigner'],
       install_requires=[
-          'biopython',
-          'scipy',
+          'scipy>=1.4.0',
       ],
       entry_points={
           'console_scripts': [
