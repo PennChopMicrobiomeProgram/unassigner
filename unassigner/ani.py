@@ -54,17 +54,6 @@ class Refseq16SDatabase:
         for seqid, assembly in self.assemblies.items():
             f.write("{0}\t{1}\n".format(seqid, assembly.accession))
 
-    def compute_pctids(self, min_pctid=97.0, threads=None):
-        aligner = PctidAligner(self.fasta_fp)
-        if not os.path.exists(aligner.hits_fp):
-            aligner.search(min_pctid=min_pctid, threads=threads)
-        with open(aligner.hits_fp) as f:
-            for hit in aligner.parse(f):
-                query = self.assemblies[hit["qseqid"]]
-                subject = self.assemblies[hit["sseqid"]]
-                pctid = hit["pident"]
-                yield AssemblyPair(query, subject, pctid)
-
     def search_one(self, query_seqid, pctid, threads=None):
         pctid_str = "{:.1f}".format(pctid)
         print("Searching", query_seqid, "at", pctid_str, "pct identity")
