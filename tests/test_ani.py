@@ -25,9 +25,6 @@ class RefseqAssemblyTests(unittest.TestCase):
                 "ftp://ftp.ncbi.nlm.nih.gov/genomes/all/"
                 "GCF/000/010/525/GCF_000010525.1_ASM1052v1"))
 
-    def test_base_url(self):
-        self.assertEqual(self.a.base_url, "https://ncbi.gov/abcd")
-
     def test_rna_url(self):
         self.assertEqual(
             self.a.rna_url,

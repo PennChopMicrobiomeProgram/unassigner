@@ -1,5 +1,6 @@
 import argparse
 import collections
+import logging
 import os
 import os.path
 import random
@@ -12,11 +13,7 @@ from unassigner.download import get_url
 from unassigner.parse import parse_fasta, write_fasta
 
 class Refseq16SDatabase:
-    def __init__(
-            self, fasta_fp="refseq_16S.fasta",
-            accession_fp="refseq_16S_accessions.txt"):
-        self.fasta_fp = fasta_fp
-        self.accession_fp = accession_fp
+    def __init__(self):
         self.seqs = {}
         self.assemblies = {}
         self.seqids_by_assembly = collections.defaultdict(list)
@@ -30,32 +27,32 @@ class Refseq16SDatabase:
         seen = set()
         for desc, seq in seqs:
             if seq not in seen:
-                print(desc)
+                logging.info(desc)
                 seqid = desc.split()[0]
                 self.assemblies[seqid] = assembly
                 self.seqs[seqid] = seq
                 self.seqids_by_assembly[assembly.accession].append(seqid)
                 seen.add(seq)
 
-    def load(self, assemblies):
-        with open(self.accession_fp, "r") as f:
-            for line in f:
-                toks = line.strip().split()
-                seqid = toks[0]
-                accession = toks[1]
-                assembly = assemblies[accession]
-                self.assemblies[seqid] = assembly
-                self.seqids_by_assembly[assembly.accession].append(seqid)
-        with open(self.fasta_fp, "r") as f:
-            for seqid, seq in parse_fasta(f):
-                self.seqs[seqid] = seq
+    def load_accessions(self, f, assemblies):
+        for line in f:
+            toks = line.strip().split()
+            seqid = toks[0]
+            accession = toks[1]
+            assembly = assemblies[accession]
+            self.assemblies[seqid] = assembly
+            self.seqids_by_assembly[assembly.accession].append(seqid)
 
-    def save(self):
-        with open(self.fasta_fp, "w") as f:
-            write_fasta(f, self.seqs.items())
-        with open(self.accession_fp, "w") as f:
-            for seqid, assembly in self.assemblies.items():
-                f.write("{0}\t{1}\n".format(seqid, assembly.accession))
+    def load_seqs(self, f):
+        for seqid, seq in parse_fasta(f):
+            self.seqs[seqid] = seq
+
+    def save_seqs(self, f):
+        write_fasta(f, self.seqs.items())
+
+    def save_accessions(self, f):
+        for seqid, assembly in self.assemblies.items():
+            f.write("{0}\t{1}\n".format(seqid, assembly.accession))
 
     def compute_pctids(self, min_pctid=97.0, threads=None):
         aligner = PctidAligner(self.fasta_fp)
@@ -191,7 +188,6 @@ class RefseqAssembly:
         "https://ftp.ncbi.nlm.nih.gov/genomes/refseq/"
         "bacteria/assembly_summary.txt"
         )
-    summary_fp = "refseq_bacteria_assembly_summary.txt"
     genome_dir = "genome_fasta"
     rna_dir = "rna_fasta"
     summary_cols = [
@@ -209,7 +205,7 @@ class RefseqAssembly:
         for key, val in kwargs.items():
             setattr(self, key, val)
         self._ssu_seqs = None
-            
+
     @classmethod
     def parse_summary(cls, f):
         for line in f:
@@ -228,10 +224,9 @@ class RefseqAssembly:
             return self._ssu_seqs
         if not os.path.exists(self.rna_fp):
             try:
-                self.download_rna()
+                self._download_rna()
             except urllib.error.HTTPError as e:
-                print(self.accession)
-                print(e)
+                logging.warning("HTTPError for {0}:\n{1}".format(self.accession, e))
                 return []
         with open(self.rna_fp, "rt") as f:
             seqs = list(parse_fasta(f))
@@ -239,32 +234,25 @@ class RefseqAssembly:
         self._ssu_seqs = res
         return res
 
-    @classmethod
-    def load(cls):
-        if not os.path.exists(cls.summary_fp):
-            get_url(cls.summary_url, cls.summary_fp)
-        with open(cls.summary_fp, "r") as f:
-            return {a.accession: a for a in cls.parse_summary(f)}
-
     @property
-    def base_url(self):
+    def _base_url(self):
         return re.sub("^ftp://", "https://", self.ftp_path)
 
     @property
-    def basename(self):
+    def _basename(self):
         return os.path.basename(self.ftp_path)
 
     @property
     def rna_url(self):
         return "{0}/{1}_rna_from_genomic.fna.gz".format(
-            self.base_url, self.basename)
+            self._base_url, self._basename)
 
     @property
     def rna_fp(self):
-        rna_filename = "{0}_rna_from_genomic.fna".format(self.basename)
+        rna_filename = "{0}_rna_from_genomic.fna".format(self._basename)
         return os.path.join(self.rna_dir, rna_filename)
 
-    def download_rna(self):
+    def _download_rna(self):
         if os.path.exists(self.rna_fp):
             return
         if not os.path.exists(self.rna_dir):
@@ -276,12 +264,12 @@ class RefseqAssembly:
     @property
     def genome_url(self):
         return "{0}/{1}_genomic.fna.gz".format(
-            self.base_url, self.basename)
+            self._base_url, self._basename)
 
     @property
     def genome_fp(self):
         genome_filename = "{0}_genomic.fna.gz".format(
-            self.basename)
+            self._basename)
         return os.path.join(self.genome_dir, genome_filename)
 
     def download_genome(self, genome_dir=None, genome_fname=None):
@@ -300,27 +288,6 @@ class RefseqAssembly:
 
 def is_16S(desc):
     return "product=16S ribosomal RNA" in desc
-
-
-def subsample_by(xs, fcn, n):
-    groups = group_by(xs, fcn)
-    for group in groups:
-        if len(group) > n:
-            group = random.sample(group, n)
-        for x in group:
-            yield x
-
-
-def flatten(xss):
-    return [x for xs in xss for x in xs]
-
-
-def group_by(xs, fcn):
-    groups = collections.defaultdict(list)
-    for x in xs:
-        group = fcn(x)
-        groups[group].append(x)
-    return groups.values()
 
 
 def remove_files(target_dir):
@@ -426,7 +393,14 @@ def main_sampling(argv=None):
         help="Output file",
     )
     p.add_argument(
-        "--min_pctid", type=float, default=97.0,
+        "--assembly-summary-file",
+        default="refseq_bacteria_assembly_summary.txt",
+        help=(
+            "File to use for RefSeq assembly summary. Will be downloaded if "
+            "not already present."),
+    )
+    p.add_argument(
+        "--min-pctid", type=float, default=97.0,
         help="Minimum 16S percent ID",
     )
     p.add_argument(
@@ -442,43 +416,55 @@ def main_sampling(argv=None):
         help="Random number seed",
     )
     args = p.parse_args()
+
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(message)s",
+    )
+
     args.output_file.write(
         "query_assembly\tsubject_assembly\t"
         "query_seqid\tsubject_seqid\t"
         "pctid\tani\n")
-    
-    # Set seed for 16S selection
-    random.seed(args.seed)
-    
-    # Load all assemblies
-    assemblies = RefseqAssembly.load()
 
-    # 16S database with one random sequence from each assembly
-    db = Refseq16SDatabase(
-        "refseq_16S_all.fasta",
-        "refseq_16S_accessions_all.txt")
-    if os.path.exists(db.accession_fp):
-        db.load(assemblies)
+    random.seed(args.seed)
+
+    if not os.path.exists(args.assembly_summary_file):
+        get_url(RefseqAssembly.summary_url, args.assembly_summary_file)
+
+    assemblies = {}
+    with open(args.assembly_summary_file, "r") as f:
+        for a in RefseqAssembly.parse_summary(f):
+            assemblies[a.accession] = a
+
+    ssu_accession_fp = "refseq_16S_accessions_all.txt"
+    ssu_fasta_fp = "refseq_16S_all.fasta"
+    if os.path.exists(ssu_accession_fp):
+        with open(ssu_accession_fp) as f:
+            db.load_accessions(f, assemblies)
+        with open(ssu_fasta_fp) as f:
+            db.load_seqs(f)
     else:
         for assembly in assemblies.values():
             db.add_assembly(assembly)
-        db.save()
+        with open(ssu_accession_fp, "w") as f:
+            db.save_accessions(f)
+        with open(ssu_fasta_fp, "w") as f:
+            db.save_seqs(f)
 
     pctid_vals = list(pctid_range(args.min_pctid)) * args.num_ani
 
-    # Set seed again
-    random.seed(args.seed + 1)
     assembly_list = list(assemblies.values())
     for current_pctid in pctid_vals:
         found = False
         while not found:
             # randomly select assembly
             query_assembly = random.choice(assembly_list)
-            # randomly select query sequence from assembly
             query_assembly_seqids = db.seqids_by_assembly[query_assembly.accession]
             # next loop if we don't have any sequences for this assembly
             if not query_assembly_seqids:
                 continue
+            # randomly select query sequence from assembly
             query_seqid = random.choice(query_assembly_seqids)
             assembly_pairs = db.search_one(
                 query_seqid, current_pctid, threads=args.num_threads)
@@ -491,7 +477,8 @@ def main_sampling(argv=None):
                     args.output_file.write(selected_pair.format_output())
                     args.output_file.flush()
                 except Exception as e:
-                    print(e)
+                    logging.warning(
+                        "Exception during ANI computation:\n{0}".format(e))
                 else:
                     found = True
 
