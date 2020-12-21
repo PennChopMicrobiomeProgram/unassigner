@@ -92,31 +92,6 @@ class Refseq16SDatabase:
                         query, subject, pctid,
                         hit["qseqid"], hit["sseqid"])
 
-    def search_seq(
-            self, query_seqid, query_seq, min_pctid=90.0, threads=None):
-        query_fp = "temp_query.fasta"
-        if os.path.exists(query_fp):
-            os.rename(query_fp, "temp_prev_query.fasta")
-        query_hits_fp = "temp_query_hits.txt"
-        if os.path.exists(query_hits_fp):
-            os.rename(query_hits_fp, "temp_prev_query_hits.txt")
-        with open(query_fp, "w") as f:
-            write_fasta(f, [(query_seqid, query_seq)])
-        aligner = PctidAligner(self.fasta_fp)
-        aligner.search(
-            query_fp, query_hits_fp, min_pctid=min_pctid,
-            threads=threads, max_hits=10000)
-        with open(query_hits_fp) as f:
-            hits = aligner.parse(f)
-            for hit in hits:
-                query = self.assemblies[hit["qseqid"]]
-                subject = self.assemblies[hit["sseqid"]]
-                pctid = hit["pident"]
-                if query.accession != subject.accession:
-                    yield AssemblyPair(
-                        query, subject, pctid,
-                        hit["qseqid"], hit["sseqid"])
-
 
 class PctidAligner:
     field_names = ["qseqid", "sseqid", "pident"]
