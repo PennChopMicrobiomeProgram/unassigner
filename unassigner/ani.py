@@ -458,20 +458,16 @@ def main_sampling(argv=None):
     for current_pctid in pctid_vals:
         found = False
         while not found:
-            # randomly select assembly
             query_assembly = random.choice(assembly_list)
             query_assembly_seqids = db.seqids_by_assembly[query_assembly.accession]
-            # next loop if we don't have any sequences for this assembly
             if not query_assembly_seqids:
                 continue
-            # randomly select query sequence from assembly
             query_seqid = random.choice(query_assembly_seqids)
             assembly_pairs = db.search_one(
                 query_seqid, current_pctid, threads=args.num_threads)
             assembly_pairs = list(assembly_pairs)
             if assembly_pairs:
                 try:
-                    # randomly select one result
                     selected_pair = random.choice(assembly_pairs)
                     selected_pair.compute_ani()
                     args.output_file.write(selected_pair.format_output())
