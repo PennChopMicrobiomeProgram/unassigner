@@ -1,15 +1,9 @@
 import argparse
-import os
-import subprocess
-
-import argparse
 import collections
 import itertools
 import operator
-import sys
-import tempfile
 
-from unassigner.parse import parse_fasta, write_fasta
+from unassigner.parse import parse_fasta
 from unassigner.align import VsearchAligner
 
 class MismatchLocationApp:
