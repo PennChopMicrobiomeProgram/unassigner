@@ -115,9 +115,9 @@ class Refseq16SDatabase:
             min_id=min_id, maxaccepts=10000, threads=threads)
 
         for hit in hits:
-            if hit["qseqid"] == hit["sseqid"]:
-                continue
-            if hit["pident"] == pctid_str:
+            self_hit = hit["qseqid"] == hit["sseqid"]
+            pctid_matches = hit["pident"] == pctid_str
+            if pctid_matches and not self_hit:
                 yield AssemblyPair(
                     query=self.assemblies[hit["qseqid"]],
                     subject=self.assemblies[hit["sseqid"]],
