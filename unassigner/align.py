@@ -42,6 +42,7 @@ VSEARCH_TO_BLAST = {
     "qrow": "qseq",
     "trow": "sseq",
 }
+
 BLAST_TO_VSEARCH = {b: v for v, b in VSEARCH_TO_BLAST.items()}
 
 
@@ -52,10 +53,8 @@ class VsearchAligner:
         self.convert_types = True
         self.stderr = subprocess.DEVNULL
 
-    def search(
-            self, seqs, input_fp=None, output_fp=None, **kwargs):
-        """Write seqs to input file, search, and parse output
-        """
+    def search(self, seqs, input_fp=None, output_fp=None, **kwargs):
+        """Search seqs and return hits"""
         if input_fp is None:
             infile = tempfile.NamedTemporaryFile(
                 suffix=".fasta", mode="w+t", encoding="utf-8")
@@ -80,6 +79,7 @@ class VsearchAligner:
     def _call(
             self, query_fp, output_fp, min_id = 0.5,
             maxaccepts = 1, threads=None, top_hits_only=False):
+        """Call vsearch to generate output file"""
         self.make_reference_udb()
         id_arg = "{:.3f}".format(min_id)
         userfields_arg = "+".join(BLAST_TO_VSEARCH[f] for f in self.fields)
@@ -127,5 +127,3 @@ class VsearchAligner:
             "--output", self.ref_seqs_udb_fp,
         ]
         return subprocess.check_call(args, stderr=self.stderr)
-
-
