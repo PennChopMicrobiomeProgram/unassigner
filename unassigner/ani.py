@@ -14,15 +14,37 @@ from unassigner.parse import parse_fasta, write_fasta
 
 class Refseq16SDatabase:
     def __init__(self):
+        self.ssu_accession_fp = "refseq_16S_accessions_all.txt"
+        self.ssu_fasta_fp = "refseq_16S_all.fasta"
         self.seqs = {}
         self.assemblies = {}
         self.seqids_by_assembly = collections.defaultdict(list)
 
-    def add_assembly(self, assembly, select_random=False):
-        seqs = list(assembly.ssu_seqs)
-        if select_random and (len(seqs) > 0):
-            seqs = [random.choice(seqs)]
+    def load(self, assemblies):
+        was_loaded_from_file = self._load_from_files(assemblies)
+        if not was_loaded_from_file:
+            for assembly in assemblies.values():
+                self.add_assembly(assembly)
+            self._save_to_files()
+        return was_loaded_from_file
 
+    def _load_from_files(self, assemblies):
+        if os.path.exists(self.ssu_accession_fp):
+            with open(self.ssu_accession_fp) as f:
+                self._load_accessions(f, assemblies)
+            with open(self.ssu_fasta_fp) as f:
+                self._load_seqs(f)
+            return True
+        return False
+
+    def _save_to_files(self):
+        with open(self.ssu_accession_fp, "w") as f:
+            self._save_accessions(f)
+        with open(self.ssu_fasta_fp, "w") as f:
+            self._save_seqs(f)
+
+    def add_assembly(self, assembly):
+        seqs = list(assembly.ssu_seqs)
         # Avoid writing duplicate genes for the same genome
         seen = set()
         for desc, seq in seqs:
@@ -34,29 +56,30 @@ class Refseq16SDatabase:
                 self.seqids_by_assembly[assembly.accession].append(seqid)
                 seen.add(seq)
 
-    def load_accessions(self, f, assemblies):
+    def _save_accessions(self, f):
+        for seqid, assembly in self.assemblies.items():
+            f.write("{0}\t{1}\n".format(seqid, assembly.accession))
+
+    def _load_accessions(self, f, assemblies):
         for line in f:
             toks = line.strip().split()
             seqid = toks[0]
             accession = toks[1]
             assembly = assemblies[accession]
             self.assemblies[seqid] = assembly
-            self.seqids_by_assembly[assembly.accession].append(seqid)
+            self.seqids_by_assembly[accession].append(seqid)
 
-    def load_seqs(self, f):
+    def _save_seqs(self, f):
+        write_fasta(f, self.seqs.items())
+
+    def _load_seqs(self, f):
         for seqid, seq in parse_fasta(f):
             self.seqs[seqid] = seq
 
-    def save_seqs(self, f):
-        write_fasta(f, self.seqs.items())
-
-    def save_accessions(self, f):
-        for seqid, assembly in self.assemblies.items():
-            f.write("{0}\t{1}\n".format(seqid, assembly.accession))
-
-    def search_one(self, query_seqid, pctid, threads=None):
+    def search_at_pctid(self, query_seqid, pctid, threads=None):
         pctid_str = "{:.1f}".format(pctid)
-        print("Searching", query_seqid, "at", pctid_str, "pct identity")
+        print("Searching {0} at {1} pct identity".format(
+            query_seqid, pctid_str))
         query_seq = self.seqs[query_seqid]
         query_fp = "temp_query.fasta"
         if os.path.exists(query_fp):
@@ -66,9 +89,11 @@ class Refseq16SDatabase:
             os.rename(query_hits_fp, "temp_prev_query_hits.txt")
         with open(query_fp, "w") as f:
             write_fasta(f, [(query_seqid, query_seq)])
-        aligner = PctidAligner(self.fasta_fp)
+        aligner = PctidAligner(self.ssu_fasta_fp)
+        # Must set minimum id a bit lower for the search
+        min_pctid = pctid - 0.5
         aligner.search(
-            query_fp, query_hits_fp, min_pctid=pctid,
+            query_fp, query_hits_fp, min_pctid=min_pctid,
             threads=threads, max_hits=10000)
         with open(query_hits_fp) as f:
             hits = aligner.parse(f)
@@ -132,7 +157,7 @@ class PctidAligner:
             ])
         if threads is not None:
             args.extend(["--threads", str(threads)])
-        print(args)
+        print("Vsearch args: {0}".format(args))
         subprocess.check_call(args)
         return hits_fp
 
@@ -152,8 +177,6 @@ class RefseqAssembly:
         "https://ftp.ncbi.nlm.nih.gov/genomes/refseq/"
         "bacteria/assembly_summary.txt"
         )
-    genome_dir = "genome_fasta"
-    rna_dir = "rna_fasta"
     summary_cols = [
         "assembly_accession", "bioproject", "biosample", "wgs_master",
         "refseq_category", "taxid", "species_taxid", "organism_name",
@@ -169,6 +192,16 @@ class RefseqAssembly:
         for key, val in kwargs.items():
             setattr(self, key, val)
         self._ssu_seqs = None
+        self.genome_dir = "genome_fasta"
+        self.rna_dir = "rna_fasta"
+
+    @property
+    def _base_url(self):
+        return re.sub("^ftp://", "https://", self.ftp_path)
+
+    @property
+    def _basename(self):
+        return os.path.basename(self.ftp_path)
 
     @classmethod
     def parse_summary(cls, f):
@@ -184,27 +217,10 @@ class RefseqAssembly:
 
     @property
     def ssu_seqs(self):
-        if self._ssu_seqs is not None:
-            return self._ssu_seqs
-        if not os.path.exists(self.rna_fp):
-            try:
-                self._download_rna()
-            except urllib.error.HTTPError as e:
-                logging.warning("HTTPError for {0}:\n{1}".format(self.accession, e))
-                return []
-        with open(self.rna_fp, "rt") as f:
-            seqs = list(parse_fasta(f))
-        res = [(desc, seq) for (desc, seq) in seqs if is_16S(desc)]
-        self._ssu_seqs = res
-        return res
-
-    @property
-    def _base_url(self):
-        return re.sub("^ftp://", "https://", self.ftp_path)
-
-    @property
-    def _basename(self):
-        return os.path.basename(self.ftp_path)
+        if self._ssu_seqs is None:
+            self._download_rna()
+            self._load_ssu_seqs()
+        return self._ssu_seqs
 
     @property
     def rna_url(self):
@@ -221,9 +237,22 @@ class RefseqAssembly:
             return
         if not os.path.exists(self.rna_dir):
             os.mkdir(self.rna_dir)
-        print("Downloading 16S seqs for ", self.accession)
-        get_url(self.rna_url, self.rna_fp + ".gz")
-        subprocess.check_call(["gunzip", "-q", self.rna_fp + ".gz"])
+        try:
+            logging.info(
+                "Downloading RNA file for {0}".format(self.accession))
+            get_url(self.rna_url, self.rna_fp + ".gz")
+            subprocess.check_call(["gunzip", "-q", self.rna_fp + ".gz"])
+        except Exception as e:
+            logging.warning(
+                "Error downloading RNA file for {0}:\n{1}".format(
+                    self.accession, e))
+
+    def _load_ssu_seqs(self):
+        if os.path.exists(self.rna_fp):
+            with open(self.rna_fp, "rt") as f:
+                seqs = list(parse_fasta(f))
+            res = [(desc, seq) for (desc, seq) in seqs if is_16S(desc)]
+            self._ssu_seqs = res
 
     @property
     def genome_url(self):
@@ -232,8 +261,7 @@ class RefseqAssembly:
 
     @property
     def genome_fp(self):
-        genome_filename = "{0}_genomic.fna.gz".format(
-            self._basename)
+        genome_filename = "{0}_genomic.fna.gz".format(self._basename)
         return os.path.join(self.genome_dir, genome_filename)
 
     def download_genome(self, genome_dir=None, genome_fname=None):
@@ -258,6 +286,7 @@ def remove_files(target_dir):
     if os.path.exists(target_dir):
         for filename in os.listdir(target_dir):
             os.remove(os.path.join(target_dir, filename))
+
 
 class AssemblyPair:
     genome_dir = "temp_genomes"
@@ -401,20 +430,8 @@ def main_sampling(argv=None):
         for a in RefseqAssembly.parse_summary(f):
             assemblies[a.accession] = a
 
-    ssu_accession_fp = "refseq_16S_accessions_all.txt"
-    ssu_fasta_fp = "refseq_16S_all.fasta"
-    if os.path.exists(ssu_accession_fp):
-        with open(ssu_accession_fp) as f:
-            db.load_accessions(f, assemblies)
-        with open(ssu_fasta_fp) as f:
-            db.load_seqs(f)
-    else:
-        for assembly in assemblies.values():
-            db.add_assembly(assembly)
-        with open(ssu_accession_fp, "w") as f:
-            db.save_accessions(f)
-        with open(ssu_fasta_fp, "w") as f:
-            db.save_seqs(f)
+    db = Refseq16SDatabase()
+    db.load(assemblies)
 
     pctid_vals = list(pctid_range(args.min_pctid)) * args.num_ani
 
@@ -431,8 +448,8 @@ def main_sampling(argv=None):
                 query_seqid, current_pctid, threads=args.num_threads)
             assembly_pairs = list(assembly_pairs)
             if assembly_pairs:
+                selected_pair = random.choice(assembly_pairs)
                 try:
-                    selected_pair = random.choice(assembly_pairs)
                     selected_pair.compute_ani()
                     args.output_file.write(selected_pair.format_output())
                     args.output_file.flush()
