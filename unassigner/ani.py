@@ -106,11 +106,11 @@ class Refseq16SDatabase:
         min_pctid = pctid - 0.1
         min_id = min_pctid / 100
 
-        vsearch_aligner = VsearchAligner(self.ssu_fasta_fp)
-        vsearch_aligner.fields = ["qseqid", "sseqid", "pident"]
-        vsearch_aligner.convert_types = False
+        aligner = VsearchAligner(self.ssu_fasta_fp)
+        aligner.fields = ["qseqid", "sseqid", "pident"]
+        aligner.convert_types = False
 
-        hits = vsearch_aligner.search(
+        hits = aligner.search(
             query_seqs, self.query_fp, self.hits_fp,
             min_id=min_id, maxaccepts=10000, threads=threads)
 
