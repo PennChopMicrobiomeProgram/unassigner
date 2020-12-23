@@ -100,19 +100,14 @@ class VsearchAligner:
         subprocess.check_call(args, stderr=self.stderr)
 
     def parse(self, f):
-        return self._parse(f, self.convert_types, self.fields)
-
-    @classmethod
-    def _parse(self, f, convert_types=True, fields=DEFAULT_BLAST_FIELDS):
-        """Parse a BLAST output file."""
         for line in f:
             line = line.strip()
             if line.startswith("#"):
                 continue
             vals = line.split("\t")
-            res = dict(zip(fields, vals))
-            if convert_types:
-                for field in fields:
+            res = dict(zip(self.fields, vals))
+            if self.convert_types:
+                for field in self.fields:
                     fcn = BLAST_FIELD_TYPES[field]
                     res[field] = fcn(res[field])
             yield res

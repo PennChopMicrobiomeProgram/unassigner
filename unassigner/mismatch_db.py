@@ -67,7 +67,8 @@ class MismatchLocationApp:
 
     def find_mismathes(self, reference_hits_file):
         ref_hits_file_read = open(reference_hits_file.name)
-        hits = VsearchAligner._parse(ref_hits_file_read)
+        a = VsearchAligner("notafile")
+        hits = a.parse(ref_hits_file_read)
         for hit in hits:
             if hit["pident"] > 97.0:
                 query_id = hit["qseqid"]
