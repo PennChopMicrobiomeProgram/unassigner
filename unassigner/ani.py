@@ -130,61 +130,6 @@ class Refseq16SDatabase:
                     hit["qseqid"], hit["sseqid"])
 
 
-class PctidAligner:
-    field_names = ["qseqid", "sseqid", "pident"]
-
-    def __init__(self, ref_seqs_fp):
-        self.ref_seqs_fp = ref_seqs_fp
-
-    @property
-    def ref_seqs_udb_fp(self):
-        base_fp, _ = os.path.splitext(self.ref_seqs_fp)
-        return base_fp + ".udb"
-
-    def make_reference_udb(self):
-        if os.path.exists(self.ref_seqs_udb_fp):
-            return None
-        args = [
-            "vsearch",
-            "--makeudb_usearch", self.ref_seqs_fp,
-            "--output", self.ref_seqs_udb_fp,
-        ]
-        return subprocess.check_call(args)
-
-    def search(
-            self, query_fp, output_fp,
-            min_id=0.970, fields=DEFAULT_BLAST_FIELDS,
-            threads=None, maxaccepts=10000):
-        self.make_reference_udb()
-        min_id_arg = "{:.3f}".format(min_id)
-        vsearch_fields = [BLAST_TO_VSEARCH[f] for f in fields]
-        vsearch_fields_arg = "+".join(vsearch_fields)
-        maxaccepts_arg = "{:d}".format(maxaccepts)
-        args =[
-            "vsearch", "--usearch_global", query_fp,
-            "--db", self.ref_seqs_udb_fp,
-            "--iddef", "2",
-            "--id", min_id_arg,
-            "--userout", output_fp,
-            "--userfields", vsearch_fields_arg,
-            "--maxaccepts", maxaccepts_arg,
-            ]
-        if threads is not None:
-            threads_arg = "{:d}".format(threads)
-            args.extend(["--threads", threads_arg])
-        subprocess.check_call(args, stderr=subprocess.DEVNULL)
-
-    def parse(self, f):
-        for line in f:
-            line = line.strip()
-            if line.startswith("#"):
-                continue
-            vals = line.split("\t")
-            hit = dict(zip(self.field_names, vals))
-            if hit["qseqid"] != hit["sseqid"]:
-                yield hit
-
-
 class RefseqAssembly:
     summary_url = (
         "https://ftp.ncbi.nlm.nih.gov/genomes/refseq/"
