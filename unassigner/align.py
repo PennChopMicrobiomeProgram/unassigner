@@ -5,19 +5,54 @@ import tempfile
 from unassigner.parse import write_fasta, load_fasta, parse_fasta
 from unassigner.alignment import AlignedPair
 
-BLAST_FIELDS = [
+DEFAULT_BLAST_FIELDS = [
     "qseqid", "sseqid", "pident", "length", "mismatch", "gapopen",
-    "qstart", "qend", "sstart", "send", "qlen", "slen", "qseq", "sseq"]
-BLAST_FIELD_TYPES = [
-    str, str, float, int, int, int,
-    int, int, int, int, int, int, str, str]
+    "qstart", "qend", "sstart", "send", "qlen", "slen", "qseq", "sseq",
+]
+
+BLAST_FIELD_TYPES = {
+    "qseqid": str,
+    "sseqid": str,
+    "pident": float,
+    "length": int,
+    "mismatch": int,
+    "gapopen": int,
+    "qstart": int,
+    "qend": int,
+    "sstart": int,
+    "send": int,
+    "qlen": int,
+    "slen": int,
+    "qseq": str,
+    "sseq": str,
+}
+
+VSEARCH_TO_BLAST = {
+    "query": "qseqid",
+    "target": "sseqid",
+    "id2": "pident",
+    "alnlen": "length",
+    "mism": "mismatch",
+    "gaps": "gapopen",
+    "qilo": "qstart",
+    "qihi": "qend",
+    "tilo": "sstart",
+    "tihi": "send",
+    "qs": "qlen",
+    "ts": "slen",
+    "qrow": "qseq",
+    "trow": "sseq",
+}
+BLAST_TO_VSEARCH = {b: v for v, b in VSEARCH_TO_BLAST.items()}
 
 
 class VsearchAligner:
     def __init__(self, ref_seqs_fp):
         self.ref_seqs_fp = ref_seqs_fp
 
-    def search(self, seqs, input_fp=None, output_fp=None, **kwargs):
+    def search(self, seqs, input_fp=None, output_fp=None, search_params=None):
+        """Write seqs to input file, search, and parse output
+        """
         if input_fp is None:
             infile = tempfile.NamedTemporaryFile(mode="w+t", encoding="utf-8")
             write_fasta(infile, seqs)
@@ -31,23 +66,53 @@ class VsearchAligner:
             outfile = tempfile.NamedTemporaryFile()
             output_fp = outfile.name
 
-        self._call(input_fp, self.ref_seqs_fp, output_fp, **kwargs)
+        if search_params is None:
+            search_params = {}
+        self._call(input_fp, output_fp, **search_params)
 
         with open(output_fp) as f:
             for hit in self._parse(f):
                 yield hit
 
+    def _call(
+            self, query_fp, output_fp,
+            min_id = 0.5, fields=DEFAULT_BLAST_FIELDS,
+            maxaccepts = 1, threads=None, top_hits_only=False):
+        self.make_reference_udb()
+        min_id_arg = "{:.3f}".format(min_id)
+        vsearch_fields = [BLAST_TO_VSEARCH[f] for f in fields]
+        vsearch_fields_arg = "+".join(vsearch_fields)
+        maxaccepts_arg = "{:d}".format(maxaccepts)
+        args = [
+            "vsearch", "--usearch_global", query_fp,
+            "--db", self.ref_seqs_udb_fp,
+            "--iddef", "2",
+            "--id", min_id_arg,
+            "--userout", output_fp,
+            "--userfields", vsearch_fields_arg,
+            "--maxaccepts", maxaccepts_arg,
+        ]
+        if threads is not None:
+            threads_arg = "{:d}".format(threads)
+            args.extend(["--threads", threads_arg])
+        if top_hits_only:
+            args.append("--top_hits_only")
+        subprocess.check_call(args, stderr=subprocess.DEVNULL)
+
     @classmethod
-    def _parse(self, f, convert_types=True):
+    def _parse(self, f, convert_types=True, fields=DEFAULT_BLAST_FIELDS):
         """Parse a BLAST output file."""
         for line in f:
             line = line.strip()
             if line.startswith("#"):
                 continue
             vals = line.split("\t")
+            res = dict(zip(fields, vals))
             if convert_types:
-                vals = [fn(v) for fn, v in zip(BLAST_FIELD_TYPES, vals)]
-            yield dict(zip(BLAST_FIELDS, vals))
+                for field in fields:
+                    fcn = BLAST_FIELD_TYPES[field]
+                    res[field] = fcn(res[field])
+            yield res
 
     @property
     def ref_seqs_udb_fp(self):
@@ -63,31 +128,6 @@ class VsearchAligner:
             "--output", self.ref_seqs_udb_fp,
         ]
         return subprocess.check_call(args)
-
-    def _call(self, query_fp, database_fp, output_fp, min_id = 0.5, **kwargs):
-        """Call the VSEARCH program.
-
-        --id is a required argument to run the program. We expose the
-        argument here as min_id.
-        """
-        if not os.path.exists(self.ref_seqs_udb_fp):
-            self.make_reference_udb()
-        args = [
-            "vsearch", "--usearch_global", query_fp,
-            "--db", self.ref_seqs_udb_fp,
-            "--iddef", "2",
-            "--id", str(min_id),
-            "--userout", output_fp,
-            "--userfields",
-            "query+target+id2+alnlen+mism+gaps+qilo+qihi+tilo+tihi+qs+ts+qrow+trow"
-            ]
-        for arg, val in kwargs.items():
-            arg = "--" + arg
-            if val is None:
-                args.append(arg)
-            else:
-                args += [arg, str(val)]
-        subprocess.check_call(args, stderr=subprocess.DEVNULL)
 
 
 class HitExtender:

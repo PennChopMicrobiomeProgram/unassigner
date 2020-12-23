@@ -195,12 +195,12 @@ class AlignmentMatcher(Matcher):
         ba = VsearchAligner(subject_fp)
         search_args = {
             "min_id": round(self.min_pct_id / 100, 2),
-            "top_hits_only": None}
+            "top_hits_only": True}
         if self.cores > 0:
             search_args["threads"] = self.cores
         hits = ba.search(
             seqs.get_unmatched_recs(), input_fp=query_fp, output_fp=result_fp,
-            **search_args)
+            search_params=search_args)
 
         # Refine
         bext = HitExtender(seqs.get_unmatched_recs(), seqs.get_matched_offset0())

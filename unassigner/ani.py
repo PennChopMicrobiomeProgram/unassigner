@@ -161,15 +161,8 @@ class PctidAligner:
             "--iddef", "2", "--id", min_id,
             "--userfields",
             "query+target+id2",
-        ]
-        if max_hits is None:
-            args.extend([
-                "--maxaccepts", "0", "--maxrejects", "0",
-            ])
-        else:
-            args.extend([
-                "--maxaccepts", str(max_hits),
-            ])
+            "--maxaccepts", str(max_hits),
+            ]
         if threads is not None:
             args.extend(["--threads", str(threads)])
         print("Vsearch args: {0}".format(args))
