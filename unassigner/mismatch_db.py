@@ -65,27 +65,21 @@ class MismatchLocationApp:
         reference_hits_file.seek(0)
         return reference_hits_file
 
-    def find_mismathes(self, reference_hits_file):
-        ref_hits_file_read = open(reference_hits_file.name)
-        a = VsearchAligner("notafile")
-        hits = a.parse(ref_hits_file_read)
-        for hit in hits:
-            if hit["pident"] > 97.0:
-                query_id = hit["qseqid"]
-                subject_id = hit["sseqid"]
-                mismatch_positions = mismatch_query_pos(hit)
-                yield (query_id, subject_id, mismatch_positions)
-
     def run(self):
         self.make_reference_udb()
+        aligner = VsearchAligner(self.reference_fasta_fp)
         for query_seqs in group_by_n(self.typestrain_seqs, self.batch_size):
             reference_hits_file = self.search_reference_seqs(query_seqs)
-            ref_mismatches = self.find_mismathes(reference_hits_file)
-            for query_id, subject_id, mismatch_positions in ref_mismatches:
-                mismatch_positions = list(mismatch_positions)
-                write_mismatches(
-                    self.mismatch_file, query_id, subject_id,
-                    mismatch_positions)
+            ref_hits_file_read = open(reference_hits_file.name)
+            hits = aligner.parse(ref_hits_file_read)
+            for hit in hits:
+                if hit["pident"] > 97.0:
+                    query_id = hit["qseqid"]
+                    subject_id = hit["sseqid"]
+                    mismatch_positions = list(mismatch_query_pos(hit))
+                    write_mismatches(
+                        self.mismatch_file, query_id, subject_id,
+                        mismatch_positions)
 
 
 def group_by_n(xs, n):
