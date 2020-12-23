@@ -34,13 +34,14 @@ class FileAligner:
     def __init__(self, species_fp, output_fp):
         self.species_fp = species_fp
         self.output_fp = output_fp
+        self._aligner = VsearchAligner(self.species_fp)
 
     def search_species(self, seqs):
         with open(self.species_fp) as f:
             ref_seqs = list(parse_fasta(f, trim_desc=True))
         xt = HitExtender(seqs, ref_seqs)
         with open(self.output_fp) as of:
-            hits = VsearchAligner._parse(of)
+            hits = self._aligner.parse(of)
             for hit in hits:
                 yield xt.extend_hit(hit)
 

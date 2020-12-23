@@ -51,6 +51,7 @@ class VsearchAligner:
         self.ref_seqs_fp = ref_seqs_fp
         self.fields = DEFAULT_BLAST_FIELDS
         self.convert_types = True
+        self.stderr = subprocess.DEVNULL
 
     def search(
             self, seqs, input_fp=None, output_fp=None, **kwargs):
@@ -96,7 +97,7 @@ class VsearchAligner:
             args.extend(["--threads", threads_arg])
         if top_hits_only:
             args.append("--top_hits_only")
-        subprocess.check_call(args, stderr=subprocess.DEVNULL)
+        subprocess.check_call(args, stderr=self.stderr)
 
     def parse(self, f):
         return self._parse(f, self.convert_types, self.fields)
@@ -129,7 +130,7 @@ class VsearchAligner:
             "--makeudb_usearch", self.ref_seqs_fp,
             "--output", self.ref_seqs_udb_fp,
         ]
-        return subprocess.check_call(args)
+        return subprocess.check_call(args, stderr=self.stderr)
 
 
 class HitExtender:
