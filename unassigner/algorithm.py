@@ -19,15 +19,9 @@ class UnassignAligner(object):
 
     def search_species(self, query_seqs):
         b = VsearchAligner(self.species_fp)
-        vsearch_args = {
-            "min_id": 0.9,
-            "maxaccepts": 5,
-        }
-        if self.num_cpus:
-            vsearch_args["threads"] = self.num_cpus
         hits = b.search(
-            query_seqs,
-            self.species_input_fp, self.species_output_fp, **vsearch_args)
+            query_seqs, self.species_input_fp, self.species_output_fp,
+            min_id=0.900, maxaccepts=5, threads=self.num_cpus)
 
         with open(self.species_fp) as f:
             ref_seqs = list(parse_fasta(f, trim_desc=True))
