@@ -444,7 +444,7 @@ def main_sampling(argv=None):
             if not query_assembly_seqids:
                 continue
             query_seqid = random.choice(query_assembly_seqids)
-            assembly_pairs = db.search_one(
+            assembly_pairs = db.search_at_pctid(
                 query_seqid, current_pctid, threads=args.num_threads)
             assembly_pairs = list(assembly_pairs)
             if assembly_pairs:
