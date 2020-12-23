@@ -6,7 +6,8 @@ import numpy
 from scipy.stats import betabinom
 
 from unassigner.alignment import AlignedRegion
-from unassigner.align import VsearchAligner, HitExtender
+from unassigner.align import VsearchAligner
+from unassigner.extend_hit import HitExtender
 from unassigner.parse import parse_fasta
 
 

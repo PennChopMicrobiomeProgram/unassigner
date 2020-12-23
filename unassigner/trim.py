@@ -8,7 +8,8 @@ import sys
 import tempfile
 
 from unassigner.parse import parse_fasta, write_fasta
-from unassigner.align import VsearchAligner, HitExtender
+from unassigner.align import VsearchAligner
+from unassigner.extend_hit import HitExtender
 from unassigner.alignment import AlignedRegion
 
 class TrimmableSeqs:
