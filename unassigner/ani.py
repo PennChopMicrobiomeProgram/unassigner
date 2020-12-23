@@ -100,13 +100,11 @@ class Refseq16SDatabase:
         if os.path.exists(self.hits_fp):
             os.rename(self.hits_fp, self.hits_fp + "_prev")
 
-        query_seq = self.seqs[query_seqid]
-        query_seqs = [(query_seqid, query_seq)]
+        query_seqs = [(query_seqid, self.seqs[query_seqid])]
 
         # Must set minimum id a bit lower for the search
         min_pctid = pctid - 0.1
         min_id = min_pctid / 100
-        fields = ["qseqid", "sseqid", "pident"]
 
         search_params = {
             "min_id": min_id,
@@ -118,16 +116,18 @@ class Refseq16SDatabase:
         vsearch_aligner.convert_types = False
         hits = vsearch_aligner.search(
             query_seqs, self.query_fp, self.hits_fp, search_params)
+
         for hit in hits:
             if hit["qseqid"] == hit["sseqid"]:
                 continue
             if hit["pident"] == pctid_str:
-                query = self.assemblies[hit["qseqid"]]
-                subject = self.assemblies[hit["sseqid"]]
-                pctid = hit["pident"]
                 yield AssemblyPair(
-                    query, subject, pctid,
-                    hit["qseqid"], hit["sseqid"])
+                    query=self.assemblies[hit["qseqid"]],
+                    subject=self.assemblies[hit["sseqid"]],
+                    pctid=hit["pident"],
+                    query_seqid=hit["qseqid"],
+                    subject_seqid=hit["sseqid"],
+                )
 
 
 class RefseqAssembly:
