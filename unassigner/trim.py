@@ -200,7 +200,7 @@ class AlignmentMatcher(Matcher):
             search_args["threads"] = self.cores
         hits = ba.search(
             seqs.get_unmatched_recs(), input_fp=query_fp, output_fp=result_fp,
-            search_params=search_args)
+            **search_args)
 
         # Refine
         bext = HitExtender(seqs.get_unmatched_recs(), seqs.get_matched_offset0())

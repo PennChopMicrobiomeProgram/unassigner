@@ -53,7 +53,7 @@ class VsearchAligner:
         self.convert_types = True
 
     def search(
-            self, seqs, input_fp=None, output_fp=None, search_params=None):
+            self, seqs, input_fp=None, output_fp=None, **kwargs):
         """Write seqs to input file, search, and parse output
         """
         if input_fp is None:
@@ -69,30 +69,26 @@ class VsearchAligner:
             outfile = tempfile.NamedTemporaryFile()
             output_fp = outfile.name
 
-        if search_params is None:
-            search_params = {}
-        self._call(input_fp, output_fp, **search_params)
+        self._call(input_fp, output_fp, **kwargs)
 
         with open(output_fp) as f:
             for hit in self.parse(f):
                 yield hit
 
     def _call(
-            self, query_fp, output_fp,
-            min_id = 0.5,
+            self, query_fp, output_fp, min_id = 0.5,
             maxaccepts = 1, threads=None, top_hits_only=False):
         self.make_reference_udb()
-        min_id_arg = "{:.3f}".format(min_id)
-        vsearch_fields = [BLAST_TO_VSEARCH[f] for f in self.fields]
-        vsearch_fields_arg = "+".join(vsearch_fields)
+        id_arg = "{:.3f}".format(min_id)
+        userfields_arg = "+".join(BLAST_TO_VSEARCH[f] for f in self.fields)
         maxaccepts_arg = "{:d}".format(maxaccepts)
         args = [
             "vsearch", "--usearch_global", query_fp,
             "--db", self.ref_seqs_udb_fp,
             "--iddef", "2",
-            "--id", min_id_arg,
+            "--id", id_arg,
             "--userout", output_fp,
-            "--userfields", vsearch_fields_arg,
+            "--userfields", userfields_arg,
             "--maxaccepts", maxaccepts_arg,
         ]
         if threads is not None:

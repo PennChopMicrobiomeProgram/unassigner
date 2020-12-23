@@ -27,7 +27,7 @@ class UnassignAligner(object):
             vsearch_args["threads"] = self.num_cpus
         hits = b.search(
             query_seqs,
-            self.species_input_fp, self.species_output_fp, vsearch_args)
+            self.species_input_fp, self.species_output_fp, **vsearch_args)
 
         with open(self.species_fp) as f:
             ref_seqs = list(parse_fasta(f, trim_desc=True))

@@ -115,7 +115,7 @@ class Refseq16SDatabase:
         vsearch_aligner.fields = ["qseqid", "sseqid", "pident"]
         vsearch_aligner.convert_types = False
         hits = vsearch_aligner.search(
-            query_seqs, self.query_fp, self.hits_fp, search_params)
+            query_seqs, self.query_fp, self.hits_fp, **search_params)
 
         for hit in hits:
             if hit["qseqid"] == hit["sseqid"]:
