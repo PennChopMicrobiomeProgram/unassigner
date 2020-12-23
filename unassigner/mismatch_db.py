@@ -23,55 +23,22 @@ class MismatchLocationApp:
         self.min_pct_id = 97.0
         self.num_threads = num_cpus
         self.batch_size = batch_size
-        self.max_hits = "10000"
-
-    @property
-    def reference_udb_fp(self):
-        base_fp, _ = os.path.splitext(self.reference_fasta_fp)
-        return base_fp + ".udb"
-
-    def make_reference_udb(self):
-        if os.path.exists(self.reference_udb_fp):
-            return None
-        args = [
-            "vsearch",
-            "--makeudb_usearch", self.reference_fasta_fp,
-            "--output", self.reference_udb_fp,
-        ]
-        return subprocess.check_call(args)
+        self.max_hits = 10000
 
     def search_reference_seqs(self, query_seqs):
-        query_file = tempfile.NamedTemporaryFile(suffix=".fasta", mode="wt")
-        write_fasta(query_file, query_seqs)
-        query_file.seek(0)
+        aligner = VsearchAligner(self.reference_fasta_fp)
+        aligner.make_reference_udb()
 
-        reference_hits_file = tempfile.NamedTemporaryFile(suffix=".txt", mode="wt")
-
-        # 97.0 --> 0.97
-        vsearch_min_id = "{:.2f}".format(self.min_pct_id / 100)
-        vsearch_args =[
-            "vsearch", "--usearch_global", query_file.name,
-            "--db", self.reference_udb_fp,
-            "--userout", reference_hits_file.name,
-            "--iddef", "2", "--id", vsearch_min_id,
-            "--maxaccepts", self.max_hits,
-            "--userfields",
-            "query+target+id2+alnlen+mism+gaps+qilo+qihi+tilo+tihi+qs+ts+qrow+trow",
-        ]
-        if self.num_threads:
-            vsearch_args.extend(["--threads", str(self.num_threads)])
-
-        subprocess.check_call(vsearch_args)
-        reference_hits_file.seek(0)
-        return reference_hits_file
+        min_id = self.min_pct_id / 100
+        hits = aligner.search(
+            query_seqs, min_id=min_id, maxaccepts=self.max_hits,
+            threads=self.num_threads)
+        for hit in hits:
+                yield hit
 
     def run(self):
-        self.make_reference_udb()
-        aligner = VsearchAligner(self.reference_fasta_fp)
         for query_seqs in group_by_n(self.typestrain_seqs, self.batch_size):
-            reference_hits_file = self.search_reference_seqs(query_seqs)
-            ref_hits_file_read = open(reference_hits_file.name)
-            hits = aligner.parse(ref_hits_file_read)
+            hits = self.search_reference_seqs(query_seqs)
             for hit in hits:
                 if hit["pident"] > 97.0:
                     query_id = hit["qseqid"]

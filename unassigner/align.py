@@ -58,7 +58,8 @@ class VsearchAligner:
         """Write seqs to input file, search, and parse output
         """
         if input_fp is None:
-            infile = tempfile.NamedTemporaryFile(mode="w+t", encoding="utf-8")
+            infile = tempfile.NamedTemporaryFile(
+                suffix=".fasta", mode="w+t", encoding="utf-8")
             write_fasta(infile, seqs)
             infile.seek(0)
             input_fp = infile.name
@@ -67,7 +68,8 @@ class VsearchAligner:
                 write_fasta(f, seqs)
 
         if output_fp is None:
-            outfile = tempfile.NamedTemporaryFile()
+            outfile = tempfile.NamedTemporaryFile(
+                suffix=".txt", mode="wt")
             output_fp = outfile.name
 
         self._call(input_fp, output_fp, **kwargs)
