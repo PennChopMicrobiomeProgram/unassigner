@@ -14,28 +14,30 @@ from unassigner.align import VsearchAligner
 
 class MismatchLocationApp:
     def __init__(
-            self, species_file, ref_fp, mismatch_file,
+            self, type_strain_file, reference_fp, output_file,
             batch_size=10, num_cpus=None):
-        self.typestrain_seqs = list(parse_fasta(species_file, trim_desc=True))
-        self.aligner = VsearchAligner(ref_fp)
-        self.mismatch_file = mismatch_file
-        self.min_id = 0.970
-        self.threads = num_cpus
+        self.seqs = list(parse_fasta(type_strain_file, trim_desc=True))
+        self.aligner = VsearchAligner(reference_fp)
+        self.output_file = output_file
         self.batch_size = batch_size
+        self.min_id = 0.970
         self.maxaccepts = 10000
+        self.threads = num_cpus
 
     def run(self):
-        for query_seqs in group_by_n(self.typestrain_seqs, self.batch_size):
+        for query_seqs in group_by_n(self.seqs, self.batch_size):
             hits = self.aligner.search(
                 query_seqs, min_id=self.min_id, maxaccepts=self.maxaccepts,
                 threads=self.threads)
             for hit in hits:
-                query_id = hit["qseqid"]
-                subject_id = hit["sseqid"]
-                mismatch_positions = list(mismatch_query_pos(hit))
+                mismatch_positions = mismatch_query_pos(hit)
                 write_mismatches(
-                    self.mismatch_file, query_id, subject_id,
-                    mismatch_positions)
+                    self.output_file,
+                    hit["qseqid"],
+                    hit["sseqid"],
+                    mismatch_positions,
+                )
+
 
 def write_mismatches(f, query_id, subject_id, mismatch_positions):
     f.write(query_id)
@@ -153,7 +155,6 @@ def main(argv=None):
     p.add_argument(
         "output_file", metavar="output-file", type=argparse.FileType("w"),
         help="Otuput file path")
-
     p.add_argument(
         "--batch-size",
         type=int, default=10,
