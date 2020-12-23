@@ -26,24 +26,22 @@ BLAST_FIELD_TYPES = {
     "sseq": str,
 }
 
-VSEARCH_TO_BLAST = {
-    "query": "qseqid",
-    "target": "sseqid",
-    "id2": "pident",
-    "alnlen": "length",
-    "mism": "mismatch",
-    "gaps": "gapopen",
-    "qilo": "qstart",
-    "qihi": "qend",
-    "tilo": "sstart",
-    "tihi": "send",
-    "qs": "qlen",
-    "ts": "slen",
-    "qrow": "qseq",
-    "trow": "sseq",
+BLAST_TO_VSEARCH = {
+    "qseqid": "query",
+    "sseqid": "target",
+    "pident": "id2",
+    "length": "alnlen",
+    "mismatch": "mism",
+    "gapopen": "gaps",
+    "qstart": "qilo",
+    "qend": "qihi",
+    "sstart": "tilo",
+    "send": "tihi",
+    "qlen": "qs",
+    "slen": "ts",
+    "qseq": "qrow",
+    "sseq": "trow",
 }
-
-BLAST_TO_VSEARCH = {b: v for v, b in VSEARCH_TO_BLAST.items()}
 
 
 class VsearchAligner:
