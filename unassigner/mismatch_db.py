@@ -17,36 +17,25 @@ class MismatchLocationApp:
             self, species_file, ref_fp, mismatch_file,
             batch_size=10, num_cpus=None):
         self.typestrain_seqs = list(parse_fasta(species_file, trim_desc=True))
-        self.reference_fasta_fp = ref_fp
+        self.aligner = VsearchAligner(ref_fp)
         self.mismatch_file = mismatch_file
-
-        self.min_pct_id = 97.0
-        self.num_threads = num_cpus
+        self.min_id = 0.970
+        self.threads = num_cpus
         self.batch_size = batch_size
-        self.max_hits = 10000
-
-    def search_reference_seqs(self, query_seqs):
-        aligner = VsearchAligner(self.reference_fasta_fp)
-        aligner.make_reference_udb()
-
-        min_id = self.min_pct_id / 100
-        hits = aligner.search(
-            query_seqs, min_id=min_id, maxaccepts=self.max_hits,
-            threads=self.num_threads)
-        for hit in hits:
-                yield hit
+        self.maxaccepts = 10000
 
     def run(self):
         for query_seqs in group_by_n(self.typestrain_seqs, self.batch_size):
-            hits = self.search_reference_seqs(query_seqs)
+            hits = self.aligner.search(
+                query_seqs, min_id=self.min_id, maxaccepts=self.maxaccepts,
+                threads=self.threads)
             for hit in hits:
-                if hit["pident"] > 97.0:
-                    query_id = hit["qseqid"]
-                    subject_id = hit["sseqid"]
-                    mismatch_positions = list(mismatch_query_pos(hit))
-                    write_mismatches(
-                        self.mismatch_file, query_id, subject_id,
-                        mismatch_positions)
+                query_id = hit["qseqid"]
+                subject_id = hit["sseqid"]
+                mismatch_positions = list(mismatch_query_pos(hit))
+                write_mismatches(
+                    self.mismatch_file, query_id, subject_id,
+                    mismatch_positions)
 
 
 def group_by_n(xs, n):
