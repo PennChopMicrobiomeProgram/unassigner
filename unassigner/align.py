@@ -49,8 +49,11 @@ BLAST_TO_VSEARCH = {b: v for v, b in VSEARCH_TO_BLAST.items()}
 class VsearchAligner:
     def __init__(self, ref_seqs_fp):
         self.ref_seqs_fp = ref_seqs_fp
+        self.fields = DEFAULT_BLAST_FIELDS
+        self.convert_types = True
 
-    def search(self, seqs, input_fp=None, output_fp=None, search_params=None):
+    def search(
+            self, seqs, input_fp=None, output_fp=None, search_params=None):
         """Write seqs to input file, search, and parse output
         """
         if input_fp is None:
@@ -71,20 +74,16 @@ class VsearchAligner:
         self._call(input_fp, output_fp, **search_params)
 
         with open(output_fp) as f:
-            if "fields" in search_params:
-                parse_kwargs = {"fields": search_params["fields"]}
-            else:
-                parse_kwargs = {}
-            for hit in self._parse(f, **parse_kwargs):
+            for hit in self.parse(f):
                 yield hit
 
     def _call(
             self, query_fp, output_fp,
-            min_id = 0.5, fields=DEFAULT_BLAST_FIELDS,
+            min_id = 0.5,
             maxaccepts = 1, threads=None, top_hits_only=False):
         self.make_reference_udb()
         min_id_arg = "{:.3f}".format(min_id)
-        vsearch_fields = [BLAST_TO_VSEARCH[f] for f in fields]
+        vsearch_fields = [BLAST_TO_VSEARCH[f] for f in self.fields]
         vsearch_fields_arg = "+".join(vsearch_fields)
         maxaccepts_arg = "{:d}".format(maxaccepts)
         args = [
@@ -102,6 +101,9 @@ class VsearchAligner:
         if top_hits_only:
             args.append("--top_hits_only")
         subprocess.check_call(args, stderr=subprocess.DEVNULL)
+
+    def parse(self, f):
+        return self._parse(f, self.convert_types, self.fields)
 
     @classmethod
     def _parse(self, f, convert_types=True, fields=DEFAULT_BLAST_FIELDS):
