@@ -48,9 +48,7 @@ class MockAssembly:
 class Refseq16SDatabaseTests(unittest.TestCase):
     def setUp(self):
         self.dir = tempfile.mkdtemp()
-        self.db = Refseq16SDatabase()
-        self.db.ssu_accession_fp = os.path.join(self.dir, "accessions.txt")
-        self.db.ssu_fasta_fp = os.path.join(self.dir, "seqs.fasta")
+        self.db = Refseq16SDatabase(working_dir = self.dir)
 
         a_seqs = [("s1", "TCCG"), ("s1_duplicate", "TCCG"), ("s2", "TTTT")]
         self.a = MockAssembly("assembly1.1", a_seqs)
@@ -111,7 +109,7 @@ class Refseq16SDatabaseTests(unittest.TestCase):
             "sp16S": self.sp,
         })
 
-    def test_search_one(self):
+    def test_search_at_pctid(self):
         self.db.load([self.bv, self.sp, self.bs])
         all_results = list(self.db.search_at_pctid("bv16S", 96.5))
         self.assertEqual(len(all_results), 1)

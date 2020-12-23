@@ -13,9 +13,20 @@ from unassigner.download import get_url
 from unassigner.parse import parse_fasta, write_fasta
 
 class Refseq16SDatabase:
-    def __init__(self):
-        self.ssu_accession_fp = "refseq_16S_accessions_all.txt"
-        self.ssu_fasta_fp = "refseq_16S_all.fasta"
+    def __init__(self, working_dir=None):
+        if working_dir is None:
+            working_dir = os.getcwd()
+
+        self.working_dir = working_dir
+        self.ssu_accession_fp = os.path.join(
+            self.working_dir, "refseq_16S_accessions_all.txt")
+        self.ssu_fasta_fp = os.path.join(
+            self.working_dir, "refseq_16S_all.fasta")
+        self.query_fp = os.path.join(
+            self.working_dir, "temp_query.fasta")
+        self.hits_fp = os.path.join(
+            self.working_dir, "temp_hits.txt")
+
         self.seqs = {}
         self.assemblies = {}
         self.seqids_by_assembly = collections.defaultdict(list)
@@ -81,22 +92,25 @@ class Refseq16SDatabase:
         pctid_str = "{:.1f}".format(pctid)
         print("Searching {0} at {1} pct identity".format(
             query_seqid, pctid_str))
+
+        # Keep previous round of files for debugging
+        if os.path.exists(self.query_fp):
+            os.rename(self.query_fp, self.query_fp + "_prev")
+        if os.path.exists(self.hits_fp):
+            os.rename(self.hits_fp, self.hits_fp + "_prev")
+
         query_seq = self.seqs[query_seqid]
-        query_fp = "temp_query.fasta"
-        if os.path.exists(query_fp):
-            os.rename(query_fp, "temp_prev_query.fasta")
-        query_hits_fp = "temp_query_hits.txt"
-        if os.path.exists(query_hits_fp):
-            os.rename(query_hits_fp, "temp_prev_query_hits.txt")
-        with open(query_fp, "w") as f:
+        with open(self.query_fp, "w") as f:
             write_fasta(f, [(query_seqid, query_seq)])
+
         aligner = PctidAligner(self.ssu_fasta_fp)
         # Must set minimum id a bit lower for the search
-        min_pctid = pctid - 0.5
+        min_pctid = pctid - 0.1
         aligner.search(
-            query_fp, query_hits_fp, min_pctid=min_pctid,
+            self.query_fp, self.hits_fp, min_pctid=min_pctid,
             threads=threads, max_hits=10000)
-        with open(query_hits_fp) as f:
+
+        with open(self.hits_fp) as f:
             hits = aligner.parse(f)
             for hit in hits:
                 if hit["pident"] == pctid_str:
