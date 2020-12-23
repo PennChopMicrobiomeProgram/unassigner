@@ -64,13 +64,13 @@ class Refseq16SDatabaseTests(unittest.TestCase):
 
     def test_add_assembly(self):
         db = Refseq16SDatabase()
-        db.add_assembly(self.a)
+        db._add_assembly(self.a)
         self.assertEqual(db.seqs, {"s1": "TCCG", "s2": "TTTT"})
         self.assertEqual(db.assemblies, {"s1": self.a, "s2": self.a})
         self.assertEqual(db.seqids_by_assembly["assembly1.1"], ["s1", "s2"])
 
     def test_load_from_objects(self):
-        assemblies = {"bv": self.bv, "sps": self.sp}
+        assemblies = [self.bv, self.sp]
         was_loaded_from_file = self.db.load(assemblies)
 
         self.assertFalse(was_loaded_from_file)
@@ -100,7 +100,7 @@ class Refseq16SDatabaseTests(unittest.TestCase):
         self.bv.ssu_seqs = None
         self.sp.ssu_seqs = None
 
-        assemblies = {"bv": self.bv, "sp": self.sp}
+        assemblies = [self.bv, self.sp]
         was_loaded_from_file = self.db.load(assemblies)
 
         self.assertTrue(was_loaded_from_file)
@@ -112,9 +112,7 @@ class Refseq16SDatabaseTests(unittest.TestCase):
         })
 
     def test_search_one(self):
-        self.db.load({
-            "bv": self.bv, "sp": self.sp, "bs": self.bs,
-        })
+        self.db.load([self.bv, self.sp, self.bs])
         all_results = list(self.db.search_at_pctid("bv16S", 96.5))
         self.assertEqual(len(all_results), 1)
 
@@ -127,7 +125,7 @@ class Refseq16SDatabaseTests(unittest.TestCase):
 
     def test_save_accessions(self):
         db = Refseq16SDatabase()
-        db.add_assembly(self.a)
+        db._add_assembly(self.a)
         f = io.StringIO()
         db._save_accessions(f)
         self.assertEqual(f.getvalue(), "s1\tassembly1.1\ns2\tassembly1.1\n")
@@ -138,14 +136,14 @@ class Refseq16SDatabaseTests(unittest.TestCase):
             "s2\tassembly1.1\n",
         ]
         db = Refseq16SDatabase()
-        db._load_accessions(accession_lines, {self.a.accession: self.a})
+        db._load_accessions(accession_lines, [self.a])
         self.assertEqual(db.assemblies, {"s1": self.a, "s2": self.a})
         self.assertEqual(db.seqids_by_assembly["assembly1.1"], ["s1", "s2"])
         self.assertEqual(db.seqs, {})
 
     def test_save_seqs(self):
         db = Refseq16SDatabase()
-        db.add_assembly(self.a)
+        db._add_assembly(self.a)
         f = io.StringIO()
         db._save_seqs(f)
         self.assertEqual(f.getvalue(), ">s1\nTCCG\n>s2\nTTTT\n")

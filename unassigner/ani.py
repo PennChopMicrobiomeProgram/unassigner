@@ -23,8 +23,8 @@ class Refseq16SDatabase:
     def load(self, assemblies):
         was_loaded_from_file = self._load_from_files(assemblies)
         if not was_loaded_from_file:
-            for assembly in assemblies.values():
-                self.add_assembly(assembly)
+            for assembly in assemblies:
+                self._add_assembly(assembly)
             self._save_to_files()
         return was_loaded_from_file
 
@@ -43,7 +43,7 @@ class Refseq16SDatabase:
         with open(self.ssu_fasta_fp, "w") as f:
             self._save_seqs(f)
 
-    def add_assembly(self, assembly):
+    def _add_assembly(self, assembly):
         seqs = list(assembly.ssu_seqs)
         # Avoid writing duplicate genes for the same genome
         seen = set()
@@ -61,11 +61,12 @@ class Refseq16SDatabase:
             f.write("{0}\t{1}\n".format(seqid, assembly.accession))
 
     def _load_accessions(self, f, assemblies):
+        assemblies_by_accession = {a.accession: a for a in assemblies}
         for line in f:
             toks = line.strip().split()
             seqid = toks[0]
             accession = toks[1]
-            assembly = assemblies[accession]
+            assembly = assemblies_by_accession[accession]
             self.assemblies[seqid] = assembly
             self.seqids_by_assembly[accession].append(seqid)
 
@@ -425,21 +426,18 @@ def main_sampling(argv=None):
     if not os.path.exists(args.assembly_summary_file):
         get_url(RefseqAssembly.summary_url, args.assembly_summary_file)
 
-    assemblies = {}
     with open(args.assembly_summary_file, "r") as f:
-        for a in RefseqAssembly.parse_summary(f):
-            assemblies[a.accession] = a
+        assemblies = list(RefseqAssembly.parse_summary(f))
 
     db = Refseq16SDatabase()
     db.load(assemblies)
 
     pctid_vals = list(pctid_range(args.min_pctid)) * args.num_ani
 
-    assembly_list = list(assemblies.values())
     for current_pctid in pctid_vals:
         found = False
         while not found:
-            query_assembly = random.choice(assembly_list)
+            query_assembly = random.choice(assemblies)
             query_assembly_seqids = db.seqids_by_assembly[query_assembly.accession]
             if not query_assembly_seqids:
                 continue
