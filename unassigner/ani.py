@@ -11,6 +11,7 @@ import urllib.error
 
 from unassigner.download import get_url
 from unassigner.parse import parse_fasta, write_fasta
+from unassigner.align import DEFAULT_BLAST_FIELDS, BLAST_TO_VSEARCH, VsearchAligner
 
 class Refseq16SDatabase:
     def __init__(self, working_dir=None):
@@ -99,20 +100,27 @@ class Refseq16SDatabase:
         if os.path.exists(self.hits_fp):
             os.rename(self.hits_fp, self.hits_fp + "_prev")
 
+        aligner = PctidAligner(self.ssu_fasta_fp)
         query_seq = self.seqs[query_seqid]
+
+        # Must set minimum id a bit lower for the search
+        min_pctid = pctid - 0.1
+        min_id = min_pctid / 100
+        fields = ["qseqid", "sseqid", "pident"]
+
+        ### --- Start of VsearchAligner.search
         with open(self.query_fp, "w") as f:
             write_fasta(f, [(query_seqid, query_seq)])
 
-        aligner = PctidAligner(self.ssu_fasta_fp)
-        # Must set minimum id a bit lower for the search
-        min_pctid = pctid - 0.1
         aligner.search(
-            self.query_fp, self.hits_fp, min_pctid=min_pctid,
-            threads=threads, max_hits=10000)
+            self.query_fp, self.hits_fp,
+            min_id=min_id, fields=fields,
+            maxaccepts=10000, threads=threads)
 
         with open(self.hits_fp) as f:
-            hits = aligner.parse(f)
+            hits = VsearchAligner._parse(f, fields=fields, convert_types=False)
             for hit in hits:
+                ### -- End of VsearchAligner.search
                 if hit["pident"] == pctid_str:
                     query = self.assemblies[hit["qseqid"]]
                     subject = self.assemblies[hit["sseqid"]]
@@ -124,50 +132,47 @@ class Refseq16SDatabase:
 
 class PctidAligner:
     field_names = ["qseqid", "sseqid", "pident"]
-    hits_fp = "refseq_16S_hits.txt"
 
-    def __init__(self, fasta_fp):
-        self.fasta_fp = fasta_fp
+    def __init__(self, ref_seqs_fp):
+        self.ref_seqs_fp = ref_seqs_fp
 
     @property
-    def reference_udb_fp(self):
-        base_fp, _ = os.path.splitext(self.fasta_fp)
+    def ref_seqs_udb_fp(self):
+        base_fp, _ = os.path.splitext(self.ref_seqs_fp)
         return base_fp + ".udb"
 
     def make_reference_udb(self):
-        if os.path.exists(self.reference_udb_fp):
+        if os.path.exists(self.ref_seqs_udb_fp):
             return None
         args = [
             "vsearch",
-            "--makeudb_usearch", self.fasta_fp,
-            "--output", self.reference_udb_fp,
+            "--makeudb_usearch", self.ref_seqs_fp,
+            "--output", self.ref_seqs_udb_fp,
         ]
         return subprocess.check_call(args)
 
     def search(
-            self, input_fp=None, hits_fp=None, min_pctid=97.0,
-            threads=None, max_hits=10000):
-        if input_fp is None:
-            input_fp = self.fasta_fp
-        if hits_fp is None:
-            hits_fp = self.hits_fp
+            self, query_fp, output_fp,
+            min_id=0.970, fields=DEFAULT_BLAST_FIELDS,
+            threads=None, maxaccepts=10000):
         self.make_reference_udb()
-        # 97.0 --> 0.97
-        min_id = "{:.3f}".format(min_pctid / 100)
+        min_id_arg = "{:.3f}".format(min_id)
+        vsearch_fields = [BLAST_TO_VSEARCH[f] for f in fields]
+        vsearch_fields_arg = "+".join(vsearch_fields)
+        maxaccepts_arg = "{:d}".format(maxaccepts)
         args =[
-            "vsearch", "--usearch_global", input_fp,
-            "--db", self.reference_udb_fp,
-            "--userout", hits_fp,
-            "--iddef", "2", "--id", min_id,
-            "--userfields",
-            "query+target+id2",
-            "--maxaccepts", str(max_hits),
+            "vsearch", "--usearch_global", query_fp,
+            "--db", self.ref_seqs_udb_fp,
+            "--iddef", "2",
+            "--id", min_id_arg,
+            "--userout", output_fp,
+            "--userfields", vsearch_fields_arg,
+            "--maxaccepts", maxaccepts_arg,
             ]
         if threads is not None:
-            args.extend(["--threads", str(threads)])
-        print("Vsearch args: {0}".format(args))
-        subprocess.check_call(args)
-        return hits_fp
+            threads_arg = "{:d}".format(threads)
+            args.extend(["--threads", threads_arg])
+        subprocess.check_call(args, stderr=subprocess.DEVNULL)
 
     def parse(self, f):
         for line in f:

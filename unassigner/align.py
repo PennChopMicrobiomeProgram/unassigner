@@ -71,7 +71,11 @@ class VsearchAligner:
         self._call(input_fp, output_fp, **search_params)
 
         with open(output_fp) as f:
-            for hit in self._parse(f):
+            if "fields" in search_params:
+                parse_kwargs = {"fields": search_params["fields"]}
+            else:
+                parse_kwargs = {}
+            for hit in self._parse(f, **parse_kwargs):
                 yield hit
 
     def _call(
