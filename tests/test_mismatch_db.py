@@ -5,7 +5,7 @@ import tempfile
 import unittest
 
 from unassigner.mismatch_db import (
-    MismatchLocationApp, main, group_by_n, MutableMismatchDb,
+    MismatchLocationApp, main, group_by_n,
 )
 
 DATA_DIR = os.path.join(

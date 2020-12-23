@@ -37,6 +37,14 @@ class MismatchLocationApp:
                     self.mismatch_file, query_id, subject_id,
                     mismatch_positions)
 
+def write_mismatches(f, query_id, subject_id, mismatch_positions):
+    f.write(query_id)
+    f.write("\t")
+    f.write(subject_id)
+    f.write("\t")
+    f.write("\t".join(map(str, mismatch_positions)))
+    f.write("\n")
+
 
 def group_by_n(xs, n):
     args = [iter(xs)] * n
@@ -81,32 +89,6 @@ class MismatchDb(collections.abc.Mapping):
             else:
                 db.data[query_id].append(val)
         return db
-
-def write_mismatches(f, query_id, subject_id, mismatch_positions):
-    f.write(query_id)
-    f.write("\t")
-    f.write(subject_id)
-    f.write("\t")
-    f.write("\t".join(map(str, mismatch_positions)))
-    f.write("\n")
-
-class MutableMismatchDb(MismatchDb):
-    def write(self, f):
-        for query_id, mismatches in self.data.items():
-            for subject_id, mismatch_positions in mismatches:
-                f.write(query_id)
-                f.write("\t")
-                f.write(subject_id)
-                f.write("\t")
-                f.write("\t".join(map(str, mismatch_positions)))
-                f.write("\n")
-
-    def __setitem__(self, key, val):
-        self.data[key] = val
-
-    def __delitem__(self, key):
-        del self.data[key]
-
 
 AMBIGUOUS_BASES = {
     "-": "-",
