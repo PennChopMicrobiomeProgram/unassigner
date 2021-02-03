@@ -23,8 +23,9 @@ setup(name='unassigner',
           'console_scripts': [
               'unassign=unassigner.command:main',
               'trimragged=unassigner.trim:main',
-              'count_mismatches=unassigner.mismatch_db:main',
-              'pctid_ani_sample=unassigner.ani:main_sampling',
+              'unassigner_train_mismatches=unassigner.mismatch_db:main',
+              'unassigner_train_soft_threshold=unassigner.ani:main_train_soft_threshold',
+              'unassigner_benchmark_typestrain=unassigner.ani:main_benchmark'
           ],
       },
       classifiers=[

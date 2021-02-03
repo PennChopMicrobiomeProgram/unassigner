@@ -26,7 +26,7 @@ class Refseq16SDatabase:
         if select_random and (len(seqs) > 0):
             seqs = [random.choice(seqs)]
 
-        # Avoid writing duplicate genes for the same genome
+        # Avoid writing duplicate sequences for the same genome
         seen = set()
         for desc, seq in seqs:
             if seq not in seen:
@@ -302,27 +302,6 @@ def is_16S(desc):
     return "product=16S ribosomal RNA" in desc
 
 
-def subsample_by(xs, fcn, n):
-    groups = group_by(xs, fcn)
-    for group in groups:
-        if len(group) > n:
-            group = random.sample(group, n)
-        for x in group:
-            yield x
-
-
-def flatten(xss):
-    return [x for xs in xss for x in xs]
-
-
-def group_by(xs, fcn):
-    groups = collections.defaultdict(list)
-    for x in xs:
-        group = fcn(x)
-        groups[group].append(x)
-    return groups.values()
-
-
 def remove_files(target_dir):
     if os.path.exists(target_dir):
         for filename in os.listdir(target_dir):
@@ -355,6 +334,9 @@ class AssemblyPair:
             self.ani = self.ani_cache[ani_key]
             return
 
+        if not os.path.exists(self.cache_dir):
+            os.mkdir(self.cache_dir)
+
         remove_files(self.genome_dir)
         
         query_fname = "{0}.fna.gz".format(self.query.accession)
@@ -373,7 +355,8 @@ class AssemblyPair:
         subprocess.check_call(["gunzip", "-f", subject_genome_fp])
         
         # pyani get ANI for pair
-        shutil.rmtree(self.ani_dir)
+        if os.path.exists(self.ani_dir):
+            shutil.rmtree(self.ani_dir)
         # save ANI to self.ani
         print(
             "Computing ANI for", self.query.accession, "and",
@@ -418,7 +401,72 @@ def pctid_range(min_pctid):
         yield current_val
         current_val = current_val - 0.1
 
-def main_sampling(argv=None):
+def main_benchmark(argv=None):
+    p = argparse.ArgumentParser()
+    p.add_argument(
+        "assembly_accession",
+        help="Accession of type strain assembly",
+    )
+    p.add_argument(
+        "--output-file",
+        help="Output file (default: created from assembly accession)",
+    )
+    p.add_argument(
+        "--min-pctid", type=float, default=90.0,
+        help="Minimum 16S percent ID",
+    )
+    p.add_argument(
+        "--num-threads", type=int,
+        help="Number of threads for 16S percent ID (default: use all CPUs)",
+    )
+    p.add_argument(
+        "--seed", type=int, default=42,
+        help="Random number seed",
+    )
+    args = p.parse_args()
+
+    if args.output_file is None:
+        args.output_file = "assembly_{0}_pctid_ani.txt".format(
+            args.assembly_accession)
+    output_file = open(args.output_file, "w")
+    output_file.write(
+        "query_assembly\tsubject_assembly\t"
+        "query_seqid\tsubject_seqid\t"
+        "pctid\tani\n")
+
+    random.seed(args.seed)
+
+    assemblies = RefseqAssembly.load()
+
+    db = Refseq16SDatabase(
+        "refseq_16S_all.fasta",
+        "refseq_16S_accessions_all.txt")
+    if os.path.exists(db.accession_fp):
+        db.load(assemblies)
+    else:
+        for assembly in assemblies.values():
+            db.add_assembly(assembly)
+        db.save()
+
+    query_assembly = assemblies[args.assembly_accession]
+    query_assembly_seqids = db.seqids_by_assembly[query_assembly.accession]
+    query_seqid = query_assembly_seqids[0]
+    query_seq = db.seqs[query_seqid]
+
+    assembly_pairs = db.search_seq(
+        query_seqid, query_seq, min_pctid=args.min_pctid,
+        threads=args.num_threads)
+    assembly_pairs = list(assembly_pairs)
+    for assembly_pair in assembly_pairs:
+        try:
+            assembly_pair.compute_ani()
+            output_file.write(assembly_pair.format_output())
+            output_file.flush()
+        except Exception as e:
+            print(e)
+
+
+def main_train_soft_threshold(argv=None):
     p = argparse.ArgumentParser()
     p.add_argument(
         "--output-file", type=argparse.FileType("w"),
