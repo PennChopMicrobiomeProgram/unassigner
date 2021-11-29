@@ -23,9 +23,9 @@ LTP_METADATA_COLS = [
     "NJ_support_pk4_ltp"
     ]
 LTP_METADATA_URL = \
-    "https://www.arb-silva.de/fileadmin/silva_databases/living_tree/LTP_release_128/LTPs128_SSU/LTPs128_SSU.csv"
+    "https://imedea.uib-csic.es/mmg/ltp/wp-content/uploads/ltp/LTP_09_2021.csv"
 LTP_SEQS_URL = \
-    "https://www.arb-silva.de/fileadmin/silva_databases/living_tree/LTP_release_128/LTPs128_SSU/LTPs128_SSU_unaligned.fasta"
+    "https://imedea.uib-csic.es/mmg/ltp/wp-content/uploads/ltp/LTP_09_2021_blastdb.fasta"
 GG_SEQS_URL = \
     "ftp://greengenes.microbio.me/greengenes_release/gg_13_5/gg_13_5.fasta.gz"
 GG_ACCESSIONS_URL = \
@@ -73,15 +73,15 @@ def process_ltp_seqs(input_fp, output_fp=SPECIES_FASTA_FP):
         seqs = parse_fasta(f_in)
         with open(output_fp, "w") as f_out:
             for desc, seq in seqs:
-                vals = desc.split("\t")
+                vals = desc.split("|")
                 # Some accessions refer to genomes with more than one 16S gene
                 # So accessions can be legitiamtely repeated with distinct gene sequences
-                accession = vals[0]
+                accession = vals[2]
                 accession_times_previously_seen = accession_cts[accession]
                 accession_cts[accession] += 1
                 if accession_times_previously_seen > 0:
                     accession = "{0}_repeat{1}".format(accession, accession_times_previously_seen)
-                species_name = vals[5]
+                species_name = vals[3]
                 f_out.write(
                     ">{0}\t{1}\n{2}\n".format(accession, species_name, seq))
     return output_fp
