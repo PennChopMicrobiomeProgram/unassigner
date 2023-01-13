@@ -1,5 +1,9 @@
 # Unassigner
 
+[![Tests](https://github.com/Ulthran/unassigner/actions/workflows/tests.yml/badge.svg)](https://github.com/Ulthran/unassigner/actions/workflows/tests.yml)
+[![Super-Linter](https://github.com/Ulthran/unassigner/actions/workflows/linter.yml/badge.svg)](https://github.com/Ulthran/unassigner/actions/workflows/linter.yml)
+[![Upload Python Package](https://github.com/Ulthran/unassigner/actions/workflows/python-publish.yml/badge.svg)](https://github.com/Ulthran/unassigner/actions/workflows/python-publish.yml)
+
 Evaluate consistency with named bacterial species for short 16S rRNA
 marker gene sequences.
 
