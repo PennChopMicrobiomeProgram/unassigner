@@ -19,7 +19,6 @@ jobs:
           VALIDATE_ALL_CODEBASE: true
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-          VALIDATE_SNAKEMAKE_SNAKEFMT: true
           VALIDATE_PYTHON_BLACK: true
 
           FILTER_REGEX_INCLUDE: unassigner/.*|tests/.*|setup.py
