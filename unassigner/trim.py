@@ -11,6 +11,7 @@ from unassigner.parse import parse_fasta, write_fasta
 from unassigner.align import VsearchAligner, HitExtender
 from unassigner.alignment import AlignedRegion
 
+
 class TrimmableSeqs:
     def __init__(self, recs):
         replicate_seqs = collections.defaultdict(list)
@@ -65,7 +66,8 @@ class TrimmableSeqs:
 
 
 PrimerMatch = collections.namedtuple(
-    "PrimerMatch", ["start", "end", "offset", "message"])
+    "PrimerMatch", ["start", "end", "offset", "message"]
+)
 
 
 class Matcher(abc.ABC):
@@ -96,7 +98,8 @@ class CompleteMatcher(Matcher):
         # "mismatched queryset."
         possible_mismatches = range(max_mismatch + 1)
         self.mismatched_queryset = [
-            self._mismatched_queries(n) for n in possible_mismatches]
+            self._mismatched_queries(n) for n in possible_mismatches
+        ]
 
     def _mismatched_queries(self, n_mismatch):
         # The generator is provides a sequence for one-time use, but
@@ -106,7 +109,7 @@ class CompleteMatcher(Matcher):
 
     def _iter_mismatched_queries(self, n_mismatch):
         # This algorithm is terrible unless the number of mismatches is very small
-        assert(n_mismatch in [0, 1, 2, 3])
+        assert n_mismatch in [0, 1, 2, 3]
         for query in self.queryset:
             idx_sets = itertools.combinations(range(len(query)), n_mismatch)
             for idx_set in idx_sets:
@@ -167,10 +170,10 @@ class PartialMatcher(Matcher):
 
 class AlignmentMatcher(Matcher):
     def __init__(
-            self, alignment_dir, min_pct_id=75, min_aligned_frac=0.6,
-            cores=1, suffix="0"):
-        assert(os.path.exists(alignment_dir))
-        assert(os.path.isdir(alignment_dir))
+        self, alignment_dir, min_pct_id=75, min_aligned_frac=0.6, cores=1, suffix="0"
+    ):
+        assert os.path.exists(alignment_dir)
+        assert os.path.isdir(alignment_dir)
         self.alignment_dir = alignment_dir
         self.min_pct_id = min_pct_id
         self.min_aligned_frac = min_aligned_frac
@@ -193,14 +196,15 @@ class AlignmentMatcher(Matcher):
         with open(subject_fp, "w") as f:
             write_fasta(f, seqs.get_matched_offset0())
         ba = VsearchAligner(subject_fp)
-        search_args = {
-            "min_id": round(self.min_pct_id / 100, 2),
-            "top_hits_only": None}
+        search_args = {"min_id": round(self.min_pct_id / 100, 2), "top_hits_only": None}
         if self.cores > 0:
             search_args["threads"] = self.cores
         hits = ba.search(
-            seqs.get_unmatched_recs(), input_fp=query_fp, output_fp=result_fp,
-            **search_args)
+            seqs.get_unmatched_recs(),
+            input_fp=query_fp,
+            output_fp=result_fp,
+            **search_args
+        )
 
         # Refine
         bext = HitExtender(seqs.get_unmatched_recs(), seqs.get_matched_offset0())
@@ -208,11 +212,13 @@ class AlignmentMatcher(Matcher):
             alignment = bext.extend_hit(hit)
             subject_match = seqs.matches[alignment.subject_id]
             aligned_region = AlignedRegion.from_subject(
-                alignment, subject_match.start, subject_match.end)
+                alignment, subject_match.start, subject_match.end
+            )
             query_start_idx, query_end_idx = aligned_region.in_query()
             query_offset = aligned_region.query_offset()
             matchobj = PrimerMatch(
-                query_start_idx, query_end_idx, query_offset, "Alignment")
+                query_start_idx, query_end_idx, query_offset, "Alignment"
+            )
             yield alignment.query_id, matchobj
 
 
@@ -221,15 +227,14 @@ def partial_seqs(seq, min_length):
     for start_idx in range(1, max_start_idx):
         yield seq[start_idx:]
 
+
 def aligned_frac(hit):
     unaligned_left = min(hit["qstart"], hit["sstart"])
-    unaligned_right = min(
-        hit["qlen"] - hit["qend"],
-        hit["slen"] - hit["send"],
-    )
+    unaligned_right = min(hit["qlen"] - hit["qend"], hit["slen"] - hit["send"],)
     unaligned = unaligned_left + unaligned_right
     aligned = hit["length"]
     return aligned / (aligned + unaligned)
+
 
 class TrimraggedApp(object):
     def __init__(self, seqs, trim_right, writer, min_trimmed_length):
@@ -275,67 +280,100 @@ class Writer(object):
         if matchobj is None:
             self.stats_file.write("{0}\tUnmatched\tNA\tNA\tNA\t\n".format(seq_id))
         else:
-            matched_seq = seq[matchobj.start:matchobj.end]
-            self.stats_file.write("{0}\t{1}\t{2}\t{3}\t{4}\t{5}\n".format(
-                seq_id, matchobj.message, matchobj.start, matchobj.end,
-                matchobj.offset, matched_seq))
+            matched_seq = seq[matchobj.start : matchobj.end]
+            self.stats_file.write(
+                "{0}\t{1}\t{2}\t{3}\t{4}\t{5}\n".format(
+                    seq_id,
+                    matchobj.message,
+                    matchobj.start,
+                    matchobj.end,
+                    matchobj.offset,
+                    matched_seq,
+                )
+            )
 
 
 def trim_left(seq, matchobj):
-    return seq[matchobj.end:]
+    return seq[matchobj.end :]
+
 
 def trim_right(seq, matchobj):
-    return seq[:matchobj.start]
+    return seq[: matchobj.start]
+
 
 def trim_middle(seq, matchobj):
-    return seq[matchobj.start:matchobj.end]
+    return seq[matchobj.start : matchobj.end]
+
 
 def main(argv=None):
-    p = argparse.ArgumentParser(
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-    )
+    p = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter,)
     p.add_argument("query", help="Query sequence to search and trim")
+    p.add_argument("--input_file", type=argparse.FileType("r"), default=sys.stdin)
     p.add_argument(
-        "--input_file", type=argparse.FileType("r"), default=sys.stdin)
+        "--trimmed_output_file", type=argparse.FileType("w"), default=sys.stdout
+    )
     p.add_argument(
-        "--trimmed_output_file", type=argparse.FileType("w"), default=sys.stdout)
-    p.add_argument(
-        "--stats_output_file", type=argparse.FileType("w"), default=sys.stderr)
+        "--stats_output_file", type=argparse.FileType("w"), default=sys.stderr
+    )
 
     # Matching parameters
     p.add_argument(
-        "--max_mismatch", type=int, default=0,
-        help="Maximum number of mismatches in complete match")
+        "--max_mismatch",
+        type=int,
+        default=0,
+        help="Maximum number of mismatches in complete match",
+    )
     p.add_argument(
-        "--min_partial", type=int, default=0,
+        "--min_partial",
+        type=int,
+        default=0,
         help=(
-            "Minimum length of partial sequence match. "
-            "Skip partial matching if 0."))
+            "Minimum length of partial sequence match. " "Skip partial matching if 0."
+        ),
+    )
     p.add_argument(
-        "--min_pct_id", type=float, default=70.0,
-        help="Minimum percent identity in alignment stage")
+        "--min_pct_id",
+        type=float,
+        default=70.0,
+        help="Minimum percent identity in alignment stage",
+    )
 
     # Overall program behavior
     p.add_argument(
-        "--min_trimmed_length", type=int, default=1,
-        help="Minimum length of trimmed output sequences")
+        "--min_trimmed_length",
+        type=int,
+        default=1,
+        help="Minimum length of trimmed output sequences",
+    )
     p.add_argument(
-        "--alignment_stages", type=int, default=1,
-        help= "Number of pairwise alignment stages")
+        "--alignment_stages",
+        type=int,
+        default=1,
+        help="Number of pairwise alignment stages",
+    )
     p.add_argument(
         "--alignment_dir",
         help=(
             "Directory for files in alignment stage.  If not provided, "
-            "a temporary directory will be used."))
+            "a temporary directory will be used."
+        ),
+    )
     p.add_argument(
-        "--cores", type=int, default = 1,
-        help="Number of CPU cores to use in alignment stage")
+        "--cores",
+        type=int,
+        default=1,
+        help="Number of CPU cores to use in alignment stage",
+    )
     p.add_argument(
-        "--reverse_complement_query", action="store_true",
-        help="Reverse complement the query seq before search")
+        "--reverse_complement_query",
+        action="store_true",
+        help="Reverse complement the query seq before search",
+    )
     p.add_argument(
-        "--trim_right", action="store_true",
-        help="Trim right side, rather than left side of sequences")
+        "--trim_right",
+        action="store_true",
+        help="Trim right side, rather than left side of sequences",
+    )
 
     args = p.parse_args(argv)
 
@@ -354,7 +392,8 @@ def main(argv=None):
         if os.path.exists(alignment_dir):
             if not os.path.isdir(alignment_dir):
                 raise RuntimeError(
-                    "{0} exists and is not a directory".format(alignment_dir))
+                    "{0} exists and is not a directory".format(alignment_dir)
+                )
         else:
             os.mkdir(alignment_dir)
 
@@ -363,17 +402,20 @@ def main(argv=None):
     if args.min_partial > 0:
         app.matchers.append(PartialMatcher(queryset, args.min_partial))
     for n in range(args.alignment_stages):
-        app.matchers.append(AlignmentMatcher(
-            alignment_dir,
-            min_pct_id = args.min_pct_id,
-            cores = args.cores,
-            suffix = str(n),
-        ))
+        app.matchers.append(
+            AlignmentMatcher(
+                alignment_dir,
+                min_pct_id=args.min_pct_id,
+                cores=args.cores,
+                suffix=str(n),
+            )
+        )
 
     app.run()
 
     if args.alignment_dir is None:
         shutil.rmtree(alignment_dir)
+
 
 AMBIGUOUS_BASES = {
     "T": "T",
@@ -391,7 +433,7 @@ AMBIGUOUS_BASES = {
     "V": "CAG",
     "D": "TAG",
     "N": "TCAG",
-    }
+}
 
 
 # Ambiguous base codes for all bases EXCEPT the key
@@ -400,7 +442,7 @@ AMBIGUOUS_BASES_COMPLEMENT = {
     "C": "D",
     "A": "B",
     "G": "H",
-    }
+}
 
 
 def deambiguate(seq):
@@ -413,10 +455,10 @@ COMPLEMENT_BASES = {
     "C": "G",
     "A": "T",
     "G": "C",
-    }
+}
 
 
 def reverse_complement(seq):
     rc = [COMPLEMENT_BASES[x] for x in seq]
     rc.reverse()
-    return ''.join(rc)
+    return "".join(rc)

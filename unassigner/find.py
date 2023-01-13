@@ -3,29 +3,38 @@ import sys
 
 from unassigner.parse import parse_fasta, write_fasta
 from unassigner.trim import (
-    CompleteMatcher, PartialMatcher,
-    deambiguate, reverse_complement,
-    )
+    CompleteMatcher,
+    PartialMatcher,
+    deambiguate,
+    reverse_complement,
+)
+
 
 def main(argv=None):
     p = argparse.ArgumentParser()
-    p.add_argument(
-        "--input_file", type=argparse.FileType("r"), default=sys.stdin)
-    p.add_argument(
-        "--output_file", type=argparse.FileType("w"), default=sys.stdout)
+    p.add_argument("--input_file", type=argparse.FileType("r"), default=sys.stdin)
+    p.add_argument("--output_file", type=argparse.FileType("w"), default=sys.stdout)
     p.add_argument(
         "--unmatched_output_file", type=argparse.FileType("w"),
     )
     p.add_argument("--query", required=True)
     p.add_argument(
-        "--max_mismatch", type=int, default=2,
-        help="Maximum number of mismatches in complete match")
+        "--max_mismatch",
+        type=int,
+        default=2,
+        help="Maximum number of mismatches in complete match",
+    )
     p.add_argument(
-        "--min_partial", type=int, default=5,
-        help="Minimum length of partial sequence match")
+        "--min_partial",
+        type=int,
+        default=5,
+        help="Minimum length of partial sequence match",
+    )
     p.add_argument(
-        "--reverse_complement_query", action="store_true",
-        help="Reverse complement the query seq before search")
+        "--reverse_complement_query",
+        action="store_true",
+        help="Reverse complement the query seq before search",
+    )
 
     args = p.parse_args(argv)
 
@@ -58,5 +67,3 @@ def main(argv=None):
 
     if args.unmatched_output_file is not None:
         write_fasta(args.unmatched_output_file, unmatched_pm)
-
-

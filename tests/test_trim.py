@@ -4,21 +4,28 @@ import tempfile
 import unittest
 
 from unassigner.trim import (
-    deambiguate, partial_seqs,
-    trim_left, trim_right, main,
-    TrimmableSeqs, PrimerMatch,
-    PartialMatcher, CompleteMatcher,
+    deambiguate,
+    partial_seqs,
+    trim_left,
+    trim_right,
+    main,
+    TrimmableSeqs,
+    PrimerMatch,
+    PartialMatcher,
+    CompleteMatcher,
     AlignmentMatcher,
 )
 
 BSF8 = "AGAGTTTGATCCTGGCTCAG"
+
 
 class TrimraggedFunctions(unittest.TestCase):
     def test_deambiguate(self):
         self.assertEqual(deambiguate("ACTG"), ["ACTG"])
         self.assertEqual(
             set(deambiguate("CTGCTGCCTYCCGTA")),
-            set(["CTGCTGCCTTCCGTA", "CTGCTGCCTCCCGTA"]))
+            set(["CTGCTGCCTTCCGTA", "CTGCTGCCTCCCGTA"]),
+        )
 
     def test_partial_seqs(self):
         res3 = list(partial_seqs("ABCDEFG", 3))
@@ -26,6 +33,7 @@ class TrimraggedFunctions(unittest.TestCase):
 
         res4 = list(partial_seqs("ABCDEFG", 4))
         self.assertEqual(res4, ["BCDEFG", "CDEFG", "DEFG"])
+
 
 class TrimmableSeqsTest(unittest.TestCase):
     def setUp(self):
@@ -36,8 +44,10 @@ class TrimmableSeqsTest(unittest.TestCase):
             ("AF403544", "TAGAGTATGATCCTGGCTCAGGACGAACGCTGGCGGCGTGCTTA"),
             ("AF403545", "TCAGGACGAACGCTGGCGGCGTGCTTAACACATGCAAACGTGCA"),
         ]
+
         class MockMatch(object):
             offset = 0
+
         self.matchobj = MockMatch()
 
     def test_from_fasta(self):
@@ -66,7 +76,8 @@ class TrimmableSeqsTest(unittest.TestCase):
     def test_get_replicate_ids_recs(self):
         s = TrimmableSeqs.from_fasta(MAIN_INPUT.splitlines())
         self.assertEqual(
-            list(s.get_replicate_ids("AF403541")), ["AF403541", "AF403541b"])
+            list(s.get_replicate_ids("AF403541")), ["AF403541", "AF403541b"]
+        )
         rep_recs = list(s.get_replicate_recs("AF403541"))
         rep_rec_ids, rep_rec_seqs = zip(*rep_recs)
         self.assertEqual(rep_rec_ids, ("AF403541", "AF403541b"))
@@ -94,11 +105,12 @@ class CompleteMatcherTests(unittest.TestCase):
         self.assertEqual(matchobj.start, 1)
         self.assertEqual(matchobj.end, 21)
 
+
 class PartialMatcherTests(unittest.TestCase):
     def test_partial_match(self):
         qset = [BSF8]
         seq = "GATCCTGGCTCAGGACGAACGCTGGCGGCGTGCTTAACACATGCAAGTCGAACGG"
-        trimmed_seq =      "GACGAACGCTGGCGGCGTGCTTAACACATGCAAGTCGAACGG"
+        trimmed_seq = "GACGAACGCTGGCGGCGTGCTTAACACATGCAAGTCGAACGG"
         m = PartialMatcher(qset, 10)
         matchobj = m.find_match(seq)
         self.assertEqual(matchobj.start, 0)
@@ -111,12 +123,16 @@ def mock_trimmable_seqs(sseq, qseq, primer_start, primer_end):
         matches = {
             "A": PrimerMatch(primer_start, primer_end, 0, "Test"),
         }
+
         def all_matched(self):
             return False
+
         def get_matched_offset0(self):
             yield ("A", sseq)
+
         def get_unmatched_recs(self):
             yield ("B", qseq)
+
     return MockSeqs()
 
 
@@ -130,9 +146,10 @@ class AlignmentMatcherTests(unittest.TestCase):
     def test_alignment_match_subj_left(self):
         s = mock_trimmable_seqs(
             "TCCTGGCTCAGGACGAACGCTGGCGGCGTGCTTAACACATGCAAGTCGAACGG",
-            #|||||||||||
-                    "CAGGACGAACGCTGGCGGCGTGCTTAACACATGCAAGTCGAACGG",
-            0, 11,
+            # |||||||||||
+            "CAGGACGAACGCTGGCGGCGTGCTTAACACATGCAAGTCGAACGG",
+            0,
+            11,
         )
         m = AlignmentMatcher(self.test_dir)
         alignment_matches = list(m.find_in_seqs(s))
@@ -144,8 +161,9 @@ class AlignmentMatcherTests(unittest.TestCase):
         s = mock_trimmable_seqs(
             "TCCTGGCTCAGGACGAACGCTGGCGGCGTGCTTAACACATGCAAGTCGAACGG",
             #          |||||
-               "TGGCTCAGGACGAACGCTGGCGGCGTGCTTAACACATGCAAGTCGAACGG",
-            10, 15,
+            "TGGCTCAGGACGAACGCTGGCGGCGTGCTTAACACATGCAAGTCGAACGG",
+            10,
+            15,
         )
         m = AlignmentMatcher(self.test_dir)
         alignment_matches = list(m.find_in_seqs(s))
@@ -156,8 +174,9 @@ class AlignmentMatcherTests(unittest.TestCase):
         s = mock_trimmable_seqs(
             "TCCTGGCTCAGGACGAACGCTGGCGGCGTGCTTAACACATGCAAGTCGAACGG",
             #          ||//
-               "TGGCTCAGGCGAACGCTGGCGGCGTGCTTAACACATGCAAGTCGAACGG",
-            10, 15,
+            "TGGCTCAGGCGAACGCTGGCGGCGTGCTTAACACATGCAAGTCGAACGG",
+            10,
+            15,
         )
         m = AlignmentMatcher(self.test_dir)
         alignment_matches = list(m.find_in_seqs(s))
@@ -185,11 +204,16 @@ class TrimraggedMain(unittest.TestCase):
         stats_fp = pathlib.Path(self.test_dir, "stats.txt")
         args = [
             BSF8,
-            "--input_file", str(input_fp),
-            "--trimmed_output_file", str(output_fp),
-            "--stats_output_file", str(stats_fp),
-            "--min_partial", "5",
-            "--max_mismatch", "1",
+            "--input_file",
+            str(input_fp),
+            "--trimmed_output_file",
+            str(output_fp),
+            "--stats_output_file",
+            str(stats_fp),
+            "--min_partial",
+            "5",
+            "--max_mismatch",
+            "1",
         ]
         main(args)
 
@@ -200,6 +224,7 @@ class TrimraggedMain(unittest.TestCase):
         with stats_fp.open() as f:
             output_contents = f.read()
         self.assertEqual(output_contents, MAIN_STATS)
+
 
 MAIN_INPUT = """\
 >AF403541 full BSF8
