@@ -35,7 +35,11 @@ class MismatchLocationAppTests(unittest.TestCase):
     def test_mismatch_command_line(self):
         output_fp = os.path.join(self.dir, "mismatches.txt")
         main(
-            [self.oral_species_fp, self.oral_reference_fp, output_fp,]
+            [
+                self.oral_species_fp,
+                self.oral_reference_fp,
+                output_fp,
+            ]
         )
         with open(output_fp) as f:
             output_txt = f.read()

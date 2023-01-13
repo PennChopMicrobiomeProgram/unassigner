@@ -110,7 +110,9 @@ class VariableMismatchRateTests(unittest.TestCase):
         # rate algorithm should match that of the constant rate
         # algorithm.
         self.assertAlmostEqual(
-            variable_rate_result["probability_incompatible"], 0.06276080134, places=7,
+            variable_rate_result["probability_incompatible"],
+            0.06276080134,
+            places=7,
         )
 
         # Add a few reference seqs
@@ -119,7 +121,9 @@ class VariableMismatchRateTests(unittest.TestCase):
 
         variable_rate_result = variable_rate.unassign_threshold()
         self.assertAlmostEqual(
-            variable_rate_result["probability_incompatible"], 0.05542295999, places=7,
+            variable_rate_result["probability_incompatible"],
+            0.05542295999,
+            places=7,
         )
 
 

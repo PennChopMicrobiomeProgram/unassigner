@@ -52,8 +52,7 @@ class FileAligner:
 
 
 class VariableMismatchRate:
-    """Predict unobserved mismatches by estimating a mismatch rate
-    """
+    """Predict unobserved mismatches by estimating a mismatch rate"""
 
     db = collections.defaultdict(list)
     result_keys = [

@@ -230,7 +230,10 @@ def partial_seqs(seq, min_length):
 
 def aligned_frac(hit):
     unaligned_left = min(hit["qstart"], hit["sstart"])
-    unaligned_right = min(hit["qlen"] - hit["qend"], hit["slen"] - hit["send"],)
+    unaligned_right = min(
+        hit["qlen"] - hit["qend"],
+        hit["slen"] - hit["send"],
+    )
     unaligned = unaligned_left + unaligned_right
     aligned = hit["length"]
     return aligned / (aligned + unaligned)
@@ -306,7 +309,9 @@ def trim_middle(seq, matchobj):
 
 
 def main(argv=None):
-    p = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter,)
+    p = argparse.ArgumentParser(
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
     p.add_argument("query", help="Query sequence to search and trim")
     p.add_argument("--input_file", type=argparse.FileType("r"), default=sys.stdin)
     p.add_argument(

@@ -176,11 +176,19 @@ class PctidAligner:
         ]
         if max_hits is None:
             args.extend(
-                ["--maxaccepts", "0", "--maxrejects", "0",]
+                [
+                    "--maxaccepts",
+                    "0",
+                    "--maxrejects",
+                    "0",
+                ]
             )
         else:
             args.extend(
-                ["--maxaccepts", str(max_hits),]
+                [
+                    "--maxaccepts",
+                    str(max_hits),
+                ]
             )
         if threads is not None:
             args.extend(["--threads", str(threads)])
@@ -430,7 +438,10 @@ class AssemblyPair:
                 self.ani,
             )
         return "{0}\t{1}\t{2}\t{3}\n".format(
-            self.query.accession, self.subject.accession, self.pctid, self.ani,
+            self.query.accession,
+            self.subject.accession,
+            self.pctid,
+            self.ani,
         )
 
 
@@ -460,7 +471,10 @@ def main_sampling(argv=None):
         help="Output file",
     )
     p.add_argument(
-        "--min_pctid", type=float, default=97.0, help="Minimum 16S percent ID",
+        "--min_pctid",
+        type=float,
+        default=97.0,
+        help="Minimum 16S percent ID",
     )
     p.add_argument(
         "--num-threads",
@@ -474,7 +488,10 @@ def main_sampling(argv=None):
         help="Number of genome pairs on which to evaluate ANI",
     )
     p.add_argument(
-        "--seed", type=int, default=42, help="Random number seed",
+        "--seed",
+        type=int,
+        default=42,
+        help="Random number seed",
     )
     args = p.parse_args()
     args.output_file.write(

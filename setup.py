@@ -16,7 +16,10 @@ setup(
     author_email="kylebittinger@gmail.com",
     url="https://github.com/kylebittinger/unassigner",
     packages=["unassigner"],
-    install_requires=["biopython", "scipy",],
+    install_requires=[
+        "biopython",
+        "scipy",
+    ],
     entry_points={
         "console_scripts": [
             "unassign=unassigner.command:main",

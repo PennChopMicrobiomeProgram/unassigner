@@ -125,7 +125,13 @@ class BlastAligner(Aligner):
     @staticmethod
     def _index(fasta_fp):
         return subprocess.check_call(
-            ["makeblastdb", "-dbtype", "nucl", "-in", fasta_fp,],
+            [
+                "makeblastdb",
+                "-dbtype",
+                "nucl",
+                "-in",
+                fasta_fp,
+            ],
             stdout=subprocess.DEVNULL,
         )
 

@@ -15,7 +15,8 @@ def main(argv=None):
     p.add_argument("--input_file", type=argparse.FileType("r"), default=sys.stdin)
     p.add_argument("--output_file", type=argparse.FileType("w"), default=sys.stdout)
     p.add_argument(
-        "--unmatched_output_file", type=argparse.FileType("w"),
+        "--unmatched_output_file",
+        type=argparse.FileType("w"),
     )
     p.add_argument("--query", required=True)
     p.add_argument(

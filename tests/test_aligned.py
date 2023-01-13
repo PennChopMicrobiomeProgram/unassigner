@@ -102,7 +102,10 @@ class AlignedPairTests(unittest.TestCase):
         self.assertEqual(r.in_query(), (1, 5))  # BCEF in subject
 
     def test_region_subject_to_query_00(self):
-        a = AlignedPair(("a", "ABCDEFG"), ("b", "---KLMN"),)
+        a = AlignedPair(
+            ("a", "ABCDEFG"),
+            ("b", "---KLMN"),
+        )
 
         r = AlignedRegion.from_subject(a, 0, 2)
         self.assertEqual(r.in_alignment(), (3, 5))  # KL
