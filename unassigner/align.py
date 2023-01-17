@@ -82,8 +82,6 @@ class VsearchAligner(Aligner):
             self.ref_seqs_fp,
             "--output",
             self.ref_seqs_udb_fp,
-            "--maxaccepts",
-            "0",
         ]
         return subprocess.check_call(args)
 
@@ -113,6 +111,8 @@ class VsearchAligner(Aligner):
             output_fp,
             "--userfields",
             "query+target+id2+alnlen+mism+gaps+qilo+qihi+tilo+tihi+qs+ts+qrow+trow",
+            "--maxaccepts",
+            "0",
         ]
         for arg, val in kwargs.items():
             arg = "--" + arg
