@@ -2,6 +2,7 @@
 
 [![Tests](https://github.com/Ulthran/unassigner/actions/workflows/tests.yml/badge.svg)](https://github.com/Ulthran/unassigner/actions/workflows/tests.yml)
 [![Super-Linter](https://github.com/Ulthran/unassigner/actions/workflows/linter.yml/badge.svg)](https://github.com/Ulthran/unassigner/actions/workflows/linter.yml)
+[![CodeCov](https://github.com/Ulthran/unassigner/actions/workflows/codecov.yml/badge.svg)](https://github.com/Ulthran/unassigner/actions/workflows/codecov.yml)
 [![PyPi](https://github.com/Ulthran/unassigner/actions/workflows/python-publish.yml/badge.svg)](https://github.com/Ulthran/unassigner/actions/workflows/python-publish.yml)
 
 Evaluate consistency with named bacterial species for short 16S rRNA
