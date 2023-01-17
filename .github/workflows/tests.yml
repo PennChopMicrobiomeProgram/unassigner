@@ -38,4 +38,4 @@ jobs:
         python -m pip install .
     - name: Test with pytest
       run: |
-        pytest tests/
+        pytest -vvl tests/
