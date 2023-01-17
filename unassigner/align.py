@@ -9,11 +9,25 @@ from unassigner.alignment import AlignedPair
 
 BLAST_FMT = (
     "qseqid sseqid pident length mismatch gapopen "
-    "qstart qend sstart send qlen slen qseq sseq")
+    "qstart qend sstart send qlen slen qseq sseq"
+)
 BLAST_FIELDS = BLAST_FMT.split()
 BLAST_FIELD_TYPES = [
-    str, str, float, int, int, int,
-    int, int, int, int, int, int, str, str]
+    str,
+    str,
+    float,
+    int,
+    int,
+    int,
+    int,
+    int,
+    int,
+    int,
+    int,
+    int,
+    str,
+    str,
+]
 
 
 class Aligner(abc.ABC):
@@ -54,7 +68,6 @@ class Aligner(abc.ABC):
 
 
 class VsearchAligner(Aligner):
-
     @property
     def ref_seqs_udb_fp(self):
         base_fp, _ = os.path.splitext(self.ref_seqs_fp)
@@ -65,8 +78,10 @@ class VsearchAligner(Aligner):
             return
         args = [
             "vsearch",
-            "--makeudb_usearch", self.ref_seqs_fp,
-            "--output", self.ref_seqs_udb_fp,
+            "--makeudb_usearch",
+            self.ref_seqs_fp,
+            "--output",
+            self.ref_seqs_udb_fp,
         ]
         return subprocess.check_call(args)
 
@@ -74,7 +89,7 @@ class VsearchAligner(Aligner):
     def _index(fasta_fp):
         pass
 
-    def _call(self, query_fp, database_fp, output_fp, min_id = 0.5, **kwargs):
+    def _call(self, query_fp, database_fp, output_fp, min_id=0.5, **kwargs):
         """Call the VSEARCH program.
 
         --id is a required argument to run the program. We expose the
@@ -83,14 +98,20 @@ class VsearchAligner(Aligner):
         if not os.path.exists(self.ref_seqs_udb_fp):
             self.make_reference_udb()
         args = [
-            "vsearch", "--usearch_global", query_fp,
-            "--db", self.ref_seqs_udb_fp,
-            "--iddef", "2",
-            "--id", str(min_id),
-            "--userout", output_fp,
+            "vsearch",
+            "--usearch_global",
+            query_fp,
+            "--db",
+            self.ref_seqs_udb_fp,
+            "--iddef",
+            "2",
+            "--id",
+            str(min_id),
+            "--userout",
+            output_fp,
             "--userfields",
-            "query+target+id2+alnlen+mism+gaps+qilo+qihi+tilo+tihi+qs+ts+qrow+trow"
-            ]
+            "query+target+id2+alnlen+mism+gaps+qilo+qihi+tilo+tihi+qs+ts+qrow+trow",
+        ]
         for arg, val in kwargs.items():
             arg = "--" + arg
             if val is None:
@@ -103,19 +124,26 @@ class VsearchAligner(Aligner):
 class BlastAligner(Aligner):
     @staticmethod
     def _index(fasta_fp):
-        return subprocess.check_call([
-            "makeblastdb",
-            "-dbtype", "nucl",
-            "-in", fasta_fp,
-            ], stdout=subprocess.DEVNULL)
+        return subprocess.check_call(
+            [
+                "makeblastdb",
+                "-dbtype",
+                "nucl",
+                "-in",
+                fasta_fp,
+            ],
+            stdout=subprocess.DEVNULL,
+        )
 
     def _call(self, query_fp, database_fp, output_fp, **kwargs):
         """Call the BLAST program."""
         args = [
             "blastn",
-            "-evalue", "1e-5",
-            "-outfmt", "6 " + BLAST_FMT,
-            ]
+            "-evalue",
+            "1e-5",
+            "-outfmt",
+            "6 " + BLAST_FMT,
+        ]
         for arg, val in kwargs.items():
             arg = "-" + arg
             if val is None:
@@ -123,11 +151,15 @@ class BlastAligner(Aligner):
             else:
                 args += [arg, str(val)]
         args += [
-            "-query", query_fp,
-            "-db", database_fp,
-            "-out", output_fp,
-            ]
+            "-query",
+            query_fp,
+            "-db",
+            database_fp,
+            "-out",
+            output_fp,
+        ]
         subprocess.check_call(args)
+
 
 class HitExtender:
     def __init__(self, query_seqs, ref_seqs):
@@ -139,98 +171,106 @@ class HitExtender:
         # sequences completely
         if self._is_global(hit):
             return AlignedPair(
-                (hit['qseqid'], hit['qseq']),
-                (hit['sseqid'], hit['sseq']))
+                (hit["qseqid"], hit["qseq"]), (hit["sseqid"], hit["sseq"])
+            )
 
         # We are going to need some repair or realignment.
-        qseq = self.query_seqs[hit['qseqid']]
-        assert(len(qseq) == hit['qlen'])
-        sseq = self.ref_seqs[hit['sseqid']]
-        assert(len(sseq) == hit['slen'])
+        qseq = self.query_seqs[hit["qseqid"]]
+        assert len(qseq) == hit["qlen"]
+        sseq = self.ref_seqs[hit["sseqid"]]
+        assert len(sseq) == hit["slen"]
 
         if self._needs_realignment(hit):
             aligned_qseq, aligned_sseq = align_semiglobal(qseq, sseq)
             return AlignedPair(
-                (hit['qseqid'], aligned_qseq),
-                (hit['sseqid'], aligned_sseq))
+                (hit["qseqid"], aligned_qseq), (hit["sseqid"], aligned_sseq)
+            )
 
         qleft, sleft = self._add_endgaps_left(hit, qseq, sseq)
         qright, sright = self._add_endgaps_right(hit, qseq, sseq)
-        aligned_qseq = qleft + hit['qseq'] + qright
-        aligned_sseq = sleft + hit['sseq'] + sright
-        return AlignedPair(
-                (hit['qseqid'], aligned_qseq),
-                (hit['sseqid'], aligned_sseq))
+        aligned_qseq = qleft + hit["qseq"] + qright
+        aligned_sseq = sleft + hit["sseq"] + sright
+        return AlignedPair((hit["qseqid"], aligned_qseq), (hit["sseqid"], aligned_sseq))
 
     @staticmethod
     def _is_global(hit):
         return (
-            (hit['qstart'] == 1) and \
-            (hit['sstart'] == 1) and \
-            (hit['qend'] == hit['qlen']) and \
-            (hit['send'] == hit['slen']))
+            (hit["qstart"] == 1)
+            and (hit["sstart"] == 1)
+            and (hit["qend"] == hit["qlen"])
+            and (hit["send"] == hit["slen"])
+        )
 
     @staticmethod
     def _needs_realignment(hit):
-        more_to_the_left = (hit['qstart'] > 1) and \
-                           (hit['sstart'] > 1)
-        more_to_the_right = (hit['qend'] < hit['qlen']) and \
-                            (hit['send'] < hit['slen'])
-        return (more_to_the_left or more_to_the_right)
+        more_to_the_left = (hit["qstart"] > 1) and (hit["sstart"] > 1)
+        more_to_the_right = (hit["qend"] < hit["qlen"]) and (hit["send"] < hit["slen"])
+        return more_to_the_left or more_to_the_right
 
     @staticmethod
     def _add_endgaps_left(hit, qseq, sseq):
         # No repair needed
-        if (hit['qstart'] == 1) and (hit['sstart'] == 1):
+        if (hit["qstart"] == 1) and (hit["sstart"] == 1):
             return ("", "")
         # Query hanging off to the left
-        if (hit['qstart'] > 1) and (hit['sstart'] == 1):
-            endgap_len = hit['qstart'] - 1
+        if (hit["qstart"] > 1) and (hit["sstart"] == 1):
+            endgap_len = hit["qstart"] - 1
             return (qseq[:endgap_len], "-" * endgap_len)
         # Subject hanging off to the left
-        if (hit['qstart'] == 1) and (hit['sstart'] > 1):
-            endgap_len = hit['sstart'] - 1
+        if (hit["qstart"] == 1) and (hit["sstart"] > 1):
+            endgap_len = hit["sstart"] - 1
             return ("-" * endgap_len, sseq[:endgap_len])
         # Anything not meeting these conditions is bad
-        if (hit['qstart'] > 1) and (hit['sstart'] > 1):
+        if (hit["qstart"] > 1) and (hit["sstart"] > 1):
             raise ValueError("Unaligned sequence on left")
         raise ValueError("Query or subject start position less than 1")
 
     @staticmethod
     def _add_endgaps_right(hit, qseq, sseq):
         # No repair needed
-        if (hit['qend'] == hit['qlen']) and (hit['send'] == hit['slen']):
+        if (hit["qend"] == hit["qlen"]) and (hit["send"] == hit["slen"]):
             return ("", "")
         # Query hanging off to the right
-        if (hit['qend'] < hit['qlen']) and (hit['send'] == hit['slen']):
-            endgap_len = hit['qlen'] - hit['qend']
+        if (hit["qend"] < hit["qlen"]) and (hit["send"] == hit["slen"]):
+            endgap_len = hit["qlen"] - hit["qend"]
             return (qseq[-endgap_len:], "-" * endgap_len)
         # Subject hanging off to the right
-        if (hit['qend'] == hit['qlen']) and (hit['send'] < hit['slen']):
-            endgap_len = hit['slen'] - hit['send']
+        if (hit["qend"] == hit["qlen"]) and (hit["send"] < hit["slen"]):
+            endgap_len = hit["slen"] - hit["send"]
             return ("-" * endgap_len, sseq[-endgap_len:])
         # Anything not meeting these conditions is bad
-        if (hit['qend'] < hit['qlen']) and (hit['send'] < hit['qlen']):
+        if (hit["qend"] < hit["qlen"]) and (hit["send"] < hit["qlen"]):
             raise ValueError("Unaligned sequence on right")
         raise ValueError("Query or subject end position greater than length")
 
     def _get_subject_seq(self, subject_id):
         subject_outfile = tempfile.NamedTemporaryFile()
         subject_outfile_fp = subject_outfile.name
-        args = ["blastdbcmd",
-                "-db", self.db,
-                "-entry", subject_id,
-                "-out", subject_outfile_fp
+        args = [
+            "blastdbcmd",
+            "-db",
+            self.db,
+            "-entry",
+            subject_id,
+            "-out",
+            subject_outfile_fp,
         ]
         subprocess.check_call(args)
         with open(subject_outfile_fp) as f:
             return list(parse_fasta(f, trim_desc=True))[0][1]
 
+
 def align_semiglobal(qseq, sseq):
     alignment = pairwise2.align.globalms(
-        sseq, qseq,
-        5, -4, -10, -0.5, #match, mismatch, gapopen, gapextend
-        penalize_end_gaps=False, one_alignment_only=True)
+        sseq,
+        qseq,
+        5,
+        -4,
+        -10,
+        -0.5,  # match, mismatch, gapopen, gapextend
+        penalize_end_gaps=False,
+        one_alignment_only=True,
+    )
     subj_seq = alignment[0][0]
     query_seq = alignment[0][1]
     return query_seq, subj_seq

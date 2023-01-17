@@ -7,8 +7,7 @@ from unassigner.command import main
 from unassigner.algorithm import VariableMismatchRate
 from unassigner.parse import parse_results
 
-DATA_DIR = os.path.join(
-    os.path.dirname(os.path.realpath(__file__)), "data")
+DATA_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)), "data")
 SPECIES_FP = os.path.join(DATA_DIR, "species.fasta")
 
 
@@ -24,10 +23,9 @@ class CommandTests(unittest.TestCase):
         VariableMismatchRate.clear_database()
 
     def test_r_gnavus(self):
-        main([
-            self.query_fp,
-            "--output_dir", self.dir,
-            "--type_strain_fasta", SPECIES_FP])
+        main(
+            [self.query_fp, "--output_dir", self.dir, "--type_strain_fasta", SPECIES_FP]
+        )
 
         with open(self.output_fp) as f:
             results = list(parse_results(f))
@@ -45,36 +43,50 @@ class CommandTests(unittest.TestCase):
         with gzip.open(mismatch_fp, "wt") as f:
             f.write(fake_mismatch_positions)
 
-        main([
-            self.query_fp,
-            "--output_dir", self.dir,
-            "--type_strain_fasta", SPECIES_FP,
-            "--ref_mismatch_positions", mismatch_fp,
-        ])
+        main(
+            [
+                self.query_fp,
+                "--output_dir",
+                self.dir,
+                "--type_strain_fasta",
+                SPECIES_FP,
+                "--ref_mismatch_positions",
+                mismatch_fp,
+            ]
+        )
 
         with open(self.output_fp) as f:
             result = next(parse_results(f))
         self.assertAlmostEqual(result["probability_incompatible"], 0.085, 3)
 
     def test_threshold(self):
-        main([
-            self.query_fp,
-            "--output_dir", self.dir,
-            "--threshold", "0.988",
-            "--type_strain_fasta", SPECIES_FP,
-        ])
+        main(
+            [
+                self.query_fp,
+                "--output_dir",
+                self.dir,
+                "--threshold",
+                "0.988",
+                "--type_strain_fasta",
+                SPECIES_FP,
+            ]
+        )
 
         with open(self.output_fp) as f:
             result = next(parse_results(f))
         self.assertAlmostEqual(result["probability_incompatible"], 0.147, 3)
 
     def test_soft_threshold(self):
-        main([
-            self.query_fp,
-            "--output_dir", self.dir,
-            "--soft_threshold",
-            "--type_strain_fasta", SPECIES_FP,
-        ])
+        main(
+            [
+                self.query_fp,
+                "--output_dir",
+                self.dir,
+                "--soft_threshold",
+                "--type_strain_fasta",
+                SPECIES_FP,
+            ]
+        )
 
         with open(self.output_fp) as f:
             result = next(parse_results(f))

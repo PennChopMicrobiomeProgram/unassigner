@@ -12,10 +12,11 @@ import tempfile
 from unassigner.parse import parse_fasta, write_fasta
 from unassigner.align import VsearchAligner
 
+
 class MismatchLocationApp:
     def __init__(
-            self, species_file, ref_fp, mismatch_file,
-            batch_size=10, num_cpus=None):
+        self, species_file, ref_fp, mismatch_file, batch_size=10, num_cpus=None
+    ):
         self.typestrain_seqs = list(parse_fasta(species_file, trim_desc=True))
         self.reference_fasta_fp = ref_fp
         self.mismatch_file = mismatch_file
@@ -35,8 +36,10 @@ class MismatchLocationApp:
             return None
         args = [
             "vsearch",
-            "--makeudb_usearch", self.reference_fasta_fp,
-            "--output", self.reference_udb_fp,
+            "--makeudb_usearch",
+            self.reference_fasta_fp,
+            "--output",
+            self.reference_udb_fp,
         ]
         return subprocess.check_call(args)
 
@@ -49,12 +52,20 @@ class MismatchLocationApp:
 
         # 97.0 --> 0.97
         vsearch_min_id = "{:.2f}".format(self.min_pct_id / 100)
-        vsearch_args =[
-            "vsearch", "--usearch_global", query_file.name,
-            "--db", self.reference_udb_fp,
-            "--userout", reference_hits_file.name,
-            "--iddef", "2", "--id", vsearch_min_id,
-            "--maxaccepts", self.max_hits,
+        vsearch_args = [
+            "vsearch",
+            "--usearch_global",
+            query_file.name,
+            "--db",
+            self.reference_udb_fp,
+            "--userout",
+            reference_hits_file.name,
+            "--iddef",
+            "2",
+            "--id",
+            vsearch_min_id,
+            "--maxaccepts",
+            self.max_hits,
             "--userfields",
             "query+target+id2+alnlen+mism+gaps+qilo+qihi+tilo+tihi+qs+ts+qrow+trow",
         ]
@@ -83,8 +94,8 @@ class MismatchLocationApp:
             for query_id, subject_id, mismatch_positions in ref_mismatches:
                 mismatch_positions = list(mismatch_positions)
                 write_mismatches(
-                    self.mismatch_file, query_id, subject_id,
-                    mismatch_positions)
+                    self.mismatch_file, query_id, subject_id, mismatch_positions
+                )
 
 
 def group_by_n(xs, n):
@@ -131,6 +142,7 @@ class MismatchDb(collections.abc.Mapping):
                 db.data[query_id].append(val)
         return db
 
+
 def write_mismatches(f, query_id, subject_id, mismatch_positions):
     f.write(query_id)
     f.write("\t")
@@ -138,6 +150,7 @@ def write_mismatches(f, query_id, subject_id, mismatch_positions):
     f.write("\t")
     f.write("\t".join(map(str, mismatch_positions)))
     f.write("\n")
+
 
 class MutableMismatchDb(MismatchDb):
     def write(self, f):
@@ -176,12 +189,14 @@ AMBIGUOUS_BASES = {
     "N": "TCAG",
 }
 
+
 def nucleotides_compatible(nt1, nt2):
     if (nt1 == "N") or (nt2 == "N"):
         return True
     a1 = AMBIGUOUS_BASES[nt1]
     a2 = AMBIGUOUS_BASES[nt2]
     return bool(set(a1).intersection(a2))
+
 
 def hit_matches_by_alignment_pos(hit):
     qseq = hit["qseq"].upper()
@@ -195,12 +210,15 @@ def hit_matches_by_alignment_pos(hit):
         if q != "-":
             query_pos += 1
 
+
 def hit_matches_by_query_pos(hit):
     query_pos_groups = itertools.groupby(
-        hit_matches_by_alignment_pos(hit), operator.itemgetter(0))
+        hit_matches_by_alignment_pos(hit), operator.itemgetter(0)
+    )
     for qpos, matches in query_pos_groups:
         all_matched = all(is_match for _, is_match in matches)
         yield qpos, all_matched
+
 
 def mismatch_query_pos(hit):
     for qpos, is_match in hit_matches_by_query_pos(hit):
@@ -211,30 +229,45 @@ def mismatch_query_pos(hit):
 def main(argv=None):
     p = argparse.ArgumentParser()
     p.add_argument(
-        "type_strain_fasta", metavar="type-strain-fasta",
+        "type_strain_fasta",
+        metavar="type-strain-fasta",
         type=argparse.FileType("r"),
-        help="Type strain sequences FASTA file")
+        help="Type strain sequences FASTA file",
+    )
     p.add_argument(
-        "reference_fasta", metavar="reference-fasta",
-        help="Full-length reference sequences FASTA file")
+        "reference_fasta",
+        metavar="reference-fasta",
+        help="Full-length reference sequences FASTA file",
+    )
     p.add_argument(
-        "output_file", metavar="output-file", type=argparse.FileType("w"),
-        help="Otuput file path")
+        "output_file",
+        metavar="output-file",
+        type=argparse.FileType("w"),
+        help="Otuput file path",
+    )
 
     p.add_argument(
         "--batch-size",
-        type=int, default=10,
+        type=int,
+        default=10,
         help=(
             "Number of query sequences to search simultaneously "
-            "(default: %(default)s)"))
+            "(default: %(default)s)"
+        ),
+    )
     p.add_argument(
-        "--num-cpus", type=int,
-        help="Number of CPUs to use in search (default: all the CPUs)")
+        "--num-cpus",
+        type=int,
+        help="Number of CPUs to use in search (default: all the CPUs)",
+    )
     args = p.parse_args(argv)
 
     app = MismatchLocationApp(
-        args.type_strain_fasta, args.reference_fasta, args.output_file,
-        batch_size=args.batch_size, num_cpus=args.num_cpus,
+        args.type_strain_fasta,
+        args.reference_fasta,
+        args.output_file,
+        batch_size=args.batch_size,
+        num_cpus=args.num_cpus,
     )
     app.run()
     args.output_file.close()

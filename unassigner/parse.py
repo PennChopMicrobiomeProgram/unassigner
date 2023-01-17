@@ -1,5 +1,6 @@
 from io import StringIO
 
+
 def parse_species_names(f):
     for desc, seq in parse_fasta(f):
         vals = desc.split("\t", maxsplit=1)
@@ -9,6 +10,7 @@ def parse_species_names(f):
         else:
             species_name = accession
         yield accession, species_name
+
 
 def parse_fasta(f, trim_desc=False):
     """Parse a FASTA format file.
@@ -77,6 +79,7 @@ def parse_greengenes_accessions(f):
             continue
         line = line.strip()
         yield line.split("\t")
+
 
 def parse_results(f):
     float_fields = ["probability_incompatible"]

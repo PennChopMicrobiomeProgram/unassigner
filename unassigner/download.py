@@ -20,19 +20,20 @@ LTP_METADATA_COLS = [
     "url_lpsn_ltp",
     "tax_ltp",
     "rel_ltp",
-    "NJ_support_pk4_ltp"
-    ]
-LTP_METADATA_URL = \
+    "NJ_support_pk4_ltp",
+]
+LTP_METADATA_URL = (
     "https://imedea.uib-csic.es/mmg/ltp/wp-content/uploads/ltp/LTP_09_2021.csv"
-LTP_SEQS_URL = \
-    "https://imedea.uib-csic.es/mmg/ltp/wp-content/uploads/ltp/LTP_09_2021_blastdb.fasta"
-GG_SEQS_URL = \
-    "ftp://greengenes.microbio.me/greengenes_release/gg_13_5/gg_13_5.fasta.gz"
-GG_ACCESSIONS_URL = \
+)
+LTP_SEQS_URL = "https://imedea.uib-csic.es/mmg/ltp/wp-content/uploads/ltp/LTP_09_2021_blastdb.fasta"
+GG_SEQS_URL = "ftp://greengenes.microbio.me/greengenes_release/gg_13_5/gg_13_5.fasta.gz"
+GG_ACCESSIONS_URL = (
     "ftp://greengenes.microbio.me/greengenes_release/gg_13_5/gg_13_5_accessions.txt.gz"
+)
 SPECIES_FASTA_FP = "unassigner_species.fasta"
 REFSEQS_FASTA_FP = "refseqs.fasta"
 GG_DUPLICATE_FP = "gg_duplicate_ids.txt"
+
 
 def clean(db_dir):
     fps = [
@@ -42,8 +43,8 @@ def clean(db_dir):
         gunzip_fp(url_fp(GG_SEQS_URL)),
         gunzip_fp(url_fp(GG_ACCESSIONS_URL)),
         REFSEQS_FASTA_FP,
-        GG_DUPLICATE_FP
-        ]
+        GG_DUPLICATE_FP,
+    ]
     for fp in fps:
         fp_full = os.path.join(db_dir, fp)
         if os.path.exists(fp_full):
@@ -51,15 +52,16 @@ def clean(db_dir):
 
 
 def url_fp(url):
-    return url.split('/')[-1]
+    return url.split("/")[-1]
 
 
 def gunzip_fp(fp):
     return fp[:-3]
 
+
 def get_url(url, fp):
     logging.info("Downloading {0}".format(url))
-    with urllib.request.urlopen(url) as resp, open(fp, 'wb') as f:
+    with urllib.request.urlopen(url) as resp, open(fp, "wb") as f:
         shutil.copyfileobj(resp, f)
     return fp
 
@@ -80,10 +82,11 @@ def process_ltp_seqs(input_fp, output_fp=SPECIES_FASTA_FP):
                 accession_times_previously_seen = accession_cts[accession]
                 accession_cts[accession] += 1
                 if accession_times_previously_seen > 0:
-                    accession = "{0}_repeat{1}".format(accession, accession_times_previously_seen)
+                    accession = "{0}_repeat{1}".format(
+                        accession, accession_times_previously_seen
+                    )
                 species_name = vals[3]
-                f_out.write(
-                    ">{0}\t{1}\n{2}\n".format(accession, species_name, seq))
+                f_out.write(">{0}\t{1}\n{2}\n".format(accession, species_name, seq))
     return output_fp
 
 

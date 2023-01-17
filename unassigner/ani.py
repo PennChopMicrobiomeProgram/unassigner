@@ -11,10 +11,11 @@ import urllib.error
 from unassigner.download import get_url
 from unassigner.parse import parse_fasta, write_fasta
 
+
 class Refseq16SDatabase:
     def __init__(
-            self, fasta_fp="refseq_16S.fasta",
-            accession_fp="refseq_16S_accessions.txt"):
+        self, fasta_fp="refseq_16S.fasta", accession_fp="refseq_16S_accessions.txt"
+    ):
         self.fasta_fp = fasta_fp
         self.accession_fp = accession_fp
         self.seqs = {}
@@ -82,8 +83,8 @@ class Refseq16SDatabase:
             write_fasta(f, [(query_seqid, query_seq)])
         aligner = PctidAligner(self.fasta_fp)
         aligner.search(
-            query_fp, query_hits_fp, min_pctid=pctid,
-            threads=threads, max_hits=10000)
+            query_fp, query_hits_fp, min_pctid=pctid, threads=threads, max_hits=10000
+        )
         with open(query_hits_fp) as f:
             hits = aligner.parse(f)
             for hit in hits:
@@ -92,11 +93,10 @@ class Refseq16SDatabase:
                     subject = self.assemblies[hit["sseqid"]]
                     pctid = hit["pident"]
                     yield AssemblyPair(
-                        query, subject, pctid,
-                        hit["qseqid"], hit["sseqid"])
+                        query, subject, pctid, hit["qseqid"], hit["sseqid"]
+                    )
 
-    def search_seq(
-            self, query_seqid, query_seq, min_pctid=90.0, threads=None):
+    def search_seq(self, query_seqid, query_seq, min_pctid=90.0, threads=None):
         query_fp = "temp_query.fasta"
         if os.path.exists(query_fp):
             os.rename(query_fp, "temp_prev_query.fasta")
@@ -107,8 +107,12 @@ class Refseq16SDatabase:
             write_fasta(f, [(query_seqid, query_seq)])
         aligner = PctidAligner(self.fasta_fp)
         aligner.search(
-            query_fp, query_hits_fp, min_pctid=min_pctid,
-            threads=threads, max_hits=10000)
+            query_fp,
+            query_hits_fp,
+            min_pctid=min_pctid,
+            threads=threads,
+            max_hits=10000,
+        )
         with open(query_hits_fp) as f:
             hits = aligner.parse(f)
             for hit in hits:
@@ -117,8 +121,8 @@ class Refseq16SDatabase:
                 pctid = hit["pident"]
                 if query.accession != subject.accession:
                     yield AssemblyPair(
-                        query, subject, pctid,
-                        hit["qseqid"], hit["sseqid"])
+                        query, subject, pctid, hit["qseqid"], hit["sseqid"]
+                    )
 
 
 class PctidAligner:
@@ -138,14 +142,16 @@ class PctidAligner:
             return None
         args = [
             "vsearch",
-            "--makeudb_usearch", self.fasta_fp,
-            "--output", self.reference_udb_fp,
+            "--makeudb_usearch",
+            self.fasta_fp,
+            "--output",
+            self.reference_udb_fp,
         ]
         return subprocess.check_call(args)
 
     def search(
-            self, input_fp=None, hits_fp=None, min_pctid=97.0,
-            threads=None, max_hits=10000):
+        self, input_fp=None, hits_fp=None, min_pctid=97.0, threads=None, max_hits=10000
+    ):
         if input_fp is None:
             input_fp = self.fasta_fp
         if hits_fp is None:
@@ -153,22 +159,37 @@ class PctidAligner:
         self.make_reference_udb()
         # 97.0 --> 0.97
         min_id = "{:.3f}".format(min_pctid / 100)
-        args =[
-            "vsearch", "--usearch_global", input_fp,
-            "--db", self.reference_udb_fp,
-            "--userout", hits_fp,
-            "--iddef", "2", "--id", min_id,
+        args = [
+            "vsearch",
+            "--usearch_global",
+            input_fp,
+            "--db",
+            self.reference_udb_fp,
+            "--userout",
+            hits_fp,
+            "--iddef",
+            "2",
+            "--id",
+            min_id,
             "--userfields",
             "query+target+id2",
         ]
         if max_hits is None:
-            args.extend([
-                "--maxaccepts", "0", "--maxrejects", "0",
-            ])
+            args.extend(
+                [
+                    "--maxaccepts",
+                    "0",
+                    "--maxrejects",
+                    "0",
+                ]
+            )
         else:
-            args.extend([
-                "--maxaccepts", str(max_hits),
-            ])
+            args.extend(
+                [
+                    "--maxaccepts",
+                    str(max_hits),
+                ]
+            )
         if threads is not None:
             args.extend(["--threads", str(threads)])
         print(args)
@@ -188,19 +209,34 @@ class PctidAligner:
 
 class RefseqAssembly:
     summary_url = (
-        "https://ftp.ncbi.nlm.nih.gov/genomes/refseq/"
-        "bacteria/assembly_summary.txt"
-        )
+        "https://ftp.ncbi.nlm.nih.gov/genomes/refseq/" "bacteria/assembly_summary.txt"
+    )
     summary_fp = "refseq_bacteria_assembly_summary.txt"
     genome_dir = "genome_fasta"
     rna_dir = "rna_fasta"
     summary_cols = [
-        "assembly_accession", "bioproject", "biosample", "wgs_master",
-        "refseq_category", "taxid", "species_taxid", "organism_name",
-        "infraspecific_name", "isolate", "version_status",
-        "assembly_level", "release_type", "genome_rep", "seq_rel_date",
-        "asm_name", "submitter", "gbrs_paired_asm", "paired_asm_comp",
-        "ftp_path", "excluded_from_refseq", "relation_to_type_material"
+        "assembly_accession",
+        "bioproject",
+        "biosample",
+        "wgs_master",
+        "refseq_category",
+        "taxid",
+        "species_taxid",
+        "organism_name",
+        "infraspecific_name",
+        "isolate",
+        "version_status",
+        "assembly_level",
+        "release_type",
+        "genome_rep",
+        "seq_rel_date",
+        "asm_name",
+        "submitter",
+        "gbrs_paired_asm",
+        "paired_asm_comp",
+        "ftp_path",
+        "excluded_from_refseq",
+        "relation_to_type_material",
     ]
 
     def __init__(self, assembly_accession, ftp_path, **kwargs):
@@ -209,7 +245,7 @@ class RefseqAssembly:
         for key, val in kwargs.items():
             setattr(self, key, val)
         self._ssu_seqs = None
-            
+
     @classmethod
     def parse_summary(cls, f):
         for line in f:
@@ -256,8 +292,7 @@ class RefseqAssembly:
 
     @property
     def rna_url(self):
-        return "{0}/{1}_rna_from_genomic.fna.gz".format(
-            self.base_url, self.basename)
+        return "{0}/{1}_rna_from_genomic.fna.gz".format(self.base_url, self.basename)
 
     @property
     def rna_fp(self):
@@ -275,13 +310,11 @@ class RefseqAssembly:
 
     @property
     def genome_url(self):
-        return "{0}/{1}_genomic.fna.gz".format(
-            self.base_url, self.basename)
+        return "{0}/{1}_genomic.fna.gz".format(self.base_url, self.basename)
 
     @property
     def genome_fp(self):
-        genome_filename = "{0}_genomic.fna.gz".format(
-            self.basename)
+        genome_filename = "{0}_genomic.fna.gz".format(self.basename)
         return os.path.join(self.genome_dir, genome_filename)
 
     def download_genome(self, genome_dir=None, genome_fname=None):
@@ -328,6 +361,7 @@ def remove_files(target_dir):
         for filename in os.listdir(target_dir):
             os.remove(os.path.join(target_dir, filename))
 
+
 class AssemblyPair:
     genome_dir = "temp_genomes"
     ani_dir = "temp_ani"
@@ -335,8 +369,8 @@ class AssemblyPair:
     ani_cache = {}
 
     def __init__(
-            self, query, subject, pctid=None,
-            query_seqid=None, subject_seqid=None):
+        self, query, subject, pctid=None, query_seqid=None, subject_seqid=None
+    ):
         self.query = query
         self.subject = subject
         self._pctid = pctid
@@ -356,13 +390,13 @@ class AssemblyPair:
             return
 
         remove_files(self.genome_dir)
-        
+
         query_fname = "{0}.fna.gz".format(self.query.accession)
         query_genome_fp = os.path.join(self.genome_dir, query_fname)
         query_cache_fp = os.path.join(self.cache_dir, query_fname)
         if os.path.exists(query_cache_fp):
             os.rename(query_cache_fp, query_genome_fp)
-        else:    
+        else:
             self.query.download_genome(self.genome_dir, query_fname)
             shutil.copy(query_genome_fp, query_cache_fp)
         subprocess.check_call(["gunzip", "-f", query_genome_fp])
@@ -371,18 +405,20 @@ class AssemblyPair:
         subject_genome_fp = os.path.join(self.genome_dir, subject_fname)
         self.subject.download_genome(self.genome_dir, subject_fname)
         subprocess.check_call(["gunzip", "-f", subject_genome_fp])
-        
+
         # pyani get ANI for pair
         shutil.rmtree(self.ani_dir)
         # save ANI to self.ani
-        print(
-            "Computing ANI for", self.query.accession, "and",
-            self.subject.accession)
-        subprocess.check_call([
-            "average_nucleotide_identity.py",
-            "-i", self.genome_dir,
-            "-o", self.ani_dir,
-        ])
+        print("Computing ANI for", self.query.accession, "and", self.subject.accession)
+        subprocess.check_call(
+            [
+                "average_nucleotide_identity.py",
+                "-i",
+                self.genome_dir,
+                "-o",
+                self.ani_dir,
+            ]
+        )
 
         ani_fp = os.path.join(self.ani_dir, "ANIm_percentage_identity.tab")
         with open(ani_fp) as f:
@@ -394,14 +430,20 @@ class AssemblyPair:
     def format_output(self):
         if self.query_seqid and self.subject_seqid:
             return "{0}\t{1}\t{2}\t{3}\t{4}\t{5}\n".format(
-                self.query.accession, self.subject.accession,
-                self.query_seqid, self.subject_seqid,
-                self.pctid, self.ani,
+                self.query.accession,
+                self.subject.accession,
+                self.query_seqid,
+                self.subject_seqid,
+                self.pctid,
+                self.ani,
             )
         return "{0}\t{1}\t{2}\t{3}\n".format(
-            self.query.accession, self.subject.accession,
-            self.pctid, self.ani,
+            self.query.accession,
+            self.subject.accession,
+            self.pctid,
+            self.ani,
         )
+
 
 def parse_pairwise_ani(f):
     # first line is a header
@@ -411,6 +453,7 @@ def parse_pairwise_ani(f):
     toks = second_line.strip().split()
     return toks[2]
 
+
 def pctid_range(min_pctid):
     assert 50.0 < min_pctid <= 100.0
     current_val = 100.0
@@ -418,45 +461,53 @@ def pctid_range(min_pctid):
         yield current_val
         current_val = current_val - 0.1
 
+
 def main_sampling(argv=None):
     p = argparse.ArgumentParser()
     p.add_argument(
-        "--output-file", type=argparse.FileType("w"),
+        "--output-file",
+        type=argparse.FileType("w"),
         default="refseq_pctid_ani.tsv",
         help="Output file",
     )
     p.add_argument(
-        "--min_pctid", type=float, default=97.0,
+        "--min_pctid",
+        type=float,
+        default=97.0,
         help="Minimum 16S percent ID",
     )
     p.add_argument(
-        "--num-threads", type=int,
+        "--num-threads",
+        type=int,
         help="Number of threads for 16S percent ID (default: use all CPUs)",
     )
     p.add_argument(
-        "--num-ani", type=int, default=100,
+        "--num-ani",
+        type=int,
+        default=100,
         help="Number of genome pairs on which to evaluate ANI",
     )
     p.add_argument(
-        "--seed", type=int, default=42,
+        "--seed",
+        type=int,
+        default=42,
         help="Random number seed",
     )
     args = p.parse_args()
     args.output_file.write(
         "query_assembly\tsubject_assembly\t"
         "query_seqid\tsubject_seqid\t"
-        "pctid\tani\n")
-    
+        "pctid\tani\n"
+    )
+
     # Set seed for 16S selection
     random.seed(args.seed)
-    
+
     # Load all assemblies
     assemblies = RefseqAssembly.load()
 
     # 16S database with one random sequence from each assembly
-    db = Refseq16SDatabase(
-        "refseq_16S_all.fasta",
-        "refseq_16S_accessions_all.txt")
+    db = Refseq16SDatabase("refseq_16S_all.fasta", "refseq_16S_accessions_all.txt")
     if os.path.exists(db.accession_fp):
         db.load(assemblies)
     else:
@@ -481,7 +532,8 @@ def main_sampling(argv=None):
                 continue
             query_seqid = random.choice(query_assembly_seqids)
             assembly_pairs = db.search_one(
-                query_seqid, current_pctid, threads=args.num_threads)
+                query_seqid, current_pctid, threads=args.num_threads
+            )
             assembly_pairs = list(assembly_pairs)
             if assembly_pairs:
                 try:
@@ -494,4 +546,3 @@ def main_sampling(argv=None):
                     print(e)
                 else:
                     found = True
-

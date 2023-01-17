@@ -26,8 +26,8 @@ class UnassignAligner(object):
         if self.num_cpus:
             vsearch_args["threads"] = self.num_cpus
         hits = b.search(
-            query_seqs,
-            self.species_input_fp, self.species_output_fp, **vsearch_args)
+            query_seqs, self.species_input_fp, self.species_output_fp, **vsearch_args
+        )
 
         with open(self.species_fp) as f:
             ref_seqs = list(parse_fasta(f, trim_desc=True))
@@ -52,13 +52,17 @@ class FileAligner:
 
 
 class VariableMismatchRate:
-    """Predict unobserved mismatches by estimating a mismatch rate
-    """
+    """Predict unobserved mismatches by estimating a mismatch rate"""
+
     db = collections.defaultdict(list)
     result_keys = [
-        "typestrain_id", "region_mismatches",
-        "region_positions", "probability_incompatible",
-        "mu1", "num_references", "mu2",
+        "typestrain_id",
+        "region_mismatches",
+        "region_positions",
+        "probability_incompatible",
+        "mu1",
+        "num_references",
+        "mu2",
         "nonregion_positions_in_subject",
         "max_nonregion_mismatches",
     ]
@@ -83,8 +87,8 @@ class VariableMismatchRate:
         refs = self.db[typestrain_id]
         for ref_positions in refs:
             mismatch_is_in_region = [
-                (pos >= start_idx) & (pos <= end_idx)
-                for pos in ref_positions]
+                (pos >= start_idx) & (pos <= end_idx) for pos in ref_positions
+            ]
             region_mms = mismatch_is_in_region.count(True)
             nonregion_mms = mismatch_is_in_region.count(False)
             yield (region_mms, nonregion_mms)
@@ -123,15 +127,16 @@ class VariableMismatchRate:
 
         # Compute number of positions outside aligned region
         nonregion_subject_positions = (
-            self.alignment.subject_len - region_subject_positions)
-        total_positions = (
-            region_positions + nonregion_subject_positions)
+            self.alignment.subject_len - region_subject_positions
+        )
+        total_positions = region_positions + nonregion_subject_positions
 
         # Get mismatches from database
         typestrain_id = self.alignment.subject_id
         typestrain_start_idx, typestrain_end_idx = region.in_subject()
         reference_mismatches = self._get_mismatches(
-            typestrain_id, typestrain_start_idx, typestrain_end_idx)
+            typestrain_id, typestrain_start_idx, typestrain_end_idx
+        )
 
         # Get estimate for gamma = log(mu2 / mu1)
         # From reference alignments
@@ -166,8 +171,9 @@ class VariableMismatchRate:
 
         # Maximum number of mismatches outside observed region
         species_mismatch_threshold = 1 - min_id
-        max_total_mismatches = int(math.floor(
-            species_mismatch_threshold * total_positions))
+        max_total_mismatches = int(
+            math.floor(species_mismatch_threshold * total_positions)
+        )
         max_nonregion_mismatches = max_total_mismatches - region_mismatches
 
         # Compute probability
@@ -176,8 +182,12 @@ class VariableMismatchRate:
         else:
             threshold_fcn = hard_species_probability
         prob_compatible = threshold_assignment_probability(
-            region_mismatches, region_positions, nonregion_subject_positions,
-            alpha2, beta2, 100 * species_mismatch_threshold,
+            region_mismatches,
+            region_positions,
+            nonregion_subject_positions,
+            alpha2,
+            beta2,
+            100 * species_mismatch_threshold,
             threshold_fcn,
         )
         prob_incompatible = 1 - prob_compatible
@@ -194,21 +204,30 @@ class VariableMismatchRate:
             "max_nonregion_mismatches": max_nonregion_mismatches,
         }
 
+
 def pctdiff(obs_mismatches, obs_positions, unobs_mismatches, unobs_positions):
     total_mismatches = obs_mismatches + unobs_mismatches
     total_positions = obs_positions + unobs_positions
     return 100 * (total_mismatches / total_positions)
 
+
 def soft_species_probability(d, d_half):
     return math.pow(2, -d / d_half)
+
 
 def hard_species_probability(d, d_half):
     return float(d <= d_half)
 
+
 def iter_threshold(
-        obs_mismatches, obs_positions, unobs_positions,
-        alpha, beta, d_half,
-        threshold_fcn=soft_species_probability):
+    obs_mismatches,
+    obs_positions,
+    unobs_positions,
+    alpha,
+    beta,
+    d_half,
+    threshold_fcn=soft_species_probability,
+):
     for mm in range(unobs_positions + 1):
         p_mm = betabinom.pmf(mm, unobs_positions, alpha, beta)
         d = pctdiff(obs_mismatches, obs_positions, mm, unobs_positions)
@@ -217,15 +236,29 @@ def iter_threshold(
             break
         yield (mm, p_mm, d, p_species)
 
+
 def threshold_assignment_probability(
-        obs_mismatches, obs_positions, unobs_positions,
-        alpha, beta, d_half,
-        threshold_fcn=soft_species_probability):
+    obs_mismatches,
+    obs_positions,
+    unobs_positions,
+    alpha,
+    beta,
+    d_half,
+    threshold_fcn=soft_species_probability,
+):
     return sum(
-        p_mm * p_species for _, p_mm, _, p_species
-        in iter_threshold(
-            obs_mismatches, obs_positions, unobs_positions,
-            alpha, beta, d_half, threshold_fcn))
+        p_mm * p_species
+        for _, p_mm, _, p_species in iter_threshold(
+            obs_mismatches,
+            obs_positions,
+            unobs_positions,
+            alpha,
+            beta,
+            d_half,
+            threshold_fcn,
+        )
+    )
+
 
 class UnassignerApp:
     def __init__(self, aligner, mm_rate, min_id=0.975, soft_threshold=False):
@@ -287,14 +320,15 @@ class UnassignerApp:
                 yield a
 
     def _filter_alignments(self, query_alignments):
-        sorted_alignments = list(sorted(
-            query_alignments, key=operator.attrgetter('percent_id'),
-            reverse=True))
+        sorted_alignments = list(
+            sorted(
+                query_alignments, key=operator.attrgetter("percent_id"), reverse=True
+            )
+        )
         filtered_alignments = [
-            a for a in sorted_alignments
-            if a.percent_id > self.alignment_min_percent_id]
+            a for a in sorted_alignments if a.percent_id > self.alignment_min_percent_id
+        ]
         # Return one low-identity result if we have nothing better
         if sorted_alignments and not filtered_alignments:
             return sorted_alignments[:1]
         return filtered_alignments
-

@@ -1,6 +1,5 @@
 def species_probability(self, species_alignment, refseq_alignments):
-    """Compute probability of species attribution.
-    """
+    """Compute probability of species attribution."""
     query_id = species_alignment.query_id
     species_id = species_alignment.subject_id
     start = species_alignment.start_pos
