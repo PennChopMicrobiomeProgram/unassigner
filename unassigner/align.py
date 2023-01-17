@@ -82,6 +82,8 @@ class VsearchAligner(Aligner):
             self.ref_seqs_fp,
             "--output",
             self.ref_seqs_udb_fp,
+            "--maxaccepts",
+            "0",
         ]
         return subprocess.check_call(args)
 
