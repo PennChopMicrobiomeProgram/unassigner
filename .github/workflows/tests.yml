@@ -6,6 +6,8 @@ name: Tests
 on:
   pull_request:
     branches: [master, main]
+  push:
+    branches: [master, main]
   schedule:
     - cron: "0 13 * * 1"
 
