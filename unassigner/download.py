@@ -23,9 +23,9 @@ LTP_METADATA_COLS = [
     "NJ_support_pk4_ltp",
 ]
 LTP_METADATA_URL = (
-    "https://imedea.uib-csic.es/mmg/ltp/wp-content/uploads/ltp/LTP_09_2021.csv"
+    "https://imedea.uib-csic.es/mmg/ltp/wp-content/uploads/ltp/LTP_01_2022.csv"
 )
-LTP_SEQS_URL = "https://imedea.uib-csic.es/mmg/ltp/wp-content/uploads/ltp/LTP_09_2021_blastdb.fasta"
+LTP_SEQS_URL = "https://imedea.uib-csic.es/mmg/ltp/wp-content/uploads/ltp/LTP_01_2022_blastdb.fasta"
 GG_SEQS_URL = "ftp://greengenes.microbio.me/greengenes_release/gg_13_5/gg_13_5.fasta.gz"
 GG_ACCESSIONS_URL = (
     "ftp://greengenes.microbio.me/greengenes_release/gg_13_5/gg_13_5_accessions.txt.gz"
