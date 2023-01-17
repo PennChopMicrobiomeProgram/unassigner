@@ -1,0 +1,35 @@
+name: CodeCov
+
+on:
+  pull_request:
+    branches: [master, main]
+  push:
+    branches: [master, main]
+  schedule:
+    - cron: "0 13 * * 1"
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.10'
+      - name: setup-conda
+        uses: s-weigand/setup-conda@v1.1.0
+        with:
+          conda-channels: ''
+      - name: Install dependencies
+        run: |
+          conda install -c bioconda vsearch
+          python -m pip install --upgrade pip
+          python -m pip install pytest
+          python -m pip install pytest-cov
+          python -m pip install .
+      - name: Run tests and collect coverage
+        run: pytest --cov tests
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3

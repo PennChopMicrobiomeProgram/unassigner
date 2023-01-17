@@ -59,6 +59,32 @@ sequence alignments.  It's available through
 [conda](https://anaconda.org/bioconda/vsearch), and this is our
 recommended method for installation.
 
+```bash
+conda create --name unassigner
+conda activate unassigner
+conda install -c bioconda vsearch
+pip install unassigner
+```
+
+### Alternative Installation
+
+If `pip install unassigner` isn't working or if you want to use a development 
+version, you can also install via git.
+
+```bash
+conda create --name unassigner
+conda activate unassigner
+conda install -c bioconda vsearch
+git clone https://github.com/kylebittinger/unassigner.git
+cd unassigner
+pip install -r requirements.txt
+pip install .
+```
+
+If you don't want to use conda, see the 
+[vsearch repo](https://github.com/torognes/vsearch) for alternative install 
+methods.
+
 ## Usage
 
 The `unassign` program requires one argument, a FASTA-formatted file
@@ -71,7 +97,8 @@ unassign my_sequences.fasta
 If the program has not been run before, it will automatically download
 the bacterial species data it needs, format its reference files,
 create an output directory named `my_sequences_unassigned`, and write
-a table of results there, along with some auxiliary output files.
+a table of results there, along with some auxiliary output files. Note 
+that the output directory will be in the same directory as `my_sequences.fasta`.
 
 Please see the output of `unassign --help` for a list of the available
 options.
