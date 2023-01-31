@@ -111,8 +111,6 @@ class VsearchAligner(Aligner):
             output_fp,
             "--userfields",
             "query+target+id2+alnlen+mism+gaps+qilo+qihi+tilo+tihi+qs+ts+qrow+trow",
-            "--maxaccepts",
-            "0",
         ]
         for arg, val in kwargs.items():
             arg = "--" + arg

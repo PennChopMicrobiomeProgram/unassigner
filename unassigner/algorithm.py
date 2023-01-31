@@ -21,7 +21,7 @@ class UnassignAligner(object):
         b = VsearchAligner(self.species_fp)
         vsearch_args = {
             "min_id": 0.9,
-            "maxaccepts": 5,
+            "maxaccepts": 0,
         }
         if self.num_cpus:
             vsearch_args["threads"] = self.num_cpus
