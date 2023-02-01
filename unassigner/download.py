@@ -3,6 +3,7 @@ import logging
 import os
 import shutil
 import subprocess
+import re
 import tarfile
 import urllib.request
 
@@ -65,7 +66,6 @@ def get_url(url, fp):
         shutil.copyfileobj(resp, f)
     return fp
 
-
 def process_ltp_seqs(input_fp, output_fp=SPECIES_FASTA_FP):
     if os.path.isdir(output_fp):
         output_fp = os.path.join(output_fp, SPECIES_FASTA_FP)
@@ -75,17 +75,16 @@ def process_ltp_seqs(input_fp, output_fp=SPECIES_FASTA_FP):
         seqs = parse_fasta(f_in)
         with open(output_fp, "w") as f_out:
             for desc, seq in seqs:
-                vals = desc.split("|")
+                accession = re.findall(r'\[accession=(.*?)\]', desc)[0]
+                species_name = re.findall(r'\[organism=(.*?)\]', desc)[0]
                 # Some accessions refer to genomes with more than one 16S gene
                 # So accessions can be legitiamtely repeated with distinct gene sequences
-                accession = vals[2]
                 accession_times_previously_seen = accession_cts[accession]
                 accession_cts[accession] += 1
                 if accession_times_previously_seen > 0:
                     accession = "{0}_repeat{1}".format(
                         accession, accession_times_previously_seen
                     )
-                species_name = vals[3]
                 f_out.write(">{0}\t{1}\n{2}\n".format(accession, species_name, seq))
     return output_fp
 
