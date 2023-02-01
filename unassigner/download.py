@@ -24,9 +24,9 @@ LTP_METADATA_COLS = [
     "NJ_support_pk4_ltp",
 ]
 LTP_METADATA_URL = (
-    "https://imedea.uib-csic.es/mmg/ltp/wp-content/uploads/ltp/LTP_01_2022.csv"
+    "https://imedea.uib-csic.es/mmg/ltp/wp-content/uploads/ltp/LTP_06_2022.csv"
 )
-LTP_SEQS_URL = "https://imedea.uib-csic.es/mmg/ltp/wp-content/uploads/ltp/LTP_01_2022_blastdb.fasta"
+LTP_SEQS_URL = "https://imedea.uib-csic.es/mmg/ltp/wp-content/uploads/ltp/LTP_06_2022_blastdb.fasta"
 GG_SEQS_URL = "ftp://greengenes.microbio.me/greengenes_release/gg_13_5/gg_13_5.fasta.gz"
 GG_ACCESSIONS_URL = (
     "ftp://greengenes.microbio.me/greengenes_release/gg_13_5/gg_13_5_accessions.txt.gz"
@@ -66,6 +66,7 @@ def get_url(url, fp):
         shutil.copyfileobj(resp, f)
     return fp
 
+
 def process_ltp_seqs(input_fp, output_fp=SPECIES_FASTA_FP):
     if os.path.isdir(output_fp):
         output_fp = os.path.join(output_fp, SPECIES_FASTA_FP)
@@ -75,8 +76,8 @@ def process_ltp_seqs(input_fp, output_fp=SPECIES_FASTA_FP):
         seqs = parse_fasta(f_in)
         with open(output_fp, "w") as f_out:
             for desc, seq in seqs:
-                accession = re.findall(r'\[accession=(.*?)\]', desc)[0]
-                species_name = re.findall(r'\[organism=(.*?)\]', desc)[0]
+                accession = re.findall(r"\[accession=(.*?)\]", desc)[0]
+                species_name = re.findall(r"\[organism=(.*?)\]", desc)[0]
                 # Some accessions refer to genomes with more than one 16S gene
                 # So accessions can be legitiamtely repeated with distinct gene sequences
                 accession_times_previously_seen = accession_cts[accession]

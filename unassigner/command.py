@@ -1,4 +1,5 @@
 import argparse
+import datetime
 import gzip
 import logging
 import os
@@ -75,6 +76,8 @@ def main(argv=None):
     if args.verbose is True:
         logging.basicConfig(format="%(levelname)s: %(message)s", level=logging.INFO)
 
+    logging.info(f"Starting at {datetime.datetime.now()}")
+
     query_seqs = list(parse_fasta(args.query_fasta, trim_desc=True))
 
     if args.output_dir is None:
@@ -117,6 +120,8 @@ def main(argv=None):
     )
     for query_id, query_results in app.unassign(query_seqs):
         writer.write_results(query_id, query_results)
+
+    logging.info(f"Finished at {datetime.datetime.now()}")
 
 
 class OutputWriter:
