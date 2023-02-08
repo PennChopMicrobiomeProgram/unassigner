@@ -48,7 +48,7 @@ class FastaTests(unittest.TestCase):
 
         for desc, seq in seqs.items():
             self.assertEqual(desc[0], ">")
-            self.assertEqual(set(list(seq)), set(["A", "C", "G", "U"]))
+            self.assertEqual(set(list(seq.strip("\n"))), set(["A", "C", "G", "U"]))
 
             accession, species_name = parse_desc(desc)
             self.assertEqual(accession, "AC123456")
