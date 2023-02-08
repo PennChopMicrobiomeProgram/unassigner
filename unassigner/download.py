@@ -3,11 +3,9 @@ import logging
 import os
 import shutil
 import subprocess
-import re
-import tarfile
 import urllib.request
 
-from unassigner.parse import parse_fasta, parse_greengenes_accessions
+from unassigner.parse import parse_fasta, parse_desc, parse_greengenes_accessions
 
 LTP_METADATA_COLS = [
     "accession",
@@ -89,17 +87,6 @@ def process_ltp_seqs(input_fp, output_fp=SPECIES_FASTA_FP):
                     )
                 f_out.write(">{0}\t{1}\n{2}\n".format(accession, species_name, seq))
     return output_fp
-
-
-def parse_desc(desc):
-    try:
-        accession = re.findall(r"\[accession=(.*?)\]", desc)[0]
-        species_name = re.findall(r"\[organism=(.*?)\]", desc)[0]
-    except IndexError as e:
-        logging.error(f"Couldn't find accession and/or organism identifier in {desc}")
-        logging.error(f"Skipping this sequence...")
-        return None, None
-    return accession, species_name
 
 
 def process_greengenes_seqs(seqs_fp, accessions_fp, output_fp=REFSEQS_FASTA_FP):

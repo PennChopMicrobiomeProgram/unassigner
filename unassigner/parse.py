@@ -1,3 +1,5 @@
+import logging
+import re
 from io import StringIO
 
 
@@ -50,6 +52,17 @@ def parse_fasta(f, trim_desc=False):
         else:
             seq.write(line.replace(" ", "").replace("U", "T"))
     yield desc, seq.getvalue()
+
+
+def parse_desc(desc):
+    try:
+        accession = re.findall(r"\[accession=(.*?)\]", desc)[0]
+        species_name = re.findall(r"\[organism=(.*?)\]", desc)[0]
+    except IndexError as e:
+        logging.error(f"Couldn't find accession and/or organism identifier in {desc}")
+        logging.error(f"Skipping this sequence...")
+        return None, None
+    return accession, species_name
 
 
 def write_fasta(f, seqs):
