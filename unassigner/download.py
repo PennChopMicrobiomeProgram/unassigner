@@ -76,8 +76,9 @@ def process_ltp_seqs(input_fp, output_fp=SPECIES_FASTA_FP):
         seqs = parse_fasta(f_in)
         with open(output_fp, "w") as f_out:
             for desc, seq in seqs:
-                accession = re.findall(r"\[accession=(.*?)\]", desc)[0]
-                species_name = re.findall(r"\[organism=(.*?)\]", desc)[0]
+                accession, species_name = parse_desc(desc)
+                if not accession or not species_name:
+                    continue
                 # Some accessions refer to genomes with more than one 16S gene
                 # So accessions can be legitiamtely repeated with distinct gene sequences
                 accession_times_previously_seen = accession_cts[accession]
@@ -88,6 +89,17 @@ def process_ltp_seqs(input_fp, output_fp=SPECIES_FASTA_FP):
                     )
                 f_out.write(">{0}\t{1}\n{2}\n".format(accession, species_name, seq))
     return output_fp
+
+
+def parse_desc(desc):
+    try:
+        accession = re.findall(r"\[accession=(.*?)\]", desc)[0]
+        species_name = re.findall(r"\[organism=(.*?)\]", desc)[0]
+    except IndexError as e:
+        logging.error(f"Couldn't find accession and/or organism identifier in {desc}")
+        logging.error(f"Skipping this sequence...")
+        return None, None
+    return accession, species_name
 
 
 def process_greengenes_seqs(seqs_fp, accessions_fp, output_fp=REFSEQS_FASTA_FP):
