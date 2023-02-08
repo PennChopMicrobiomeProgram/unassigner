@@ -19,14 +19,14 @@ class AlignSemiglobalTests(unittest.TestCase):
         self.assertEqual(align_semiglobal(qseq, sseq), (qseq, sseq))
 
     def test_endgaps_both_sides_query(self):
-        qseq = "GATGAACGCTAGCTTCAGGCTTAAC"
+        qseq =      "GATGAACGCTAGCTTCAGGCTTAAC"
         sseq = "CTCAGGATGAACGCTAGCTACAGGCTTAACACATGCAAGT"
         aligned_qseq, aligned_sseq = align_semiglobal(qseq, sseq)
         self.assertEqual(aligned_qseq, "-----" + qseq + "----------")
         self.assertEqual(aligned_sseq, sseq)
 
     def test_endgaps_left_query(self):
-        qseq = "GATGAACGCTAGCTTCAGGCTTAAC"
+        qseq =      "GATGAACGCTAGCTTCAGGCTTAAC"
         sseq = "CTCAGGATGAACGCTAGCTACAGGCTTAAC"
         aligned_qseq, aligned_sseq = align_semiglobal(qseq, sseq)
         self.assertEqual(aligned_qseq, "-----" + qseq)
@@ -41,20 +41,20 @@ class AlignSemiglobalTests(unittest.TestCase):
 
     def test_ragged_left_subject(self):
         qseq = "CTCAGGATGAACGCTAGCTACAGGCTTAAC"
-        sseq = "GATGAACGCTAGCTTCAGGCTTAACACATG"
+        sseq =      "GATGAACGCTAGCTTCAGGCTTAACACATG"
         aligned_qseq, aligned_sseq = align_semiglobal(qseq, sseq)
         self.assertEqual(aligned_qseq, qseq + "-----")
         self.assertEqual(aligned_sseq, "-----" + sseq)
 
     def test_ragged_right_subject(self):
-        qseq = "GATGAACGCTAGCTACAGGCTTAACACATG"
+        qseq =      "GATGAACGCTAGCTACAGGCTTAACACATG"
         sseq = "CTCAGGATGAACGCTAGCTTCAGGCTTAAC"
         aligned_qseq, aligned_sseq = align_semiglobal(qseq, sseq)
         self.assertEqual(aligned_qseq, "-----" + qseq)
         self.assertEqual(aligned_sseq, sseq + "-----")
 
     def test_funky_query_left(self):
-        qseq = "TTTTGATGAACGCTAGCTACAGGCTTA"
+        qseq =  "TTTTGATGAACGCTAGCTACAGGCTTA"
         sseq = "CTCAGGATGAACGCTAGCTTCAGGCTTAAC"
         aligned_qseq, aligned_sseq = align_semiglobal(qseq, sseq)
         self.assertEqual(aligned_qseq, "-" + qseq + "--")

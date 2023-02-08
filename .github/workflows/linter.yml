@@ -23,4 +23,6 @@ jobs:
 
           VALIDATE_PYTHON_BLACK: true
 
-          FILTER_REGEX_INCLUDE: unassigner/.*|tests/.*|setup.py
+          FILTER_REGEX_EXCLUDE: tests/test_align.py
+          # align.py has some weirdly spaced strings to show alignment
+          # To reformat, `black . --exclude="test_align.py"`

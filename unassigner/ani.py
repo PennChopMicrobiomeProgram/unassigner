@@ -209,7 +209,7 @@ class PctidAligner:
 
 class RefseqAssembly:
     summary_url = (
-        "https://ftp.ncbi.nlm.nih.gov/genomes/refseq/" "bacteria/assembly_summary.txt"
+        "https://ftp.ncbi.nlm.nih.gov/genomes/refseq/bacteria/assembly_summary.txt"
     )
     summary_fp = "refseq_bacteria_assembly_summary.txt"
     genome_dir = "genome_fasta"
