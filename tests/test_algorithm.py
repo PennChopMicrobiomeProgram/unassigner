@@ -2,18 +2,20 @@ import os.path
 import unittest
 
 from unassigner.algorithm import (
-    UnassignAligner, UnassignerApp,
+    UnassignAligner,
+    UnassignerApp,
     VariableMismatchRate,
     pctdiff,
-    soft_species_probability, hard_species_probability,
+    soft_species_probability,
+    hard_species_probability,
     threshold_assignment_probability,
-    iter_threshold
+    iter_threshold,
 )
 
 from unassigner.alignment import AlignedPair
 
-DATA_DIR = os.path.join(
-    os.path.dirname(os.path.realpath(__file__)), "data")
+DATA_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)), "data")
+
 
 class UnassignAlignerTests(unittest.TestCase):
     def setUp(self):
@@ -24,11 +26,12 @@ class UnassignAlignerTests(unittest.TestCase):
         seqs = [
             ("a", "CTTGCTCTCGGGTGACGAGCGGCGGACGGGTGAGTAAT"),
             ("b", "GCGTGGCGAACGGCTGACGAACACGTGG"),
-            ]
+        ]
         hits = self.a.search_species(seqs)
         observed = set((hit.query_id, hit.subject_id) for hit in hits)
         expected = set([("a", "8"), ("b", "5")])
         self.assertEqual(observed, expected)
+
 
 class FunctionTests(unittest.TestCase):
     def test_pctdiff(self):
@@ -41,12 +44,15 @@ class FunctionTests(unittest.TestCase):
 
     def test_threshold_assignment_probability(self):
         sp = threshold_assignment_probability(
-            0, 90, 10, 1.0, 50.0, 1.0, soft_species_probability)
+            0, 90, 10, 1.0, 50.0, 1.0, soft_species_probability
+        )
         self.assertAlmostEqual(sp, 0.9098439687407773, 10)
 
         hp = threshold_assignment_probability(
-            0, 90, 10, 1.0, 50.0, 1.0, hard_species_probability)
+            0, 90, 10, 1.0, 50.0, 1.0, hard_species_probability
+        )
         self.assertAlmostEqual(hp, 0.9745762711864412, 10)
+
 
 class VariableMismatchRateTests(unittest.TestCase):
     def setUp(self):
@@ -69,10 +75,10 @@ class VariableMismatchRateTests(unittest.TestCase):
         self.assertEqual(len(ab0_mismatches), 4)
         self.assertEqual(ab0_mismatches[0], [])
         self.assertEqual(ab0_mismatches[1], [])
-        self.assertEqual(ab0_mismatches[2], [
-            43, 86, 138,           410, 481, 520, 550, 1388])
-        self.assertEqual(ab0_mismatches[3], [
-            43,     138, 168, 295, 410, 481, 520, 550, 1388])
+        self.assertEqual(ab0_mismatches[2], [43, 86, 138, 410, 481, 520, 550, 1388])
+        self.assertEqual(
+            ab0_mismatches[3], [43, 138, 168, 295, 410, 481, 520, 550, 1388]
+        )
 
         notindb_mismatches = VariableMismatchRate.db["notindb"]
         self.assertEqual(notindb_mismatches, [])
@@ -88,14 +94,13 @@ class VariableMismatchRateTests(unittest.TestCase):
 
     def test_unassign_threshold(self):
         a = AlignedPair(
-            (
-                "a",
-                "-----CGTGCGTCGTCACGCGTAGGTCGTTCGAAT--------------"),
+            ("a", "-----CGTGCGTCGTCACGCGTAGGTCGTTCGAAT--------------"),
             #         ||||||||||||||||||||||||||||||
             (
                 "s",
                 #     ||||||||||||||||||||||||||||||
-                "GCTAACGTGCGTCGTCACGCGTAGGTCGTTCGAATGCGTCGTAGTCGAC"),
+                "GCTAACGTGCGTCGTCACGCGTAGGTCGTTCGAATGCGTCGTAGTCGAC",
+            ),
             #    < 5 >< 30                         >< 15          >
         )
         variable_rate = VariableMismatchRate(a)
@@ -106,7 +111,8 @@ class VariableMismatchRateTests(unittest.TestCase):
         # algorithm.
         self.assertAlmostEqual(
             variable_rate_result["probability_incompatible"],
-            0.06276080134, places=7,
+            0.06276080134,
+            places=7,
         )
 
         # Add a few reference seqs
@@ -116,7 +122,8 @@ class VariableMismatchRateTests(unittest.TestCase):
         variable_rate_result = variable_rate.unassign_threshold()
         self.assertAlmostEqual(
             variable_rate_result["probability_incompatible"],
-            0.05542295999, places=7,
+            0.05542295999,
+            places=7,
         )
 
 
@@ -131,7 +138,7 @@ class UnassignerAppTests(unittest.TestCase):
         seqs = [
             ("a", "CTTGCTCTCGGGTGACGAGCGGCGGACGGGTGAGTAAT"),
             ("b", "GCGTGGCGAACGGCTGACGAACACGTGG"),
-            ]
+        ]
         all_results = self.app.unassign(seqs)
         first_query_id, first_query_results = next(all_results)
         self.assertEqual(first_query_id, "a")
@@ -145,7 +152,8 @@ class UnassignerAppTests(unittest.TestCase):
             "GGCAACCTGGCGGCGAGCGGCGAACGGGTGAGTAACGCGTAGGAATCTACCCAGTAG"
             "CGGGGGATAGCCCGGGGAAACTCGGATTAATACCGCATACGCCCTAAGGGGGAAAGC"
             "AGGGGATCTTCGGACCTTGCACTATTGGAAGAGCCTGCGTTGGATTAGCTAGTTGGT"
-            "AGGGTAAAGGCCTACCAAGGCGACGATCCATA")
+            "AGGGTAAAGGCCTACCAAGGCGACGATCCATA"
+        )
         seqs = [("query0", exact_gg10)]
         all_results = self.app.unassign(seqs)
         query_id, query_results = next(all_results)
@@ -161,7 +169,8 @@ class UnassignerAppTests(unittest.TestCase):
             "GGCAACCTGGCGGCGAGCGGCGAACGGGTGAGTAACGCGTAGGAATCTACCCAGTAG"
             "CGGGGGATAGCCCGGGGAAACTCGGATTAATACCGCATACGCCCTAAGGGGGAAAGC"
             "AGGGGATCTTCGGACCTTGCACTATTGGAAGAGCCTGCGTTGGATTAGCTAGTTGGT"
-            "AGGGTAAAGGCCTACCAAGGCGACGATCCATA")
+            "AGGGTAAAGGCCTACCAAGGCGACGATCCATA"
+        )
         seqs = [("query10", exact_gg10)]
         all_results = self.app.unassign(seqs)
         query_id, query_results = next(all_results)

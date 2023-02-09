@@ -5,11 +5,13 @@ import tempfile
 import unittest
 
 from unassigner.mismatch_db import (
-    MismatchLocationApp, main, group_by_n, MutableMismatchDb,
+    MismatchLocationApp,
+    main,
+    group_by_n,
+    MutableMismatchDb,
 )
 
-DATA_DIR = os.path.join(
-    os.path.dirname(os.path.realpath(__file__)), "data")
+DATA_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)), "data")
 
 
 class MismatchLocationAppTests(unittest.TestCase):
@@ -26,16 +28,19 @@ class MismatchLocationAppTests(unittest.TestCase):
     def test_mismatch_location_app(self):
         output_file = io.StringIO()
         with open(self.oral_species_fp) as species_file:
-            app = MismatchLocationApp(
-                species_file, self.oral_reference_fp, output_file)
+            app = MismatchLocationApp(species_file, self.oral_reference_fp, output_file)
             app.run()
         self.assertEqual(output_file.getvalue(), oral_mismatches)
 
     def test_mismatch_command_line(self):
         output_fp = os.path.join(self.dir, "mismatches.txt")
-        main([
-            self.oral_species_fp, self.oral_reference_fp, output_fp,
-        ])
+        main(
+            [
+                self.oral_species_fp,
+                self.oral_reference_fp,
+                output_fp,
+            ]
+        )
         with open(output_fp) as f:
             output_txt = f.read()
         self.assertEqual(output_txt, oral_mismatches)
@@ -44,16 +49,18 @@ class MismatchLocationAppTests(unittest.TestCase):
         output_file = io.StringIO()
         with open(self.oral_species_fp) as species_file:
             app = MismatchLocationApp(
-                species_file, self.oral_reference_fp, output_file,
-                batch_size=2)
+                species_file, self.oral_reference_fp, output_file, batch_size=2
+            )
             app.run()
         self.assertEqual(output_file.getvalue(), oral_mismatches)
+
 
 class MismatchDbFunctionTests(unittest.TestCase):
     def test_group_by_n(self):
         self.assertEqual(
             list(group_by_n([1, 2, 3, 4, 5, 6, 7, 8], 3)),
-            [[1, 2, 3], [4, 5, 6], [7, 8]])
+            [[1, 2, 3], [4, 5, 6], [7, 8]],
+        )
 
 
 oral_mismatches = """\

@@ -1,4 +1,7 @@
+import logging
+import re
 from io import StringIO
+
 
 def parse_species_names(f):
     for desc, seq in parse_fasta(f):
@@ -9,6 +12,7 @@ def parse_species_names(f):
         else:
             species_name = accession
         yield accession, species_name
+
 
 def parse_fasta(f, trim_desc=False):
     """Parse a FASTA format file.
@@ -50,6 +54,17 @@ def parse_fasta(f, trim_desc=False):
     yield desc, seq.getvalue()
 
 
+def parse_desc(desc):
+    try:
+        accession = re.findall(r"\[accession=(.*?)\]", desc)[0]
+        species_name = re.findall(r"\[organism=(.*?)\]", desc)[0]
+    except IndexError as e:
+        logging.error(f"Couldn't find accession and/or organism identifier in {desc}")
+        logging.error(f"Skipping this sequence...")
+        return None, None
+    return accession, species_name
+
+
 def write_fasta(f, seqs):
     for desc, seq in seqs:
         f.write(">{0}\n{1}\n".format(desc, seq))
@@ -77,6 +92,7 @@ def parse_greengenes_accessions(f):
             continue
         line = line.strip()
         yield line.split("\t")
+
 
 def parse_results(f):
     float_fields = ["probability_incompatible"]

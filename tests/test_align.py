@@ -1,8 +1,10 @@
 import unittest
 
 from unassigner.align import (
-    HitExtender, align_semiglobal,
-    )
+    HitExtender,
+    align_semiglobal,
+)
+
 
 class AlignSemiglobalTests(unittest.TestCase):
     def setUp(self):
@@ -22,7 +24,7 @@ class AlignSemiglobalTests(unittest.TestCase):
         aligned_qseq, aligned_sseq = align_semiglobal(qseq, sseq)
         self.assertEqual(aligned_qseq, "-----" + qseq + "----------")
         self.assertEqual(aligned_sseq, sseq)
-        
+
     def test_endgaps_left_query(self):
         qseq =      "GATGAACGCTAGCTTCAGGCTTAAC"
         sseq = "CTCAGGATGAACGCTAGCTACAGGCTTAAC"
@@ -43,14 +45,14 @@ class AlignSemiglobalTests(unittest.TestCase):
         aligned_qseq, aligned_sseq = align_semiglobal(qseq, sseq)
         self.assertEqual(aligned_qseq, qseq + "-----")
         self.assertEqual(aligned_sseq, "-----" + sseq)
-        
+
     def test_ragged_right_subject(self):
         qseq =      "GATGAACGCTAGCTACAGGCTTAACACATG"
         sseq = "CTCAGGATGAACGCTAGCTTCAGGCTTAAC"
         aligned_qseq, aligned_sseq = align_semiglobal(qseq, sseq)
         self.assertEqual(aligned_qseq, "-----" + qseq)
         self.assertEqual(aligned_sseq, sseq + "-----")
-        
+
     def test_funky_query_left(self):
         qseq =  "TTTTGATGAACGCTAGCTACAGGCTTA"
         sseq = "CTCAGGATGAACGCTAGCTTCAGGCTTAAC"
@@ -62,15 +64,23 @@ class AlignSemiglobalTests(unittest.TestCase):
 class HitExtenderTests(unittest.TestCase):
     def test_is_global(self):
         hit = {
-            "qstart": 1, "qend": 37, "qlen": 37,
-            "sstart": 1, "send": 37, "slen": 37,
+            "qstart": 1,
+            "qend": 37,
+            "qlen": 37,
+            "sstart": 1,
+            "send": 37,
+            "slen": 37,
         }
         self.assertTrue(HitExtender._is_global(hit))
 
     def test_realign_leftgap(self):
         hit = {
-            "qstart": 5, "qend": 28, "qlen": 28,
-            "sstart": 45, "send": 68, "slen": 1336,
+            "qstart": 5,
+            "qend": 28,
+            "qlen": 28,
+            "sstart": 45,
+            "send": 68,
+            "slen": 1336,
         }
         self.assertTrue(HitExtender._needs_realignment(hit))
         hit["qstart"] = 1
@@ -78,8 +88,12 @@ class HitExtenderTests(unittest.TestCase):
 
     def test_realign_rightgap(self):
         hit = {
-            "qstart": 1, "qend": 24, "qlen": 28,
-            "sstart": 41, "send": 64, "slen": 1336,
+            "qstart": 1,
+            "qend": 24,
+            "qlen": 28,
+            "sstart": 41,
+            "send": 64,
+            "slen": 1336,
         }
         self.assertTrue(HitExtender._needs_realignment(hit))
         hit["qend"] = 28
@@ -88,28 +102,34 @@ class HitExtenderTests(unittest.TestCase):
     def test_add_endgaps_left(self):
         no_endgaps = {"qstart": 1, "sstart": 1}
         self.assertEqual(
-            HitExtender._add_endgaps_left(no_endgaps, "GG", "CC"), ("", ""))
+            HitExtender._add_endgaps_left(no_endgaps, "GG", "CC"), ("", "")
+        )
         query_hang = {"qstart": 5, "sstart": 1}
         self.assertEqual(
             HitExtender._add_endgaps_left(query_hang, "ABCDEFGH", "JKLMNOP"),
-            ("ABCD", "----"))
+            ("ABCD", "----"),
+        )
         subject_hang = {"qstart": 1, "sstart": 4}
         self.assertEqual(
             HitExtender._add_endgaps_left(subject_hang, "ABCDEFGH", "JKLMNOP"),
-            ("---", "JKL"))
+            ("---", "JKL"),
+        )
 
     def test_add_endgaps_right(self):
         no_endgaps = {"qend": 28, "qlen": 28, "send": 14, "slen": 14}
         self.assertEqual(
-            HitExtender._add_endgaps_right(no_endgaps, "GG", "CC"), ("", ""))
+            HitExtender._add_endgaps_right(no_endgaps, "GG", "CC"), ("", "")
+        )
         query_hang = {"qend": 5, "qlen": 8, "send": 10, "slen": 10}
         self.assertEqual(
             HitExtender._add_endgaps_right(query_hang, "ABCDEFG", "JKLMNOPQRS"),
-            ("EFG", "---"))
+            ("EFG", "---"),
+        )
         subject_hang = {"qend": 9, "qlen": 9, "send": 5, "slen": 7}
         self.assertEqual(
             HitExtender._add_endgaps_right(subject_hang, "ABCDEFGH", "JKLMNOP"),
-            ("--", "OP"))
+            ("--", "OP"),
+        )
 
 
 if __name__ == "__main__":
