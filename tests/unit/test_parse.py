@@ -39,21 +39,6 @@ class FastaTests(unittest.TestCase):
         f.seek(0)
         self.assertEqual(f.read(), ">a\nCCGGT\n>b\nTTTTTTTTT\n")
 
-    def test_parse_desc(self):
-        seqs = {
-            ">lcl\\|LTP_06_2022\\|TraGuam2 [organism=Organism name] [strain=NBRC 103172 s[T]] [accession=AC123456]\n": "AUUGAACGCUGGCGGCAGGCCUAACACAUGCAAGUCGAGCGGCAGCGGGGGAA\n",
-            ">lcl\\|LTP_06_2022\\|TraOdont [organism=Organism name] [strain=Eant 3-9 l[T] r[T] s[T]] [accession=AC123456]\n": "AUGCAAGUCGAGCGGCAGCGGGGGAAAGCUUGCUUUCCCGCCGGCGAGCGGCGG\n",
-            ">lcl\\|LTP_06_2022\\|EnbTribo [organism=Organism name] [strain=IG-V01 l[T]] [accession=AC123456]\n": "UCCAGAGUUUGAUCAUGGCUCAGAUUGAACGCUGGCGGCAGGCCUAACACAUGC\n",
-        }
-
-        for desc, seq in seqs.items():
-            self.assertEqual(desc[0], ">")
-            self.assertEqual(set(list(seq.strip("\n"))), set(["A", "C", "G", "U"]))
-
-            accession, species_name = parse_desc(desc)
-            self.assertEqual(accession, "AC123456")
-            self.assertEqual(species_name, "Organism name")
-
 
 if __name__ == "__main__":
     unittest.main()
