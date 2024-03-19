@@ -21,10 +21,11 @@ LTP_METADATA_COLS = [
     "rel_ltp",
     "NJ_support_pk4_ltp",
 ]
+LTP_VERSION = "08_2023"
 LTP_METADATA_URL = (
-    "https://imedea.uib-csic.es/mmg/ltp/wp-content/uploads/ltp/LTP_06_2022.csv"
+    f"https://imedea.uib-csic.es/mmg/ltp/wp-content/uploads/ltp/LTP_{LTP_VERSION}.csv"
 )
-LTP_SEQS_URL = "https://imedea.uib-csic.es/mmg/ltp/wp-content/uploads/ltp/LTP_06_2022_blastdb.fasta"
+LTP_SEQS_URL = f"https://imedea.uib-csic.es/mmg/ltp/wp-content/uploads/ltp/LTP_{LTP_VERSION}_blastdb.fasta"
 GG_SEQS_URL = "ftp://greengenes.microbio.me/greengenes_release/gg_13_5/gg_13_5.fasta.gz"
 GG_ACCESSIONS_URL = (
     "ftp://greengenes.microbio.me/greengenes_release/gg_13_5/gg_13_5_accessions.txt.gz"
