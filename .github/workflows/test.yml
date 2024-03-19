@@ -1,0 +1,63 @@
+name: Test Package
+
+on:
+  workflow_call:
+
+  workflow_dispatch:
+
+jobs:
+  # tests-with-coverage
+
+  tests:
+    name: Run Tests
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.12']
+        os: [ubuntu-latest, macos-latest]
+        include:
+          - python-version: '3.11'
+            os: ubuntu-latest
+          - python-version: '3.10'
+            os: ubuntu-latest
+          - python-version: '3.9'
+            os: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: setup-conda
+        uses: s-weigand/setup-conda@v1.1.0
+
+      - name: Install dependencies
+        run: |
+          conda install -c bioconda vsearch
+          python -m pip install --upgrade pip
+          python -m pip install pytest
+          python -m pip install .
+
+      - name: Run tests
+        run: pytest -s -vvvv -l --tb=long tests
+
+  lint:
+    name: Lint Code Base
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        
+      - uses: actions/setup-python@v5
+        with:
+          python-version: 3.12
+
+      - name: Install Dependencies
+        run: pip install black
+
+      - name: Lint Code Base
+        run: black --check --exclude="test_align.py" .
