@@ -56,8 +56,12 @@ def parse_fasta(f, trim_desc=False):
 
 def parse_desc(desc):
     try:
-        accession = re.findall(r"\[accession=(.*?)\]", desc)[0]
-        species_name = re.findall(r"\[organism=(.*?)\]", desc)[0]
+        arr = desc.split("|")
+        accession = arr[2]
+        species_name = arr[3]
+        # This is the old way of parsing the description, 01_2022
+        # accession = re.findall(r"\[accession=(.*?)\]", desc)[0]
+        # species_name = re.findall(r"\[organism=(.*?)\]", desc)[0]
     except IndexError as e:
         logging.error(f"Couldn't find accession and/or organism identifier in {desc}")
         logging.error(f"Skipping this sequence...")

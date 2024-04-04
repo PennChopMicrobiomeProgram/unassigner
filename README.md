@@ -1,9 +1,8 @@
 # Unassigner
 
-[![Tests](https://github.com/Ulthran/unassigner/actions/workflows/tests.yml/badge.svg)](https://github.com/Ulthran/unassigner/actions/workflows/tests.yml)
-[![Super-Linter](https://github.com/Ulthran/unassigner/actions/workflows/linter.yml/badge.svg)](https://github.com/Ulthran/unassigner/actions/workflows/linter.yml)
-[![codecov](https://codecov.io/gh/Ulthran/unassigner/branch/master/graph/badge.svg?token=76YWJFWGON)](https://codecov.io/gh/Ulthran/unassigner)
-[![PyPi](https://github.com/Ulthran/unassigner/actions/workflows/python-publish.yml/badge.svg)](https://github.com/Ulthran/unassigner/actions/workflows/python-publish.yml)
+[![Tests](https://github.com/kylebittinger/unassigner/actions/workflows/test.yml/badge.svg)](https://github.com/kylebittinger/unassigner/actions/workflows/test.yml)
+[![PyPI](https://badge.fury.io/py/pycov3.svg)](https://pypi.org/project/pycov3/)
+
 
 Evaluate consistency with named bacterial species for short 16S rRNA
 marker gene sequences.

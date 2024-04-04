@@ -1,0 +1,14 @@
+name: Tests
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+  workflow_dispatch:
+
+jobs:
+  run-tests:
+    uses: Ulthran/pycov3/.github/workflows/test.yml@main
+    secrets: inherit
