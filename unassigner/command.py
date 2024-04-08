@@ -3,6 +3,7 @@ import datetime
 import gzip
 import logging
 import os
+import pkg_resources
 
 from unassigner.algorithm import (
     UnassignAligner,
@@ -12,6 +13,9 @@ from unassigner.algorithm import (
 )
 from unassigner.parse import parse_fasta, parse_species_names
 from unassigner.prepare_strain_data import download_type_strain_data
+
+
+__version__ = pkg_resources.get_distribution("unassigner").version
 
 
 def main(argv=None):
@@ -63,6 +67,7 @@ def main(argv=None):
         "--soft_threshold", action="store_true", help="Use soft threshold algorithm."
     )
     p.add_argument("--verbose", action="store_true", help="Activate verbose mode.")
+    p.add_argument("--version", action="version", version=f"{__version__}")
     args = p.parse_args(argv)
 
     if args.threshold is None:

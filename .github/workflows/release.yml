@@ -26,7 +26,7 @@ jobs:
 
       - name: Check version
         run: |
-          LIBRARY_VERSION=$(pycov3 -v)
+          LIBRARY_VERSION=$(unassign --version)
           GITHUB_VERSION=${{ steps.get_version.outputs.version-without-v }}
           if [[ $LIBRARY_VERSION == $GITHUB_VERSION ]]; then
             echo "Versions match, continuing..."
