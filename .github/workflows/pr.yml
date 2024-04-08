@@ -10,5 +10,5 @@ on:
 
 jobs:
   run-tests:
-    uses: Ulthran/pycov3/.github/workflows/test.yml@main
+    uses: PennChopMicrobiomeProgram/unassigner/.github/workflows/test.yml@master
     secrets: inherit
