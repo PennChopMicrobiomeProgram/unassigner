@@ -48,45 +48,32 @@ bacterial species.
 
 ## Installation
 
-The Python library and command-line program can be installed using
-[pip](https://pypi.org/project/pip/).
+Install with conda using:
 
 ```bash
-pip install unassigner
+conda create --name unassigner -c conda-forge -c bioconda unassigner
 ```
 
-Besides the python libraries listed in the setup file, this program
-requires `vsearch` to be installed.  This program is used to search
-for the closest matching bacterial species and return pairwise
-sequence alignments.  It's available through
-[conda](https://anaconda.org/bioconda/vsearch), and this is our
-recommended method for installation.
+Or run with Docker using:
 
 ```bash
-conda create --name unassigner
-conda activate unassigner
-conda install -c bioconda vsearch
-pip install unassigner
+docker run --rm -it ctbushman/unassigner:latest unassign --help
 ```
 
 ### Alternative Installation
 
-If `pip install unassigner` isn't working or if you want to use a development 
-version, you can also install via git.
+Unassigner can be installed using pip:
 
 ```bash
-conda create --name unassigner
-conda activate unassigner
-conda install -c bioconda vsearch
-git clone https://github.com/kylebittinger/unassigner.git
-cd unassigner
-pip install -r requirements.txt
-pip install .
+pip install unassigner
 ```
 
-If you don't want to use conda, see the 
-[vsearch repo](https://github.com/torognes/vsearch) for alternative install 
-methods.
+But will require ``vsearch`` to be installed separately. It can also be installed from GitHub:
+
+```bash
+git clone https://github.com/PennChopMicrobiomeProgram/unassigner.git
+pip install unassigner/
+```
 
 ## Usage
 
