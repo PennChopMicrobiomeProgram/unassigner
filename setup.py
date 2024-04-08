@@ -8,7 +8,7 @@ with open(README_FP, encoding="utf-8") as f:
 
 setup(
     name="unassigner",
-    version="0.0.5",
+    version="1.0.0.dev0",
     description="Bacterial species unassigner",
     long_description=long_description,
     long_description_content_type="text/markdown",
