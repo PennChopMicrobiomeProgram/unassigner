@@ -10,5 +10,5 @@ on:
 
 jobs:
   run-tests:
-    uses: PennChopMicrobiomeProgram/unassigner/.github/workflows/test.yml@master
+    uses: ./.github/workflows/test.yml
     secrets: inherit
