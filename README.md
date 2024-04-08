@@ -1,8 +1,12 @@
 # Unassigner
 
-[![Tests](https://github.com/kylebittinger/unassigner/actions/workflows/test.yml/badge.svg)](https://github.com/kylebittinger/unassigner/actions/workflows/test.yml)
-[![PyPI](https://badge.fury.io/py/pycov3.svg)](https://pypi.org/project/pycov3/)
-
+<!-- Begin badges -->
+[![Tests](https://github.com/PennChopMicrobiomeProgram/unassigner/actions/workflows/test.yml/badge.svg)](https://github.com/PennChopMicrobiomeProgram/unassigner/actions/workflows/test.yml)
+[![codecov](https://codecov.io/gh/PennChopMicrobiomeProgram/unassigner/graph/badge.svg?token=LAFU84K088)](https://codecov.io/gh/PennChopMicrobiomeProgram/unassigner)
+[![PyPI](https://badge.fury.io/py/unassigner.svg)](https://pypi.org/project/unassigner/)
+[![Bioconda](https://anaconda.org/bioconda/unassigner/badges/downloads.svg)](https://anaconda.org/bioconda/unassigner/)
+[![DockerHub](https://img.shields.io/docker/pulls/ctbushman/unassigner)](https://hub.docker.com/repository/docker/ctbushman/unassigner/)
+<!-- End badges -->
 
 Evaluate consistency with named bacterial species for short 16S rRNA
 marker gene sequences.

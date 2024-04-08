@@ -1,4 +1,4 @@
-name: Test Package
+name: Tests
 
 on:
   workflow_call:
@@ -6,7 +6,33 @@ on:
   workflow_dispatch:
 
 jobs:
-  # tests-with-coverage
+  tests-with-coverage:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v3
+        with:
+          python-version: '3.x'
+
+      - name: setup-conda
+        uses: s-weigand/setup-conda@v1.1.0
+
+      - name: Install dependencies
+        run: |
+          conda install -c bioconda vsearch
+          python -m pip install --upgrade pip
+          python -m pip install pytest pytest-cov
+          python -m pip install .
+
+      - name: Run tests and collect coverage
+        run: pytest --cov tests
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
 
   tests:
     name: Run Tests
@@ -58,6 +84,25 @@ jobs:
 
       - name: Install Dependencies
         run: pip install black
-
+      
+      # test_align.py includes tests that have weird formatting because we want to be able to line 
+      # up the expected and actual alignments in the test output. I've found it's really easy to 
+      # run 'black .' and forget about it, so I'm including this check to make sure it FAILS the 
+      # formatting check. If this trips you up, probably just revert the changes to that file.
       - name: Lint Code Base
-        run: black --check --exclude="test_align.py" .
+        run: |
+          black --check --exclude="test_align.py" .
+
+          if black --check --include="test_align.py" . ; then
+            exit 1
+          fi
+
+  codacy-analysis-cli:
+    name: Codacy Analysis CLI
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Codacy Analysis CLI
+        uses: codacy/codacy-analysis-cli-action@master
