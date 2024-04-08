@@ -1,7 +1,7 @@
 # Unassigner
 
 <!-- Begin badges -->
-[![Tests](https://github.com/PennChopMicrobiomeProgram/unassigner/actions/workflows/test.yml/badge.svg)](https://github.com/PennChopMicrobiomeProgram/unassigner/actions/workflows/test.yml)
+[![Tests](https://github.com/PennChopMicrobiomeProgram/unassigner/actions/workflows/pr.yml/badge.svg)](https://github.com/PennChopMicrobiomeProgram/unassigner/actions/workflows/pr.yml)
 [![codecov](https://codecov.io/gh/PennChopMicrobiomeProgram/unassigner/graph/badge.svg?token=LAFU84K088)](https://codecov.io/gh/PennChopMicrobiomeProgram/unassigner)
 [![PyPI](https://badge.fury.io/py/unassigner.svg)](https://pypi.org/project/unassigner/)
 [![Bioconda](https://anaconda.org/bioconda/unassigner/badges/downloads.svg)](https://anaconda.org/bioconda/unassigner/)
