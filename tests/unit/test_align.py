@@ -19,43 +19,55 @@ class AlignSemiglobalTests(unittest.TestCase):
         self.assertEqual(align_semiglobal(qseq, sseq), (qseq, sseq))
 
     def test_endgaps_both_sides_query(self):
+        # fmt: off
         qseq =      "GATGAACGCTAGCTTCAGGCTTAAC"
         sseq = "CTCAGGATGAACGCTAGCTACAGGCTTAACACATGCAAGT"
+        # fmt: on
         aligned_qseq, aligned_sseq = align_semiglobal(qseq, sseq)
         self.assertEqual(aligned_qseq, "-----" + qseq + "----------")
         self.assertEqual(aligned_sseq, sseq)
 
     def test_endgaps_left_query(self):
+        # fmt: off
         qseq =      "GATGAACGCTAGCTTCAGGCTTAAC"
         sseq = "CTCAGGATGAACGCTAGCTACAGGCTTAAC"
+        # fmt: on
         aligned_qseq, aligned_sseq = align_semiglobal(qseq, sseq)
         self.assertEqual(aligned_qseq, "-----" + qseq)
         self.assertEqual(aligned_sseq, sseq)
 
     def test_endgaps_right_query(self):
+        # fmt: off
         qseq = "GATGAACGCTAGCTTCAGGCTTAAC"
         sseq = "GATGAACGCTAGCTACAGGCTTAACACATGCAAGT"
+        # fmt: on
         aligned_qseq, aligned_sseq = align_semiglobal(qseq, sseq)
         self.assertEqual(aligned_qseq, qseq + "----------")
         self.assertEqual(aligned_sseq, sseq)
 
     def test_ragged_left_subject(self):
+        # fmt: off
         qseq = "CTCAGGATGAACGCTAGCTACAGGCTTAAC"
         sseq =      "GATGAACGCTAGCTTCAGGCTTAACACATG"
+        # fmt: on
         aligned_qseq, aligned_sseq = align_semiglobal(qseq, sseq)
         self.assertEqual(aligned_qseq, qseq + "-----")
         self.assertEqual(aligned_sseq, "-----" + sseq)
 
     def test_ragged_right_subject(self):
+        # fmt: off
         qseq =      "GATGAACGCTAGCTACAGGCTTAACACATG"
         sseq = "CTCAGGATGAACGCTAGCTTCAGGCTTAAC"
+        # fmt: on
         aligned_qseq, aligned_sseq = align_semiglobal(qseq, sseq)
         self.assertEqual(aligned_qseq, "-----" + qseq)
         self.assertEqual(aligned_sseq, sseq + "-----")
 
     def test_funky_query_left(self):
+        # fmt: off
         qseq =  "TTTTGATGAACGCTAGCTACAGGCTTA"
         sseq = "CTCAGGATGAACGCTAGCTTCAGGCTTAAC"
+        # fmt: on
         aligned_qseq, aligned_sseq = align_semiglobal(qseq, sseq)
         self.assertEqual(aligned_qseq, "-" + qseq + "--")
         self.assertEqual(aligned_sseq, sseq)
