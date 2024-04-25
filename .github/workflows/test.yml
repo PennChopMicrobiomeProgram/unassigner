@@ -85,17 +85,9 @@ jobs:
       - name: Install Dependencies
         run: pip install black
       
-      # test_align.py includes tests that have weird formatting because we want to be able to line 
-      # up the expected and actual alignments in the test output. I've found it's really easy to 
-      # run 'black .' and forget about it, so I'm including this check to make sure it FAILS the 
-      # formatting check. If this trips you up, probably just revert the changes to that file.
       - name: Lint Code Base
         run: |
-          black --check --exclude="test_align.py" .
-
-          if black --check --include="test_align.py" . ; then
-            exit 1
-          fi
+          black --check .
 
   codacy-analysis-cli:
     name: Codacy Analysis CLI
