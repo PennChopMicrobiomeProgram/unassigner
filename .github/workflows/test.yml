@@ -40,7 +40,10 @@ jobs:
       fail-fast: false
       matrix:
         python-version: ['3.12']
-        os: [ubuntu-latest, macos-latest]
+        os: [ubuntu-latest]
+        # Windows runners can take way too long to be available
+        # and the setup-conda action isn't compatible with macOS and python 3.12
+        # os: [ubuntu-latest, windows-latest, macos-latest]
         include:
           - python-version: '3.11'
             os: ubuntu-latest
