@@ -54,6 +54,11 @@ class ResultsTests(unittest.TestCase):
             f.seek(0)
             content = list(parse_results((l for l in f.readlines())))
 
+        self.assertEqual(content[0]["query_id"], "Seq1")
+        self.assertEqual(content[2]["species"], "NA")
+        self.assertEqual(content[2]["region_mismatches"], None)
+        self.assertEqual(content[2]["probability_incompatible"], None)
+
 
 if __name__ == "__main__":
     unittest.main()
