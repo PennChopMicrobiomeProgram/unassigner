@@ -52,7 +52,7 @@ class ResultsTests(unittest.TestCase):
         with tempfile.NamedTemporaryFile(mode="w+t", encoding="utf-8") as f:
             f.writelines(results)
             f.seek(0)
-            content = list(parse_results(f))
+            content = list(parse_results((l for l in f.readlines())))
 
 
 if __name__ == "__main__":
