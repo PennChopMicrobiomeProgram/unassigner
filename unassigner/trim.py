@@ -140,7 +140,7 @@ class CompleteMatcher(Matcher):
                     else:
                         msg = "Complete, {0} mismatches".format(n_mismatches)
                     end_idx = start_idx + len(query)
-                    obs_primer = seq[start_idx:end_idx]
+                    # obs_primer = seq[start_idx:end_idx]
                     return PrimerMatch(start_idx, end_idx, 0, msg)
 
 

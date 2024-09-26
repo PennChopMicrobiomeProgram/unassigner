@@ -78,7 +78,7 @@ class VariableMismatchRate:
             line = line.rstrip()
             toks = line.split("\t")
             typestrain_id = toks[0]
-            ref_seq_id = toks[1]
+            # ref_seq_id = toks[1]
             mismatch_positions = [int(x) for x in toks[2:]]
             cls.db[typestrain_id].append(mismatch_positions)
 

@@ -153,7 +153,7 @@ class AlignmentMatcherTests(unittest.TestCase):
         )
         m = AlignmentMatcher(self.test_dir)
         alignment_matches = list(m.find_in_seqs(s))
-        match_id, matchobj = alignment_matches[0]
+        _, matchobj = alignment_matches[0]
         self.assertEqual(matchobj.start, 0)
         self.assertEqual(matchobj.end, 3)
 
@@ -167,7 +167,7 @@ class AlignmentMatcherTests(unittest.TestCase):
         )
         m = AlignmentMatcher(self.test_dir)
         alignment_matches = list(m.find_in_seqs(s))
-        match_id, matchobj = alignment_matches[0]
+        _, matchobj = alignment_matches[0]
         self.assertEqual((matchobj.start, matchobj.end), (7, 12))
 
     def test_alignment_match_middle_gaps(self):
@@ -180,7 +180,7 @@ class AlignmentMatcherTests(unittest.TestCase):
         )
         m = AlignmentMatcher(self.test_dir)
         alignment_matches = list(m.find_in_seqs(s))
-        match_id, matchobj = alignment_matches[0]
+        _, matchobj = alignment_matches[0]
         self.assertEqual((matchobj.start, matchobj.end), (7, 11))
 
     def test_trim_right(self):
