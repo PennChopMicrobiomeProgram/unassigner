@@ -2,6 +2,7 @@
 
 <!-- Begin badges -->
 [![Tests](https://github.com/PennChopMicrobiomeProgram/unassigner/actions/workflows/pr.yml/badge.svg)](https://github.com/PennChopMicrobiomeProgram/unassigner/actions/workflows/pr.yml)
+[![Codacy Badge](https://app.codacy.com/project/badge/Grade/9ee8fc7bc3e940bb812b35006e95937d)](https://app.codacy.com/gh/PennChopMicrobiomeProgram/unassigner/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade)
 [![codecov](https://codecov.io/gh/PennChopMicrobiomeProgram/unassigner/graph/badge.svg?token=LAFU84K088)](https://codecov.io/gh/PennChopMicrobiomeProgram/unassigner)
 [![PyPI](https://badge.fury.io/py/unassigner.svg)](https://pypi.org/project/unassigner/)
 [![Bioconda](https://anaconda.org/bioconda/unassigner/badges/downloads.svg)](https://anaconda.org/bioconda/unassigner/)
