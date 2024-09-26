@@ -9,7 +9,6 @@ from unassigner.algorithm import (
     soft_species_probability,
     hard_species_probability,
     threshold_assignment_probability,
-    iter_threshold,
 )
 
 from unassigner.alignment import AlignedPair

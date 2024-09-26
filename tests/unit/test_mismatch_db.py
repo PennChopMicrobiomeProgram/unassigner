@@ -1,4 +1,3 @@
-import collections
 import os
 import io
 import tempfile
@@ -8,7 +7,6 @@ from unassigner.mismatch_db import (
     MismatchLocationApp,
     main,
     group_by_n,
-    MutableMismatchDb,
 )
 
 DATA_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)), "data")
