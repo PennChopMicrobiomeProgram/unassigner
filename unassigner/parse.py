@@ -97,6 +97,12 @@ def parse_greengenes_accessions(f):
         yield line.split("\t")
 
 
+def cast_num_or_na(val, cast_func):
+    if val == "NA":
+        return None
+    return cast_func(val)
+
+
 def parse_results(f):
     float_fields = ["probability_incompatible"]
     int_fields = ["region_mismatches", "region_positions"]
@@ -109,7 +115,7 @@ def parse_results(f):
         res = dict(zip(fields, vals))
         for field, val in res.items():
             if field in float_fields:
-                res[field] = float(val)
+                res[field] = cast_num_or_na(val, float)
             elif field in int_fields:
-                res[field] = int(val)
+                res[field] = cast_num_or_na(val, int)
         yield res
