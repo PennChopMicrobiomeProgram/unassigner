@@ -4,7 +4,7 @@ import subprocess
 import tempfile
 from Bio import pairwise2
 
-from unassigner.parse import write_fasta, load_fasta, parse_fasta
+from unassigner.parse import write_fasta, parse_fasta
 from unassigner.alignment import AlignedPair
 
 BLAST_FMT = (

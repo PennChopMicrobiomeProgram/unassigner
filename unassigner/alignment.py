@@ -1,5 +1,4 @@
 import itertools
-import operator
 
 
 class AlignedPair(object):

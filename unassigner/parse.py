@@ -1,10 +1,9 @@
 import logging
-import re
 from io import StringIO
 
 
 def parse_species_names(f):
-    for desc, seq in parse_fasta(f):
+    for desc, _ in parse_fasta(f):
         vals = desc.split("\t", maxsplit=1)
         accession = vals[0]
         if len(vals) == 2:
@@ -62,7 +61,7 @@ def parse_desc(desc):
         # This is the old way of parsing the description, 01_2022
         # accession = re.findall(r"\[accession=(.*?)\]", desc)[0]
         # species_name = re.findall(r"\[organism=(.*?)\]", desc)[0]
-    except IndexError as e:
+    except IndexError:
         logging.error(f"Couldn't find accession and/or organism identifier in {desc}")
         logging.error(f"Skipping this sequence...")
         return None, None

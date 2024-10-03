@@ -77,7 +77,7 @@ def main(argv=None):
         clean(db_dir)
         sys.exit(0)
 
-    ltp_metadata_fp = use_or_download(args.ltp_metadata_fp, LTP_METADATA_URL, db_dir)
+    use_or_download(args.ltp_metadata_fp, LTP_METADATA_URL, db_dir)
     ltp_seqs_fp = use_or_download(args.ltp_seqs_fp, LTP_SEQS_URL, db_dir)
     process_ltp_seqs(ltp_seqs_fp, db_dir)
 

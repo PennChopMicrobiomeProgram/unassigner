@@ -6,7 +6,6 @@ import argparse
 import collections
 import itertools
 import operator
-import sys
 import tempfile
 
 from unassigner.parse import parse_fasta, write_fasta
