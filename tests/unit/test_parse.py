@@ -1,7 +1,7 @@
 import tempfile
 import unittest
 
-from unassigner.parse import parse_fasta, parse_desc, load_fasta, write_fasta
+from unassigner.parse import parse_fasta, parse_results, load_fasta, write_fasta
 
 
 class FastaTests(unittest.TestCase):
@@ -38,6 +38,26 @@ class FastaTests(unittest.TestCase):
         write_fasta(f, seqs)
         f.seek(0)
         self.assertEqual(f.read(), ">a\nCCGGT\n>b\nTTTTTTTTT\n")
+
+
+class ResultsTests(unittest.TestCase):
+    def test_parse_results(self):
+        results = [
+            "query_id\tspecies\ttypestrain_id\tregion_mismatches\tregion_positions\tprobability_incompatible\n",
+            "Seq1\tA\tB\t1\t2\t0.5\n",
+            "Seq1\tC\tD\t3\t1500\t-2.062794379753541e-12\n",
+            "Seq2\tNA\tNA\tNA\tNA\tNA\n",
+        ]
+
+        with tempfile.NamedTemporaryFile(mode="w+t", encoding="utf-8") as f:
+            f.writelines(results)
+            f.seek(0)
+            content = list(parse_results((l for l in f.readlines())))
+
+        self.assertEqual(content[0]["query_id"], "Seq1")
+        self.assertEqual(content[2]["species"], "NA")
+        self.assertEqual(content[2]["region_mismatches"], None)
+        self.assertEqual(content[2]["probability_incompatible"], None)
 
 
 if __name__ == "__main__":
