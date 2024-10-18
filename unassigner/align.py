@@ -2,7 +2,6 @@ import abc
 import os.path
 import subprocess
 import tempfile
-from Bio import pairwise2
 from Bio.Align import PairwiseAligner
 
 from unassigner.parse import write_fasta, parse_fasta
@@ -272,6 +271,10 @@ def align_semiglobal(qseq, sseq):
     aligner.end_extend_gap_score = 0
     alignments = aligner.align(sseq, qseq)
     alignment = alignments[0]
-    subj_seq = alignment.target
-    query_seq = alignment.query
-    return query_seq, subj_seq
+
+    # Use format to ensure dashes in gaps
+    formatted_alignment = alignment.format("clustal")
+    return (
+        formatted_alignment.splitlines()[1].split()[1],
+        formatted_alignment.splitlines()[0].split()[1],
+    )
