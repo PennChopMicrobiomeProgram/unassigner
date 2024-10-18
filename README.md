@@ -94,6 +94,20 @@ that the output directory will be in the same directory as `my_sequences.fasta`.
 Please see the output of `unassign --help` for a list of the available
 options.
 
+### Trim ragged
+
+
+
+### Count mismatches
+
+
+
+### Percent ID ANI sample
+
+
+
+Should there also be a command and section for prepare_strain_data?
+
 ## Contributing
 
 We welcome ideas from our users about how to improve this
