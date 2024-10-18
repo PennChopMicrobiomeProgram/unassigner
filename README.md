@@ -94,6 +94,37 @@ that the output directory will be in the same directory as `my_sequences.fasta`.
 Please see the output of `unassign --help` for a list of the available
 options.
 
+### Trim ragged
+
+The `trimragged` program takes in a query sequence to search and trim and an input fasta file (or it can read from stdin):
+
+```bash
+trimragged AGAGTTTGATCCTGGCTCAG --input_file my_sequences.fasta
+```
+
+Trimragged is included to extract different regions from the full length 16S rRNA gene. The purpose of this auxiliary software is to account for the full length 16S rRNA sequences where only a part of the primer is present in the sequence. This can be due to low quality at the beginning or at the end of a sequence due to limitations of sequencing platforms. 
+
+The software operates in three steps: 1) Matching the full length of the primer, 2) Matching the partial primer, 3) Aligning reads to other sequences with a known primer location. The sequence of the primer to search and trim is required for the software. Only one primer is accepted at a time, so the user needs to run the software twice with each primer sequence.
+
+Step 1: The software first searches for the full length of the primer sequence. If mismatches are allowed, then the software expands all possibilities of the primer sequence mutations in a list and searches for each. Once a hit is found, the start and end index is stored as a PrimerMatch object.
+
+Step 2: If the min_partial argument is greater than 0, the software then searches for partial matches of the primer in the remaining sequences. The software makes a list of all the possibilities of primers, removing nucleotides from the beginning of the sequence till the minimum length specified by min_partial is reached. Then the software searches for each of the possible primer sequences. Once a hit is found, the start and end index is stored as a Primer Match object.
+
+Step 3: The last part of the software relies on building a database of the sequences with already identified primer sequences from the previous two steps. Then the rest of the reads are aligned against the database of sequences with known primer locations using vsearch. Once a hit is found, and the positions of the primers are estimated by extending the aligned region.
+
+Please see the output of `trimragged --help` for a list of the available
+options.
+
+### Count mismatches
+
+
+
+### Percent ID ANI sample
+
+
+
+Should there also be a command and section for prepare_strain_data?
+
 ## Contributing
 
 We welcome ideas from our users about how to improve this
