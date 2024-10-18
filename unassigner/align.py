@@ -2,7 +2,7 @@ import abc
 import os.path
 import subprocess
 import tempfile
-from Bio import pairwise2
+from Bio.Align import PairwiseAligner
 
 from unassigner.parse import write_fasta, parse_fasta
 from unassigner.alignment import AlignedPair
@@ -261,16 +261,20 @@ class HitExtender:
 
 
 def align_semiglobal(qseq, sseq):
-    alignment = pairwise2.align.globalms(
-        sseq,
-        qseq,
-        5,
-        -4,
-        -10,
-        -0.5,  # match, mismatch, gapopen, gapextend
-        penalize_end_gaps=False,
-        one_alignment_only=True,
+    aligner = PairwiseAligner()
+    aligner.mode = "global"
+    aligner.match_score = 5
+    aligner.mismatch_score = -4
+    aligner.open_gap_score = -10
+    aligner.extend_gap_score = -0.5
+    aligner.end_open_gap_score = 0
+    aligner.end_extend_gap_score = 0
+    alignments = aligner.align(sseq, qseq)
+    alignment = alignments[0]
+
+    # Use format to ensure dashes in gaps
+    formatted_alignment = alignment.format("clustal")
+    return (
+        formatted_alignment.splitlines()[1].split()[1],
+        formatted_alignment.splitlines()[0].split()[1],
     )
-    subj_seq = alignment[0][0]
-    query_seq = alignment[0][1]
-    return query_seq, subj_seq
