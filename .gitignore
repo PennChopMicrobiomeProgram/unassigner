@@ -1,3 +1,7 @@
+# LTP refs
+LTP_*.csv
+LTP_*.fasta
+
 # Vsearch databases
 *.udb
 
