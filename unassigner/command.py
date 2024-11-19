@@ -32,6 +32,13 @@ def main(argv=None):
         ),
     )
     p.add_argument(
+        "--type_strain_fasta",
+        help=(
+            "FASTA file containing sequences of type strains. If not provided, "
+            "the default database is used. Note that this WILL NOT DOWNLOAD a new db."
+        ),
+    )
+    p.add_argument(
         "--db_dir",
         default=".unassigner/",
         help=(
@@ -92,7 +99,10 @@ def main(argv=None):
 
     # Download type strain files if needed
     os.makedirs(args.db_dir, exist_ok=True)
-    metadata_fp, seqs_fp, ltp_fp = download_type_strain_data(output_dir=args.db_dir)
+    _, _, ltp_fp = download_type_strain_data(output_dir=args.db_dir)
+
+    if args.type_strain_fasta is not None:
+        ltp_fp = args.type_strain_fasta
 
     with open(ltp_fp) as f:
         species_names = dict(parse_species_names(f))
