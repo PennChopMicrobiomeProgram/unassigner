@@ -27,16 +27,16 @@ def main(argv=None):
         "--output_dir",
         help=(
             "Output directory (default: basename of query sequences FASTA "
-            "file, plus '_unassigned')"
+            "file, plus '_unassigned'. Note that it will be in the same "
+            "directory as the query sequences FASTA file)."
         ),
     )
     p.add_argument(
-        "--type_strain_fasta",
-        default="unassigner_species.fasta",
+        "--db_dir",
+        default=".unassigner/",
         help=(
-            "Type strain sequences FASTA file (default: %(default)s). "
-            "If the default file is not found, sequences are downloaded "
-            "and re-formatted automatically."
+            "Directory containing the reference database. If not provided, "
+            "the default database is used."
         ),
     )
     p.add_argument(
@@ -91,14 +91,10 @@ def main(argv=None):
         output_dir = args.output_dir
 
     # Download type strain files if needed
-    type_strain_fp_is_default = args.type_strain_fasta == p.get_default(
-        "type_strain_fasta"
-    )
-    type_strain_fp_is_missing = not os.path.exists(args.type_strain_fasta)
-    if type_strain_fp_is_default and type_strain_fp_is_missing:
-        download_type_strain_data()
+    os.makedirs(args.db_dir, exist_ok=True)
+    metadata_fp, seqs_fp, ltp_fp = download_type_strain_data(output_dir=args.db_dir)
 
-    with open(args.type_strain_fasta) as f:
+    with open(ltp_fp) as f:
         species_names = dict(parse_species_names(f))
 
     writer = OutputWriter(output_dir, species_names)
@@ -106,9 +102,9 @@ def main(argv=None):
     alignment_query_fp = writer.output_fp("unassigner_query.fasta")
     alignment_output_fp = writer.output_fp("unassigner_query_hits.txt")
     if os.path.exists(alignment_output_fp):
-        a = FileAligner(args.type_strain_fasta, alignment_output_fp)
+        a = FileAligner(ltp_fp, alignment_output_fp)
     else:
-        a = UnassignAligner(args.type_strain_fasta)
+        a = UnassignAligner(ltp_fp)
         a.species_input_fp = alignment_query_fp
         a.species_output_fp = alignment_output_fp
         a.num_cpus = args.num_cpus
