@@ -272,9 +272,4 @@ def align_semiglobal(qseq, sseq):
     alignments = aligner.align(sseq, qseq)
     alignment = alignments[0]
 
-    # Use format to ensure dashes in gaps
-    formatted_alignment = alignment.format("clustal")
-    return (
-        formatted_alignment.splitlines()[1].split()[1],
-        formatted_alignment.splitlines()[0].split()[1],
-    )
+    return alignment[1], alignment[0]
