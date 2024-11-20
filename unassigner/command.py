@@ -27,20 +27,19 @@ def main(argv=None):
         "--output_dir",
         help=(
             "Output directory (default: basename of query sequences FASTA "
-            "file, plus '_unassigned'. Note that it will be in the same "
-            "directory as the query sequences FASTA file)."
+            "file, plus '_unassigned')."
         ),
     )
     p.add_argument(
         "--type_strain_fasta",
         help=(
-            "FASTA file containing sequences of type strains. If not provided, "
+            "DEPRECATED. FASTA file containing sequences of type strains. If not provided, "
             "the default database is used. Note that this WILL NOT DOWNLOAD a new db."
         ),
     )
     p.add_argument(
         "--db_dir",
-        default=".unassigner/",
+        default="~/.unassigner/",
         help=(
             "Directory containing the reference database. If not provided, "
             "the default database is used."
@@ -99,9 +98,12 @@ def main(argv=None):
 
     # Download type strain files if needed
     os.makedirs(args.db_dir, exist_ok=True)
-    _, _, ltp_fp = download_type_strain_data(output_dir=args.db_dir)
+    ltp_fp = download_type_strain_data(output_dir=args.db_dir)
 
     if args.type_strain_fasta is not None:
+        logging.warning(
+            "The --type_strain_fasta argument is deprecated. Please use --db_dir instead."
+        )
         ltp_fp = args.type_strain_fasta
 
     with open(ltp_fp) as f:

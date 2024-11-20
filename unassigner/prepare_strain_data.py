@@ -64,7 +64,9 @@ def main(argv=None):
         help=("Remove all downloaded and processed files."),
     )
     p.add_argument(
-        "--db-dir", default=".autobfx/", help=("Filepath to download the files to.")
+        "--db-dir",
+        default="~/.unassigner/",
+        help=("Filepath to download the files to."),
     )
     args = p.parse_args(argv)
 
@@ -96,6 +98,4 @@ def download_type_strain_data(output_dir=None, metadata_fp=None, seqs_fp=None):
         output_dir = os.getcwd()
     metadata_fp = use_or_download(metadata_fp, LTP_METADATA_URL, output_dir)
     seqs_fp = use_or_download(seqs_fp, LTP_SEQS_URL, output_dir)
-    ltp_fp = process_ltp_seqs(seqs_fp, output_dir)
-
-    return metadata_fp, seqs_fp, ltp_fp
+    return process_ltp_seqs(seqs_fp, output_dir)
