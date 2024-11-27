@@ -91,20 +91,25 @@ def main(argv=None):
 
     query_seqs = list(parse_fasta(args.query_fasta, trim_desc=True))
 
-    if args.output_dir is None:
-        output_dir = os.path.splitext(args.query_fasta.name)[0] + "_unassigned"
-    else:
-        output_dir = args.output_dir
-
     # Download type strain files if needed
-    os.makedirs(args.db_dir, exist_ok=True)
-    ltp_fp = download_type_strain_data(output_dir=args.db_dir)
-
+    # 1. If arg is set, download the file and use it
+    # 2. If default file exists, use it
+    # 3. Otherwise put it in the output directory
     if args.type_strain_fasta is not None:
         logging.warning(
             "The --type_strain_fasta argument is deprecated. Please use --db_dir instead."
         )
         ltp_fp = args.type_strain_fasta
+    elif os.path.exists("unassigner_species.fasta"):
+        ltp_fp = "unassigner_species.fasta"
+    else:
+        if args.output_dir is None:
+            output_dir = os.path.splitext(args.query_fasta.name)[0] + "_unassigned"
+        else:
+            output_dir = args.output_dir
+
+        os.makedirs(args.db_dir, exist_ok=True)
+        ltp_fp = download_type_strain_data(output_dir=args.db_dir)
 
     with open(ltp_fp) as f:
         species_names = dict(parse_species_names(f))
