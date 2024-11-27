@@ -103,16 +103,16 @@ def main(argv=None):
     elif os.path.exists("unassigner_species.fasta"):
         ltp_fp = "unassigner_species.fasta"
     else:
-        if args.output_dir is None:
-            output_dir = os.path.splitext(args.query_fasta.name)[0] + "_unassigned"
-        else:
-            output_dir = args.output_dir
-
         os.makedirs(args.db_dir, exist_ok=True)
         ltp_fp = download_type_strain_data(output_dir=args.db_dir)
 
     with open(ltp_fp) as f:
         species_names = dict(parse_species_names(f))
+
+    if args.output_dir is None:
+        output_dir = os.path.splitext(args.query_fasta.name)[0] + "_unassigned"
+    else:
+        output_dir = args.output_dir
 
     writer = OutputWriter(output_dir, species_names)
 
