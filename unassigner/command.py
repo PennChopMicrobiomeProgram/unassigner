@@ -39,7 +39,7 @@ def main(argv=None):
     )
     p.add_argument(
         "--db_dir",
-        default="~/.unassigner/",
+        default=os.path.expanduser("~/.unassigner/"),
         help=(
             "Directory containing the reference database. If not provided, "
             "the default database is used."
