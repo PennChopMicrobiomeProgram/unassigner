@@ -63,7 +63,11 @@ def main(argv=None):
         action="store_true",
         help=("Remove all downloaded and processed files."),
     )
-    p.add_argument("--db-dir", help=("Filepath to download the files to."))
+    p.add_argument(
+        "--db-dir",
+        default="~/.unassigner/",
+        help=("Filepath to download the files to."),
+    )
     args = p.parse_args(argv)
 
     if args.db_dir:

@@ -27,16 +27,22 @@ def main(argv=None):
         "--output_dir",
         help=(
             "Output directory (default: basename of query sequences FASTA "
-            "file, plus '_unassigned')"
+            "file, plus '_unassigned')."
         ),
     )
     p.add_argument(
         "--type_strain_fasta",
-        default="unassigner_species.fasta",
         help=(
-            "Type strain sequences FASTA file (default: %(default)s). "
-            "If the default file is not found, sequences are downloaded "
-            "and re-formatted automatically."
+            "DEPRECATED. FASTA file containing sequences of type strains. If not provided, "
+            "the default database is used. Note that this WILL NOT DOWNLOAD a new db."
+        ),
+    )
+    p.add_argument(
+        "--db_dir",
+        default=os.path.expanduser("~/.unassigner/"),
+        help=(
+            "Directory containing the reference database. If not provided, "
+            "the default database is used."
         ),
     )
     p.add_argument(
@@ -85,30 +91,37 @@ def main(argv=None):
 
     query_seqs = list(parse_fasta(args.query_fasta, trim_desc=True))
 
+    # Download type strain files if needed
+    # 1. If arg is set, download the file and use it
+    # 2. If default file exists, use it
+    # 3. Otherwise put it in the output directory
+    if args.type_strain_fasta is not None:
+        logging.warning(
+            "The --type_strain_fasta argument is deprecated. Please use --db_dir instead."
+        )
+        ltp_fp = args.type_strain_fasta
+    elif os.path.exists("unassigner_species.fasta"):
+        ltp_fp = "unassigner_species.fasta"
+    else:
+        os.makedirs(args.db_dir, exist_ok=True)
+        ltp_fp = download_type_strain_data(output_dir=args.db_dir)
+
+    with open(ltp_fp) as f:
+        species_names = dict(parse_species_names(f))
+
     if args.output_dir is None:
         output_dir = os.path.splitext(args.query_fasta.name)[0] + "_unassigned"
     else:
         output_dir = args.output_dir
-
-    # Download type strain files if needed
-    type_strain_fp_is_default = args.type_strain_fasta == p.get_default(
-        "type_strain_fasta"
-    )
-    type_strain_fp_is_missing = not os.path.exists(args.type_strain_fasta)
-    if type_strain_fp_is_default and type_strain_fp_is_missing:
-        download_type_strain_data()
-
-    with open(args.type_strain_fasta) as f:
-        species_names = dict(parse_species_names(f))
 
     writer = OutputWriter(output_dir, species_names)
 
     alignment_query_fp = writer.output_fp("unassigner_query.fasta")
     alignment_output_fp = writer.output_fp("unassigner_query_hits.txt")
     if os.path.exists(alignment_output_fp):
-        a = FileAligner(args.type_strain_fasta, alignment_output_fp)
+        a = FileAligner(ltp_fp, alignment_output_fp)
     else:
-        a = UnassignAligner(args.type_strain_fasta)
+        a = UnassignAligner(ltp_fp)
         a.species_input_fp = alignment_query_fp
         a.species_output_fp = alignment_output_fp
         a.num_cpus = args.num_cpus

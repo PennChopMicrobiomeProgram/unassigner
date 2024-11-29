@@ -115,16 +115,6 @@ Step 3: The last part of the software relies on building a database of the seque
 Please see the output of `trimragged --help` for a list of the available
 options.
 
-### Count mismatches
-
-
-
-### Percent ID ANI sample
-
-
-
-Should there also be a command and section for prepare_strain_data?
-
 ## Contributing
 
 We welcome ideas from our users about how to improve this
