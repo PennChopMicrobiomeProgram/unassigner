@@ -1,4 +1,5 @@
 import gzip
+import json
 import os
 import unittest
 import tempfile
@@ -37,6 +38,25 @@ class CommandTests(unittest.TestCase):
         self.assertEqual(result["region_mismatches"], 2)
         self.assertEqual(result["region_positions"], 320)
         self.assertAlmostEqual(result["probability_incompatible"], 0.003, 3)
+
+        metadata_fp = os.path.join(self.dir, "metadata.json")
+        with open(metadata_fp) as f:
+            metadata = json.load(f)
+        expected_keys = {
+            "query_fasta",
+            "output_dir",
+            "type_strain_fasta",
+            "db_dir",
+            "threshold",
+            "ref_mismatch_positions",
+            "num_cpus",
+            "soft_threshold",
+            "verbose",
+        }
+        self.assertEqual(set(metadata.keys()), expected_keys)
+        self.assertEqual(metadata["query_fasta"], self.query_fp)
+        self.assertEqual(metadata["output_dir"], self.dir)
+        self.assertEqual(metadata["type_strain_fasta"], SPECIES_FP)
 
     def test_mismatch_db(self):
         mismatch_fp = os.path.join(self.dir, "mismatch.txt.gz")

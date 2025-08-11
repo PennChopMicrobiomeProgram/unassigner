@@ -1,6 +1,7 @@
 import argparse
 import datetime
 import gzip
+import json
 import logging
 import os
 import pkg_resources
@@ -115,6 +116,17 @@ def main(argv=None):
         output_dir = args.output_dir
 
     writer = OutputWriter(output_dir, species_names)
+
+    metadata = {}
+    for key, val in vars(args).items():
+        if hasattr(val, "name"):
+            metadata[key] = val.name
+        else:
+            metadata[key] = val
+    metadata["output_dir"] = output_dir
+    metadata_fp = writer.output_fp("metadata.json")
+    with open(metadata_fp, "w") as f:
+        json.dump(metadata, f)
 
     alignment_query_fp = writer.output_fp("unassigner_query.fasta")
     alignment_output_fp = writer.output_fp("unassigner_query_hits.txt")
