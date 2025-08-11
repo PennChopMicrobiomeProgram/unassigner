@@ -4,7 +4,7 @@ FROM condaforge/mambaforge:latest
 WORKDIR /unassigner
 
 COPY unassigner/ /unassigner/unassigner/
-COPY README.md requirements.txt setup.py /unassigner/
+COPY README.md pyproject.toml /unassigner/
 
 # Install environment
 RUN mamba create --name unassigner -c conda-forge -c bioconda vsearch
@@ -14,9 +14,7 @@ ENV PATH="/opt/conda/envs/unassigner/bin/:${PATH}"
 # "Activate" the environment
 SHELL ["conda", "run", "--no-capture-output", "-n", "unassigner", "/bin/bash", "-c"]
 
-RUN pip install /unassigner/
-
-RUN echo "Python: $(python --version), Conda: $(conda --version), Vsearch: $(vsearch --help)" > installed_packages.txt
+RUN pip install --no-cache-dir /unassigner/
 
 # Run
 CMD "bash"

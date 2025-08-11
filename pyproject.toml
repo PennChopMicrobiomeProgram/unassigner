@@ -1,0 +1,43 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "unassigner"
+version = "1.1.0"
+description = "Bacterial species unassigner"
+readme = "README.md"
+authors = [{name = "Kyle Bittinger", email = "kylebittinger@gmail.com"}]
+license = {text = "GPL-2.0-or-later"}
+requires-python = ">=3.9"
+dependencies = [
+    "biopython",
+    "scipy",
+]
+classifiers = [
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: GNU General Public License v2 or later (GPLv2+)",
+    "Operating System :: POSIX :: Linux",
+    "Operating System :: MacOS :: MacOS X",
+    "Programming Language :: Python :: 3",
+    "Topic :: Scientific/Engineering :: Bio-Informatics",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "pytest-cov",
+    "black",
+]
+
+[project.urls]
+Homepage = "https://github.com/kylebittinger/unassigner"
+
+[project.scripts]
+unassign = "unassigner.command:main"
+trimragged = "unassigner.trim:main"
+count_mismatches = "unassigner.mismatch_db:main"
+pctid_ani_sample = "unassigner.ani:main_sampling"
+
+[tool.setuptools.packages.find]
+include = ["unassigner"]
