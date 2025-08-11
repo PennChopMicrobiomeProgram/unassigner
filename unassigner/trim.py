@@ -203,7 +203,7 @@ class AlignmentMatcher(Matcher):
             seqs.get_unmatched_recs(),
             input_fp=query_fp,
             output_fp=result_fp,
-            **search_args
+            **search_args,
         )
 
         # Refine
