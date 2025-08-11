@@ -4,7 +4,7 @@ FROM condaforge/mambaforge:latest
 WORKDIR /unassigner
 
 COPY unassigner/ /unassigner/unassigner/
-COPY README.md requirements.txt setup.py /unassigner/
+COPY README.md requirements.txt pyproject.toml /unassigner/
 
 # Install environment
 RUN mamba create --name unassigner -c conda-forge -c bioconda vsearch

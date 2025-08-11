@@ -3,7 +3,7 @@ import datetime
 import gzip
 import logging
 import os
-import pkg_resources
+from importlib.metadata import version as _pkg_version
 
 from unassigner.algorithm import (
     UnassignAligner,
@@ -15,7 +15,7 @@ from unassigner.parse import parse_fasta, parse_species_names
 from unassigner.prepare_strain_data import download_type_strain_data
 
 
-__version__ = pkg_resources.get_distribution("unassigner").version
+__version__ = _pkg_version("unassigner")
 
 
 def main(argv=None):
