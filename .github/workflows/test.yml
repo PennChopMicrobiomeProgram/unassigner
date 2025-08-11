@@ -27,9 +27,11 @@ jobs:
           python -m pip install .
 
       - name: Run tests and collect coverage
+        shell: bash -el {0}
         run: pytest --cov tests
 
       - name: Upload coverage to Codecov
+        shell: bash -el {0}
         uses: codecov/codecov-action@v3
 
   tests:
@@ -55,7 +57,9 @@ jobs:
           pip install .[dev]
 
       - name: Lint
+        shell: bash -el {0}
         run: black --check .
 
       - name: Run tests
+        shell: bash -el {0}
         run: pytest -s -vvvv -l --tb=long tests
