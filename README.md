@@ -6,7 +6,7 @@
 [![codecov](https://codecov.io/gh/PennChopMicrobiomeProgram/unassigner/graph/badge.svg?token=LAFU84K088)](https://codecov.io/gh/PennChopMicrobiomeProgram/unassigner)
 [![PyPI](https://badge.fury.io/py/unassigner.svg)](https://pypi.org/project/unassigner/)
 [![Bioconda](https://anaconda.org/bioconda/unassigner/badges/downloads.svg)](https://anaconda.org/bioconda/unassigner/)
-[![DockerHub](https://img.shields.io/docker/pulls/ctbushman/unassigner)](https://hub.docker.com/repository/docker/ctbushman/unassigner/)
+[![DockerHub](https://img.shields.io/docker/pulls/chopmicrobiome/unassigner)](https://hub.docker.com/repository/docker/chopmicrobiome/unassigner/)
 <!-- End badges -->
 
 Evaluate consistency with named bacterial species for short 16S rRNA
@@ -58,7 +58,7 @@ conda create --name unassigner -c conda-forge -c bioconda unassigner
 Or run with Docker using:
 
 ```bash
-docker run --rm -it ctbushman/unassigner:latest unassign --help
+docker run --rm -it chopmicrobiome/unassigner:latest unassign --help
 ```
 
 ### Alternative Installation
