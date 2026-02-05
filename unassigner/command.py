@@ -14,7 +14,6 @@ from unassigner.algorithm import (
 from unassigner.parse import parse_fasta, parse_species_names
 from unassigner.prepare_strain_data import download_type_strain_data
 
-
 __version__ = _pkg_version("unassigner")
 
 
