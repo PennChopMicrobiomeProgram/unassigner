@@ -92,7 +92,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ctbushman/unassigner
+          images: chopmicrobiome/unassigner
       
       - name: Build and push Docker image
         uses: docker/build-push-action@v6
@@ -101,4 +101,5 @@ jobs:
           file: ./Dockerfile
           push: true
           tags: ${{ steps.meta.outputs.tags }}
+
           labels: ${{ steps.meta.outputs.labels }}
