@@ -3,7 +3,7 @@ import datetime
 import gzip
 import logging
 import os
-from importlib.metadata import version as _pkg_version
+from importlib.metadata import PackageNotFoundError, version as _pkg_version
 
 from unassigner.algorithm import (
     UnassignAligner,
@@ -14,7 +14,10 @@ from unassigner.algorithm import (
 from unassigner.parse import parse_fasta, parse_species_names
 from unassigner.prepare_strain_data import download_type_strain_data
 
-__version__ = _pkg_version("unassigner")
+try:
+    __version__ = _pkg_version("unassigner")
+except PackageNotFoundError:
+    __version__ = "0+unknown"
 
 
 def main(argv=None):

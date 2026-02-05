@@ -54,18 +54,22 @@ def parse_fasta(f, trim_desc=False):
 
 
 def parse_desc(desc):
-    try:
-        arr = desc.split("|")
+    arr = desc.split("|")
+    if len(arr) >= 4:
         accession = arr[2]
         species_name = arr[3]
-        # This is the old way of parsing the description, 01_2022
-        # accession = re.findall(r"\[accession=(.*?)\]", desc)[0]
-        # species_name = re.findall(r"\[organism=(.*?)\]", desc)[0]
-    except IndexError:
-        logging.error(f"Couldn't find accession and/or organism identifier in {desc}")
-        logging.error(f"Skipping this sequence...")
-        return None, None
-    return accession, species_name
+        return accession, species_name
+
+    desc = desc.lstrip(">").strip()
+    toks = desc.split()
+    if len(toks) >= 2:
+        accession = toks[0]
+        species_name = " ".join(toks[1:])
+        return accession, species_name
+
+    logging.error(f"Couldn't find accession and/or organism identifier in {desc}")
+    logging.error("Skipping this sequence...")
+    return None, None
 
 
 def write_fasta(f, seqs):

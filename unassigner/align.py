@@ -30,6 +30,48 @@ BLAST_FIELD_TYPES = [
 ]
 
 
+def _hit_stats(aligned_qseq, aligned_sseq):
+    matches = 0
+    mismatches = 0
+    gapopen = 0
+    in_gap = False
+    for qbase, sbase in zip(aligned_qseq, aligned_sseq):
+        if qbase == "-" or sbase == "-":
+            if not in_gap:
+                gapopen += 1
+                in_gap = True
+            continue
+        in_gap = False
+        if qbase == sbase:
+            matches += 1
+        else:
+            mismatches += 1
+    alnlen = len(aligned_qseq)
+    pident = (matches / alnlen) * 100 if alnlen else 0.0
+
+    q_positions = [i for i, base in enumerate(aligned_qseq) if base != "-"]
+    s_positions = [i for i, base in enumerate(aligned_sseq) if base != "-"]
+    qstart = q_positions[0] + 1
+    qend = q_positions[-1] + 1
+    sstart = s_positions[0] + 1
+    send = s_positions[-1] + 1
+    qlen = len(q_positions)
+    slen = len(s_positions)
+
+    return {
+        "pident": pident,
+        "length": alnlen,
+        "mismatch": mismatches,
+        "gapopen": gapopen,
+        "qstart": qstart,
+        "qend": qend,
+        "sstart": sstart,
+        "send": send,
+        "qlen": qlen,
+        "slen": slen,
+    }
+
+
 class Aligner(abc.ABC):
     def __init__(self, ref_seqs_fp):
         self.ref_seqs_fp = ref_seqs_fp
@@ -75,7 +117,7 @@ class VsearchAligner(Aligner):
 
     def make_reference_udb(self):
         if os.path.exists(self.ref_seqs_udb_fp):
-            return
+            return True
         args = [
             "vsearch",
             "--makeudb_usearch",
@@ -83,7 +125,11 @@ class VsearchAligner(Aligner):
             "--output",
             self.ref_seqs_udb_fp,
         ]
-        return subprocess.check_call(args)
+        try:
+            subprocess.check_call(args)
+            return True
+        except FileNotFoundError:
+            return False
 
     @staticmethod
     def _index(fasta_fp):
@@ -96,7 +142,10 @@ class VsearchAligner(Aligner):
         argument here as min_id.
         """
         if not os.path.exists(self.ref_seqs_udb_fp):
-            self.make_reference_udb()
+            has_vsearch = self.make_reference_udb()
+            if not has_vsearch:
+                self._fallback_call(query_fp, output_fp, min_id=min_id, **kwargs)
+                return
         args = [
             "vsearch",
             "--usearch_global",
@@ -118,7 +167,52 @@ class VsearchAligner(Aligner):
                 args.append(arg)
             else:
                 args += [arg, str(val)]
-        subprocess.check_call(args, stderr=subprocess.DEVNULL)
+        try:
+            subprocess.check_call(args, stderr=subprocess.DEVNULL)
+        except FileNotFoundError:
+            self._fallback_call(query_fp, output_fp, min_id=min_id, **kwargs)
+
+    def _fallback_call(self, query_fp, output_fp, min_id=0.5, **kwargs):
+        top_hits_only = "top_hits_only" in kwargs or kwargs.get("maxaccepts") == 1
+        with open(query_fp) as qf:
+            query_recs = list(parse_fasta(qf, trim_desc=True))
+        with open(self.ref_seqs_fp) as sf:
+            subject_recs = list(parse_fasta(sf, trim_desc=True))
+
+        with open(output_fp, "w") as out:
+            for query_id, query_seq in query_recs:
+                query_hits = []
+                for subject_id, subject_seq in subject_recs:
+                    aligned_qseq, aligned_sseq = align_semiglobal(
+                        query_seq, subject_seq
+                    )
+                    stats = _hit_stats(aligned_qseq, aligned_sseq)
+                    if (stats["pident"] / 100) < min_id:
+                        continue
+                    hit = [
+                        query_id,
+                        subject_id,
+                        stats["pident"],
+                        stats["length"],
+                        stats["mismatch"],
+                        stats["gapopen"],
+                        stats["qstart"],
+                        stats["qend"],
+                        stats["sstart"],
+                        stats["send"],
+                        stats["qlen"],
+                        stats["slen"],
+                        aligned_qseq,
+                        aligned_sseq,
+                    ]
+                    query_hits.append(hit)
+
+                query_hits.sort(key=lambda h: (h[2], h[3]), reverse=True)
+                if top_hits_only and query_hits:
+                    query_hits = [query_hits[0]]
+                for hit in query_hits:
+                    out.write("\t".join(str(v) for v in hit))
+                    out.write("\n")
 
 
 class BlastAligner(Aligner):
