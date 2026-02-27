@@ -19,9 +19,7 @@ __version__ = _pkg_version("unassigner")
 
 def main(argv=None):
     p = argparse.ArgumentParser()
-    p.add_argument(
-        "query_fasta", help="Query sequences FASTA file"
-    )
+    p.add_argument("query_fasta", help="Query sequences FASTA file")
     p.add_argument(
         "--output_dir",
         help=(

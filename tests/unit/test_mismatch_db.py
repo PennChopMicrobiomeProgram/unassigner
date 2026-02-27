@@ -28,7 +28,9 @@ class MismatchLocationAppTests(unittest.TestCase):
 
     def test_mismatch_location_app(self):
         output_file = io.StringIO()
-        app = MismatchLocationApp(self.species_seqs, self.oral_reference_fp, output_file)
+        app = MismatchLocationApp(
+            self.species_seqs, self.oral_reference_fp, output_file
+        )
         app.run()
         self.assertEqual(output_file.getvalue(), oral_mismatches)
 
