@@ -14,9 +14,9 @@ from unassigner.align import VsearchAligner
 
 class MismatchLocationApp:
     def __init__(
-        self, species_file, ref_fp, mismatch_file, batch_size=10, num_cpus=None
+        self, typestrain_seqs, ref_fp, mismatch_file, batch_size=10, num_cpus=None
     ):
-        self.typestrain_seqs = list(parse_fasta(species_file, trim_desc=True))
+        self.typestrain_seqs = typestrain_seqs
         self.reference_fasta_fp = ref_fp
         self.mismatch_file = mismatch_file
 
@@ -230,7 +230,6 @@ def main(argv=None):
     p.add_argument(
         "type_strain_fasta",
         metavar="type-strain-fasta",
-        type=argparse.FileType("r"),
         help="Type strain sequences FASTA file",
     )
     p.add_argument(
@@ -241,7 +240,6 @@ def main(argv=None):
     p.add_argument(
         "output_file",
         metavar="output-file",
-        type=argparse.FileType("w"),
         help="Otuput file path",
     )
 
@@ -260,13 +258,14 @@ def main(argv=None):
         help="Number of CPUs to use in search (default: all the CPUs)",
     )
     args = p.parse_args(argv)
-
-    app = MismatchLocationApp(
-        args.type_strain_fasta,
-        args.reference_fasta,
-        args.output_file,
-        batch_size=args.batch_size,
-        num_cpus=args.num_cpus,
-    )
-    app.run()
-    args.output_file.close()
+    with open(args.type_strain_fasta, "r") as f:
+        typestrain_seqs = list(parse_fasta(f, trim_desc=True))
+    with open(args.output_file, "w") as f:
+        app = MismatchLocationApp(
+            typestrain_seqs,
+            args.reference_fasta,
+            f,
+            batch_size=args.batch_size,
+            num_cpus=args.num_cpus,
+        )
+        app.run()
