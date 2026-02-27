@@ -313,13 +313,9 @@ def main(argv=None):
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     p.add_argument("query", help="Query sequence to search and trim")
-    p.add_argument("--input_file", type=argparse.FileType("r"), default=sys.stdin)
-    p.add_argument(
-        "--trimmed_output_file", type=argparse.FileType("w"), default=sys.stdout
-    )
-    p.add_argument(
-        "--stats_output_file", type=argparse.FileType("w"), default=sys.stderr
-    )
+    p.add_argument("--input_file")
+    p.add_argument("--output_file")
+    p.add_argument("--stats_file")
 
     # Matching parameters
     p.add_argument(
@@ -382,8 +378,12 @@ def main(argv=None):
 
     args = p.parse_args(argv)
 
-    seqs = TrimmableSeqs.from_fasta(args.input_file)
-    writer = Writer(args.trimmed_output_file, args.stats_output_file)
+    f_in = open(args.input_file, "r") if args.input_file else sys.stdin
+    f_out = open(args.output_file, "w") if args.output_file else sys.stdout
+    f_stats = open(args.stats_file, "w") if args.stats_file else sys.stderr
+
+    seqs = TrimmableSeqs.from_fasta(f_in)
+    writer = Writer(f_out, f_stats)
     app = TrimraggedApp(seqs, args.trim_right, writer, args.min_trimmed_length)
 
     queryset = deambiguate(args.query)
