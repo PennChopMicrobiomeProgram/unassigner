@@ -267,8 +267,15 @@ def align_semiglobal(qseq, sseq):
     aligner.mismatch_score = -4
     aligner.open_gap_score = -10
     aligner.extend_gap_score = -0.5
-    aligner.end_open_gap_score = 0
-    aligner.end_extend_gap_score = 0
+    # Attributes changed in biopython 186
+    try:
+        aligner.open_end_gap_score = 0
+    except AttributeError:
+        aligner.end_open_gap_score = 0
+    try:
+        aligner.extend_end_gap_score = 0
+    except AttributeError:
+        aligner.end_extend_gap_score = 0
     alignments = aligner.align(sseq, qseq)
     alignment = alignments[0]
 

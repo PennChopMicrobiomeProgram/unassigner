@@ -19,9 +19,7 @@ __version__ = _pkg_version("unassigner")
 
 def main(argv=None):
     p = argparse.ArgumentParser()
-    p.add_argument(
-        "query_fasta", type=argparse.FileType("r"), help="Query sequences FASTA file"
-    )
+    p.add_argument("query_fasta", help="Query sequences FASTA file")
     p.add_argument(
         "--output_dir",
         help=(
@@ -88,7 +86,8 @@ def main(argv=None):
 
     logging.info(f"Starting at {datetime.datetime.now()}")
 
-    query_seqs = list(parse_fasta(args.query_fasta, trim_desc=True))
+    with open(args.query_fasta, "r") as f:
+        query_seqs = list(parse_fasta(f, trim_desc=True))
 
     # Download type strain files if needed
     # 1. If arg is set, download the file and use it

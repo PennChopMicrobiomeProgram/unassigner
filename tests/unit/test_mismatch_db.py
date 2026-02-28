@@ -7,6 +7,7 @@ from unassigner.mismatch_db import (
     MismatchLocationApp,
     main,
     group_by_n,
+    parse_fasta,
 )
 
 DATA_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)), "data")
@@ -15,6 +16,8 @@ DATA_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)), "data")
 class MismatchLocationAppTests(unittest.TestCase):
     def setUp(self):
         self.oral_species_fp = os.path.join(DATA_DIR, "oral_species.fasta")
+        with open(self.oral_species_fp, "r") as f:
+            self.species_seqs = list(parse_fasta(f, trim_desc=True))
         self.oral_reference_fp = os.path.join(DATA_DIR, "oral_refs.fasta")
         self.dir = tempfile.mkdtemp()
 
@@ -25,9 +28,10 @@ class MismatchLocationAppTests(unittest.TestCase):
 
     def test_mismatch_location_app(self):
         output_file = io.StringIO()
-        with open(self.oral_species_fp) as species_file:
-            app = MismatchLocationApp(species_file, self.oral_reference_fp, output_file)
-            app.run()
+        app = MismatchLocationApp(
+            self.species_seqs, self.oral_reference_fp, output_file
+        )
+        app.run()
         self.assertEqual(output_file.getvalue(), oral_mismatches)
 
     def test_mismatch_command_line(self):
@@ -45,11 +49,10 @@ class MismatchLocationAppTests(unittest.TestCase):
 
     def test_mismatch_location_app_batch_size(self):
         output_file = io.StringIO()
-        with open(self.oral_species_fp) as species_file:
-            app = MismatchLocationApp(
-                species_file, self.oral_reference_fp, output_file, batch_size=2
-            )
-            app.run()
+        app = MismatchLocationApp(
+            self.species_seqs, self.oral_reference_fp, output_file, batch_size=2
+        )
+        app.run()
         self.assertEqual(output_file.getvalue(), oral_mismatches)
 
 
