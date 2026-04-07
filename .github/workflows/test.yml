@@ -15,13 +15,12 @@ jobs:
 
       - uses: conda-incubator/setup-miniconda@v3
         with:
-          auto-update-conda: true
-          python-version: '3.13'
+          environment-file: environment.yml
+          activate-environment: unassigner
 
       - name: Install dependencies
         shell: bash -el {0}
         run: |
-          conda install -c bioconda vsearch=2.30.0
           pip install .[dev]
 
       - name: Run tests and collect coverage
@@ -36,7 +35,7 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        python-version: ['3.9', '3.10', '3.11', '3.12', '3.13']
+        python-version: ['3.10', '3.11', '3.12', '3.13', '3.14']
     runs-on: ubuntu-latest
 
     steps:
@@ -44,13 +43,12 @@ jobs:
 
       - uses: conda-incubator/setup-miniconda@v3
         with:
-          auto-update-conda: true
-          python-version: ${{ matrix.python-version }}
+          environment-file: environment.yml
+          activate-environment: unassigner
 
       - name: Install dependencies
         shell: bash -el {0}
         run: |
-          conda install -c bioconda vsearch=2.30.0
           pip install .[dev]
 
       - name: Lint
