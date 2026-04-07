@@ -39,5 +39,3 @@ trimragged = "unassigner.trim:main"
 count_mismatches = "unassigner.mismatch_db:main"
 pctid_ani_sample = "unassigner.ani:main_sampling"
 
-[tool.setuptools.packages.find]
-include = ["unassigner"]
