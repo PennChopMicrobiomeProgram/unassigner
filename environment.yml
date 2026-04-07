@@ -1,0 +1,8 @@
+name: unassigner
+channels:
+  - bioconda
+  - defaults
+dependencies:
+  - python>=3.14
+  - vsearch >= 2.30.5
+
